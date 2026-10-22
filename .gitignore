@@ -4,3 +4,4 @@ scratch-data/
 *.keystore
 .gstack/
 dist/
+backups/
