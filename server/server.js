@@ -147,7 +147,8 @@ every('weather', 10 * 60_000, async () => {
   const q = new URLSearchParams({
     latitude: CITY.lat, longitude: CITY.lon, timezone: TZ, forecast_days: '2',
     current: 'temperature_2m,weather_code,is_day',
-    daily: 'sunrise,sunset,temperature_2m_max,temperature_2m_min',
+    hourly: 'precipitation_probability,precipitation,weather_code',
+    daily: 'sunrise,sunset,temperature_2m_max,temperature_2m_min,weather_code',
   });
   const d = await getJson(`https://api.open-meteo.com/v1/forecast?${q}`);
   state.weather = {
@@ -160,7 +161,72 @@ every('weather', 10 * 60_000, async () => {
     sunrise: d.daily.sunrise, // local ISO without offset, [today, tomorrow]
     sunset: d.daily.sunset,
   };
+  state.raw = d;
 });
+
+// "> погода" forecast line: morning → today, afternoon → until evening, evening/night → tomorrow.
+const SNOW = new Set([71, 73, 75, 77, 85, 86]);
+function forecast() {
+  const d = state.raw;
+  if (!d) return null;
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date()).map((p) => [p.type, p.value]));
+  const hour = Number(parts.hour);
+  const today = `${parts.year}-${parts.month}-${parts.day}`;
+  const tomorrow = d.daily.time[1];
+  let label, day, from, to;
+  if (hour >= 5 && hour < 11) [label, day, from, to] = ['сьогодні', today, hour, 23];
+  else if (hour >= 11 && hour < 17) [label, day, from, to] = ['до вечора', today, hour, 22];
+  else [label, day, from, to] = ['завтра', hour < 5 ? today : tomorrow, 6, 23];
+  const di = d.daily.time.indexOf(day);
+  const wet = [];
+  d.hourly.time.forEach((t, i) => {
+    const [date, hh] = t.split('T');
+    const h = Number(hh.slice(0, 2));
+    if (date !== day || h < from || h > to) return;
+    if ((d.hourly.precipitation_probability[i] ?? 0) >= 50 || (d.hourly.precipitation[i] ?? 0) >= 0.3) wet.push({ h, snow: SNOW.has(d.hourly.weather_code[i]) });
+  });
+  const out = { label, max: Math.round(d.daily.temperature_2m_max[di]), min: Math.round(d.daily.temperature_2m_min[di]), text: WMO[d.daily.weather_code[di]] ?? '' };
+  if (wet.length) {
+    const snow = wet.filter((w) => w.snow).length > wet.length / 2;
+    out.precip = { kind: snow ? 'сніг' : 'дощ', from: wet[0].h, to: wet[wet.length - 1].h + 1 };
+    out.advice = snow ? 'одягнись тепліше' : 'візьми парасолю';
+  } else {
+    const code = d.daily.weather_code[di];
+    // light precipitation the hourly odds don't call likely: mention it, keep the umbrella optional
+    out.advice = out.max <= 0 ? 'одягнись тепліше' : code >= 51 ? 'парасолю про запас' : 'без опадів';
+  }
+  return out;
+}
+
+// Pi health: the host's sensors are visible through the container's read-only /sys and /proc.
+function readNum(file) {
+  try { return Number(fs.readFileSync(file, 'utf8').trim()); } catch { return null; }
+}
+function hwmonTemp(name) {
+  try {
+    for (const h of fs.readdirSync('/sys/class/hwmon')) {
+      const base = `/sys/class/hwmon/${h}`;
+      if (fs.readFileSync(`${base}/name`, 'utf8').trim() === name) return readNum(`${base}/temp1_input`) / 1000;
+    }
+  } catch {}
+  return null;
+}
+function piStatus() {
+  const mem = {};
+  try {
+    for (const line of fs.readFileSync('/proc/meminfo', 'utf8').split('\n')) {
+      const m = /^(\w+):\s+(\d+)/.exec(line);
+      if (m) mem[m[1]] = Number(m[2]);
+    }
+  } catch {}
+  const up = (() => { try { return Number(fs.readFileSync('/proc/uptime', 'utf8').split(' ')[0]); } catch { return null; } })();
+  return {
+    cpu: hwmonTemp('cpu_thermal'),
+    disk: hwmonTemp('nvme'),
+    ram: mem.MemTotal ? Math.round((1 - mem.MemAvailable / mem.MemTotal) * 100) : null,
+    uptimeSec: up,
+  };
+}
 
 function snapshot() {
   let { alerts } = state;
@@ -177,6 +243,8 @@ function snapshot() {
     now: new Date().toISOString(),
     city: CITY.name,
     weather: state.weather,
+    forecast: forecast(),
+    pi: piStatus(),
     alerts,
     threats: state.threats,
     counts,

@@ -239,6 +239,30 @@
       else if (now < rise) $('sun-text').textContent = 'схід о ' + hhmm(rise) + ' · захід о ' + hhmm(set);
       else $('sun-text').textContent = 'сонце до ' + hhmm(set) + ' · схід був о ' + hhmm(rise);
     }
+    var fc = data.forecast;
+    if (fc) {
+      var t = fc.label + ' ' + fc.max + '°/' + fc.min + '°';
+      if (fc.precip) t += ' · ' + fc.precip.kind + ' з ' + pad(fc.precip.from) + ':00 до ' + pad(fc.precip.to % 24) + ':00 · ' + fc.advice;
+      else t += ' · ' + fc.text + ' · ' + fc.advice;
+      $('fc-text').textContent = t;
+      $('fc-dot').className = 'dot ' + (fc.precip ? 'blue' : 'amber');
+    }
+    var pi = data.pi;
+    if (pi && pi.cpu != null) {
+      var bits = ['CPU ' + Math.round(pi.cpu) + '°'];
+      if (pi.disk != null) bits.push('SSD ' + Math.round(pi.disk) + '°');
+      if (pi.ram != null) bits.push('RAM ' + pi.ram + '%');
+      if (pi.uptimeSec != null) {
+        var days = Math.floor(pi.uptimeSec / 86400), hrs = Math.floor(pi.uptimeSec / 3600);
+        bits.push('аптайм ' + (days >= 1 ? days + ' д' : hrs + ' год'));
+      }
+      $('pi-text').textContent = bits.join(' · ');
+      // SSD overheating is what used to freeze the Pi; CPU throttles at 80–85°.
+      var level = (pi.disk >= 75 || pi.cpu >= 80) ? 'hot' : (pi.disk >= 65 || pi.cpu >= 72) ? 'warn' : '';
+      $('pi-dot').className = 'dot ' + level;
+    } else {
+      $('pi-text').textContent = 'pi: немає даних';
+    }
     var a = data.alerts && data.alerts.city;
     var line = $('alert-line');
     if (!data.alerts) {

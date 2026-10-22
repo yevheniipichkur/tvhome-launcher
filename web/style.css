@@ -75,7 +75,7 @@ button { font: inherit; color: inherit; background: none; border: 0; outline: no
 .clock { font-size: 146px; font-weight: 400; line-height: 0.95; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .date-col { font-size: 21px; line-height: 1.6; white-space: nowrap; }
 
-.log { margin-top: 22px; font-size: 28px; line-height: 1.55; }
+.log { margin-top: 18px; font-size: 26px; line-height: 1.5; }
 .line { display: flex; align-items: center; gap: 16px; white-space: nowrap; }
 .line.prompt { color: var(--muted); }
 .dot { width: 16px; height: 16px; border-radius: 50%; background: var(--green); flex: none; box-shadow: 0 0 12px rgba(127, 191, 106, .5); }
@@ -277,7 +277,7 @@ button { font: inherit; color: inherit; background: none; border: 0; outline: no
 .intro .log .line:nth-child(4) { animation-delay: 1.15s; }
 .intro .log .line:nth-child(5) { animation-delay: 1.3s; }
 .intro .log .line:nth-child(6) { animation-delay: 1.45s; }
-.intro .input { animation: rise .6s 1.6s var(--ease-out) backwards; }
+.intro .input { animation: rise .6s 2.05s var(--ease-out) backwards; }
 .intro .sky { animation: pop .9s .3s var(--ease-out) backwards; }
 .intro .map .raion { animation: fade .5s ease backwards; }
 .intro .map .labels, .intro .map .oblasts { animation: fade 1s 1.4s ease backwards; }
@@ -304,3 +304,11 @@ button { font: inherit; color: inherit; background: none; border: 0; outline: no
 .sky-bg .danger { position: absolute; inset: 0; opacity: 0; background: radial-gradient(120% 90% at 50% 110%, rgba(229,70,60,.32), transparent 60%); transition: opacity 2s; }
 body.danger .sky-bg .danger { opacity: 1; animation: danger 2.4s ease-in-out infinite; }
 @keyframes danger { 50% { opacity: .35; } }
+
+.dot.blue { background: #6fa8dc; box-shadow: 0 0 12px rgba(111,168,220,.55); }
+.dot.warn { background: #e6b94a; box-shadow: 0 0 12px rgba(230,185,74,.55); }
+.dot.hot { background: var(--red); box-shadow: 0 0 16px rgba(229,88,79,.8); animation: pulse 1.2s ease-in-out infinite; }
+#fc-text b, #pi-text b { font-weight: 700; color: #fff; }
+.intro .log .line:nth-child(7) { animation-delay: 1.6s; }
+.intro .log .line:nth-child(8) { animation-delay: 1.75s; }
+.intro .log .line:nth-child(9) { animation-delay: 1.9s; }
