@@ -118,6 +118,7 @@
   }
 
   // label nudges (map units) so names don't collide with each other or the Lviv marker
+  var labelEls = {};
   var LABEL_OFF = { 'м. Київ': [0, -8], 'Львівська область': [-4, 20], 'Тернопільська область': [4, 14], 'Хмельницька область': [12, -6], 'Київська область': [0, 8], 'Івано-Франківська область': [0, 4] };
   function drawMap() {
     map.setAttribute('viewBox', '-1 -1 ' + (geo.width + 2) + ' ' + (geo.height + 2));
@@ -133,11 +134,13 @@
       var city = o.name === 'м. Київ' || o.name === 'Севастополь';
       oblastEls[o.name] = el('path', { d: o.d, 'class': city ? 'raion city' : 'oblast' }, city ? gr : go);
     });
+    geo.oblasts.forEach(function (o) { if (o.name === 'Львівська область') el('path', { d: o.d, 'class': 'home-oblast' }, map); });
     var gl = el('g', { 'class': 'labels' }, map);
     geo.oblasts.forEach(function (o) {
       if (o.name === 'Севастополь') return;
       var off = LABEL_OFF[o.name] || [0, 0];
       var t = el('text', { x: o.label[0] + off[0], y: o.label[1] + off[1] }, gl);
+      labelEls[o.name] = t;
       t.textContent = o.name === 'м. Київ' ? 'м. Київ' : o.short;
     });
     // Moving things live in an HTML layer above the static SVG: animating them inside the SVG
@@ -177,9 +180,15 @@
       if (!b) {
         b = badgeEls[o.name] = document.createElement('span');
         b.className = 'badge';
-        var off = LABEL_OFF[o.name] || [0, 0];
-        var x = box.ox + (o.label[0] + off[0]) * box.k, y = box.oy + (o.label[1] + off[1]) * box.k;
-        b.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + (y + 4).toFixed(1) + 'px,0)';
+        var lab = labelEls[o.name], x, y;
+        if (lab) {
+          var bb = lab.getBBox();
+          x = box.ox + (bb.x + bb.width) * box.k + 18;
+          y = box.oy + (bb.y + bb.height / 2) * box.k - 11;
+        } else {
+          x = box.ox + o.label[0] * box.k; y = box.oy + o.label[1] * box.k;
+        }
+        b.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0)';
         threatLayer.appendChild(b);
       }
       if (b.textContent !== String(n)) b.textContent = n;
@@ -491,7 +500,7 @@
   function items(z) {
     if (z === 'dock') return $('track') ? $('track').children : [];
     if (z === 'corner') return document.querySelectorAll('.corner .round');
-    if (z === 'player') return document.querySelectorAll('#player .pl-btn');
+    if (z === 'player') return Array.prototype.filter.call(document.querySelectorAll('#player .pl-btn'), function (b) { return b.offsetParent !== null; });
     return $('grid').children;
   }
   // The dock scrolls so the focused tile stays in view; the glint follows it.
@@ -599,11 +608,11 @@
     if (k === 'ArrowRight' || code === 22) idx[zone]++;
     else if (k === 'ArrowLeft' || code === 21) idx[zone]--;
     else if (k === 'ArrowUp' || code === 19) {
-      if (zone === 'dock') { zone = 'player'; idx.player = 1; }
+      if (zone === 'dock') { zone = 'player'; idx.player = $('player').classList.contains('last') ? 0 : 1; }
       else if (zone === 'player') zone = 'corner';
       else if (zone === 'grid') idx.grid = idx.grid >= COLS ? idx.grid - COLS : idx.grid;
     } else if (k === 'ArrowDown' || code === 20) {
-      if (zone === 'corner') { zone = 'player'; idx.player = 1; }
+      if (zone === 'corner') { zone = 'player'; idx.player = $('player').classList.contains('last') ? 0 : 1; }
       else if (zone === 'player') zone = 'dock';
       else if (zone === 'grid' && idx.grid + COLS < list.length) idx.grid += COLS;
     } else if (k === 'Enter' || code === 13 || code === 23) {
