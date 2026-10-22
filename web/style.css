@@ -557,3 +557,10 @@ body.alarm .fly .badge { transform-origin: 0 0; }
 
 .map-clip { overflow: hidden; border-radius: 8px; margin: 4px 0 2px; }
 .map-clip .map-wrap { margin: 0; }
+
+/* alerted communities (громади) on top of their district */
+.map .comm { stroke: rgba(0,0,0,.25); stroke-width: .5; stroke-linejoin: round; }
+.map .comm.alert { fill: #d6a635; }
+.map .comm.red { fill: #e2695a; }
+.map .comm.long { fill: #8e3128; }
+.map .raions.base .raion { stroke: none; }

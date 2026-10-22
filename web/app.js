@@ -114,17 +114,25 @@
   function drawMap() {
     map.setAttribute('viewBox', '-1 -1 ' + (geo.width + 2) + ' ' + (geo.height + 2));
     map.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-    var gr = el('g', { 'class': 'raions' }, map);
-    geo.raions.forEach(function (r) {
-      var e = el('path', { d: r.d, 'class': 'raion' }, gr);
-      raionEls.push({ key: r.key, oblast: r.key.split('|')[0], el: e });
-    });
-    // Kyiv city and Sevastopol have no raions in the set: draw them as their own areas.
-    var go = el('g', { 'class': 'oblasts' }, map);
+    // ukrainealarm geometry: districts filled, oblasts outlined; oblasts without districts
+    // (м. Київ, Крим) are filled as a whole; alerted communities are drawn on top.
+    // base: whole oblasts filled, so cities that are communities (Kharkiv, Dnipro…) and gaps never show as holes
+    var gb = el('g', { 'class': 'raions base' }, map);
     geo.oblasts.forEach(function (o) {
-      var city = o.name === 'м. Київ' || o.name === 'Севастополь';
-      oblastEls[o.name] = el('path', { d: o.d, 'class': city ? 'raion city' : 'oblast' }, city ? gr : go);
+      var e = el('path', { d: o.base || o.d, 'class': 'raion' }, gb);
+      raionEls.push({ id: 'oblast:' + o.id, oblast: o.id, el: e });
     });
+    var gr = el('g', { 'class': 'raions' }, map);
+    var hasDistricts = {};
+    geo.districts.forEach(function (r) {
+      var e = el('path', { d: r.d, 'class': 'raion' }, gr);
+      raionEls.push({ id: r.id, oblast: r.oblast, el: e });
+      hasDistricts[r.oblast] = true;
+    });
+
+    commLayer = el('g', { 'class': 'comms' }, map);
+    var go = el('g', { 'class': 'oblasts' }, map);
+    geo.oblasts.forEach(function (o) { oblastEls[o.name] = el('path', { d: o.d, 'class': 'oblast' }, go); });
     geo.oblasts.forEach(function (o) { if (o.name === 'Львівська область') el('path', { d: o.d, 'class': 'home-oblast' }, map); });
     var gl = el('g', { 'class': 'labels' }, map);
     geo.oblasts.forEach(function (o) {
@@ -205,22 +213,27 @@
   var MISSILE = 'M0,-14 L3,-7 L3,7 L6.5,12 L6.5,14 L-6.5,14 L-6.5,12 L-3,7 L-3,-7 Z';
   var DELTA = SHAHED;
 
+  var commLayer, commKey = '';
   function paintAlerts() {
     var al = data.alerts || {};
-    var ob = al.oblasts || {};
-    var ra = al.raions || {};
+    var st = al.states || {}, ds = al.districts || {}, cm = al.communities || {};
     raionEls.forEach(function (r) {
-      var lv = ra[r.key] || ob[r.oblast] || '';
+      var lv = (r.id.indexOf('oblast:') === 0 ? '' : ds[r.id]) || st[r.oblast] || '';
       if (lv === r.lv) return; // touch the SVG only when something changed
       var fresh = lv && !r.lv && painted ? ' flash' : '';
       r.lv = lv;
       r.el.setAttribute('class', 'raion' + (lv ? ' ' + lv : '') + fresh);
     });
     painted = true;
-    var kyiv = ob['м. Київ'] || ra['м. Київ|м. Київ'] || ra['м. Київ|Київ'];
-    if (oblastEls['м. Київ']) oblastEls['м. Київ'].setAttribute('class', 'raion city' + (kyiv ? ' ' + kyiv : ''));
-    var sev = ob['Севастополь'] || ob['Автономна Республіка Крим'];
-    if (oblastEls['Севастополь']) oblastEls['Севастополь'].setAttribute('class', 'raion city' + (sev ? ' ' + sev : ''));
+    // communities (громади) under alert, drawn over their district
+    var ids = Object.keys(cm).sort();
+    var key = ids.map(function (i) { return i + cm[i].level; }).join(',');
+    if (key !== commKey) {
+      commKey = key;
+      var html = '';
+      ids.forEach(function (i) { html += '<path class="comm ' + cm[i].level + '" d="' + cm[i].d + '"/>'; });
+      commLayer.innerHTML = html;
+    }
   }
 
   // Targets are kept by id, so a moving Shahed glides to its new spot instead of blinking.

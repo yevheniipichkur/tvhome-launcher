@@ -138,30 +138,50 @@ every('threats', 10_000, async () => {
   countToday(list.filter((t) => t.status === 'active'));
 });
 
-// Alert levels per raion (and whole oblasts), keyed like web/ukraine.json: "<oblast>|<raion name>".
-// 'long' = has lasted over a day (occupied/front-line areas), drawn darker like ukrainealarm.
-const apos = (s) => String(s ?? '').replace(/[’ʼ]/g, "'");
-const levelOf = (x) => {
-  if (x.since && Date.now() - Date.parse(x.since) > 24 * 3600_000) return 'long';
-  return x.level === 'red' ? 'red' : 'alert';
-};
-every('alerts', 15_000, async () => {
-  const d = await getJson('https://neptun.in.ua/api/v1/alerts');
-  const oblasts = {};
-  for (const o of d.oblasts ?? []) {
-    const name = o.name === 'Севастополь' ? 'Севастополь' : o.oblast ?? o.name;
-    oblasts[name] = levelOf(o);
+// Official air-raid alerts, the same feed map.ukrainealarm.com draws (public, no key), keyed by
+// ukrainealarm regionId. Regions: State (oblast), District (raion), Community (hromada).
+// Level: 'alert' = yellow, 'red' = red level / artillery / street fighting, 'long' = over a day.
+const GEO_DIR = process.env.GEO_DIR ?? new URL('./geo', import.meta.url).pathname;
+let communityShapes = {};
+try { communityShapes = JSON.parse(fs.readFileSync(path.join(GEO_DIR, 'communities.json'), 'utf8')); } catch (e) { log('[geo]', e.message); }
+let oblastIdByName = {};
+try { for (const o of JSON.parse(fs.readFileSync(path.join(WEB, 'ukraine.json'), 'utf8')).oblasts) oblastIdByName[o.name] = o.id; } catch {}
+const CITY_IDS = { state: '27', district: '90', community: '845' }; // Львівська область / Львівський район / м. Львів
+const rank = { alert: 1, red: 2, long: 3 };
+
+function levelFrom(region) {
+  let lv = null, since = null;
+  for (const a of region.activeAlerts ?? []) {
+    for (const l of a.activeAlertLevels?.length ? a.activeAlertLevels : [{ alertLevel: 'Yellow', createdAt: a.lastUpdate }]) {
+      let v = l.alertLevel === 'Red' || a.type === 'ARTILLERY' || a.type === 'URBAN_FIGHTS' ? 'red' : 'alert';
+      if (l.createdAt && Date.now() - Date.parse(l.createdAt) > 24 * 3600_000) v = 'long';
+      if (!lv || rank[v] > rank[lv]) lv = v;
+      if (!since || (l.createdAt && l.createdAt < since)) since = l.createdAt;
+    }
   }
-  const raions = {};
-  for (const r of d.raions ?? []) raions[`${r.oblast}|${apos(r.name)}`] = levelOf(r);
-  const whole = (d.oblasts ?? []).find((o) => (o.oblast ?? o.name) === CITY.oblast);
-  const raion = (d.raions ?? []).find((r) => r.name === CITY.raion);
-  const hit = whole ?? raion ?? null;
+  return lv ? { level: lv, since, types: [...new Set((region.activeAlerts ?? []).map((a) => a.type))] } : null;
+}
+
+every('alerts', 15_000, async () => {
+  const d = await getJson('https://map.ukrainealarm.com/api/v2/data/mapUpdate');
+  const states = {}, districts = {}, communities = {};
+  let hit = null;
+  for (const r of d.alerts ?? []) {
+    const lv = levelFrom(r);
+    if (!lv) continue;
+    if (r.regionType === 'State') states[r.regionId] = lv.level;
+    else if (r.regionType === 'District') districts[r.regionId] = lv.level;
+    else if (r.regionType === 'Community' && communityShapes[r.regionId]) communities[r.regionId] = { level: lv.level, d: communityShapes[r.regionId].d };
+    const isCity = (r.regionType === 'State' && r.regionId === CITY_IDS.state) || (r.regionType === 'District' && r.regionId === CITY_IDS.district) || (r.regionType === 'Community' && r.regionId === CITY_IDS.community);
+    if (isCity && (r.activeAlerts ?? []).some((a) => a.type === 'AIR')) hit = { since: lv.since, level: lv.level, reasons: lv.types };
+  }
   trackCityAlert(Boolean(hit), hit?.since);
   state.alerts = {
-    oblasts,
-    raions,
-    city: hit ? { active: true, since: hit.since, level: hit.level, reasons: hit.reasons ?? [] } : { active: false },
+    source: 'ukrainealarm',
+    states,
+    districts,
+    communities,
+    city: hit ? { active: true, since: hit.since, level: hit.level, reasons: [] } : { active: false },
   };
 });
 
@@ -282,12 +302,12 @@ function webVersion() {
 
 function snapshot() {
   let { alerts } = state;
-  // NEPTUN alerts down → oblast-level fallback so the screen never lies by omission.
+  // ukrainealarm down → oblast-level fallback (ubilling) so the screen never lies by omission.
   if ((!alerts || state.errors.alerts) && state.fallback) {
-    const oblasts = {};
-    for (const [name, s] of Object.entries(state.fallback)) if (s.alertnow) oblasts[name] = 'alert';
+    const states = {};
+    for (const [name, st] of Object.entries(state.fallback)) if (st.alertnow && oblastIdByName[name]) states[oblastIdByName[name]] = 'alert';
     const c = state.fallback[CITY.oblast];
-    alerts = { oblasts, raions: {}, city: c?.alertnow ? { active: true, since: c.changed, level: 'alert', reasons: [] } : { active: false }, fallback: true };
+    alerts = { source: 'ubilling', states, districts: {}, communities: {}, city: c?.alertnow ? { active: true, since: c.changed, level: 'alert', reasons: [] } : { active: false }, fallback: true };
   }
   const counts = {};
   for (const t of state.threats) if (!t.stale) counts[t.kind] = (counts[t.kind] ?? 0) + t.count;
