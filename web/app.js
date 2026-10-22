@@ -455,13 +455,23 @@
     var cont = continueTile(byPkg);
     if (cont) dock.appendChild(cont);
     fav.forEach(function (p) { if (byPkg[p]) dock.appendChild(tile(byPkg[p])); });
-    var more = document.createElement('button');
-    more.className = 'tile more';
-    more.setAttribute('data-action', 'apps');
-    more.setAttribute('aria-label', 'Усі програми');
-    more.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>';
-    dock.appendChild(more);
+    SYS.forEach(function (b, i) {
+      var el2 = document.createElement('button');
+      el2.className = 'sys' + (i === 0 ? ' first' : '');
+      el2.setAttribute('data-action', b.action);
+      el2.setAttribute('aria-label', b.label);
+      el2.innerHTML = '<svg viewBox="0 0 24 24">' + b.icon + '</svg>';
+      dock.appendChild(el2);
+    });
+    paintWifi();
   }
+  // One thin, rounded icon set (Lucide-style geometry, 24 px grid, 1.7 stroke).
+  var SYS = [
+    { action: 'apps', label: 'Усі програми', icon: '<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>' },
+    { action: 'wifi', label: 'Мережа', icon: '<path class="w3" d="M2 8.8a15 15 0 0 1 20 0"/><path class="w2" d="M5 12.9a10 10 0 0 1 14 0"/><path class="w1" d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M12 20h.01" stroke-width="2.6"/>' },
+    { action: 'layout', label: 'Розмір карти', icon: '<rect x="3" y="3.5" width="18" height="17" rx="3"/><path d="M14.5 3.5v17M14.5 12H21"/>' },
+    { action: 'settings', label: 'Налаштування', icon: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>' },
+  ];
   // «Продовжити»: the newest Android TV "Play Next" item, Lampa first.
   function continueTile(byPkg) {
     var list = [];
@@ -499,7 +509,6 @@
   var idx = { dock: 0, corner: 0, grid: 0 };
   function items(z) {
     if (z === 'dock') return $('track') ? $('track').children : [];
-    if (z === 'corner') return document.querySelectorAll('.corner .round');
     if (z === 'player') return Array.prototype.filter.call(document.querySelectorAll('#player .pl-btn'), function (b) { return b.offsetParent !== null; });
     return $('grid').children;
   }
@@ -609,11 +618,9 @@
     else if (k === 'ArrowLeft' || code === 21) idx[zone]--;
     else if (k === 'ArrowUp' || code === 19) {
       if (zone === 'dock') { zone = 'player'; idx.player = $('player').classList.contains('last') ? 0 : 1; }
-      else if (zone === 'player') zone = 'corner';
       else if (zone === 'grid') idx.grid = idx.grid >= COLS ? idx.grid - COLS : idx.grid;
     } else if (k === 'ArrowDown' || code === 20) {
-      if (zone === 'corner') { zone = 'player'; idx.player = $('player').classList.contains('last') ? 0 : 1; }
-      else if (zone === 'player') zone = 'dock';
+      if (zone === 'player') zone = 'dock';
       else if (zone === 'grid' && idx.grid + COLS < list.length) idx.grid += COLS;
     } else if (k === 'Enter' || code === 13 || code === 23) {
       SOUND.open();
@@ -691,14 +698,18 @@
     var w = null;
     if (TV && TV.wifi) { try { w = JSON.parse(TV.wifi()); } catch (e) { w = null; } }
     else w = { type: 'wifi', ssid: 'Wi‑Fi', level: 3 };
-    var btn = document.querySelector('.round.pill');
-    var name = $('wifi-name');
-    var level = 0;
-    if (!w || w.type === 'none') { name.textContent = 'немає мережі'; btn.classList.add('down'); }
-    else if (w.type === 'ethernet') { name.textContent = 'Ethernet'; level = 3; btn.classList.remove('down'); }
-    else { name.textContent = w.ssid || 'Wi‑Fi'; level = w.level; btn.classList.remove('down'); }
+    var net = $('net'), level = 0, name;
+    if (!w || w.type === 'none') name = 'немає мережі';
+    else if (w.type === 'ethernet') { name = 'Ethernet'; level = 3; }
+    else { name = w.ssid || 'Wi‑Fi'; level = w.level; }
+    $('net-name').textContent = name;
+    net.classList.toggle('down', !w || w.type === 'none');
+    ['b1', 'b2', 'b3'].forEach(function (c, i) {
+      var r = net.querySelector('.' + c);
+      if (r) r.setAttribute('class', c + (level > i ? '' : ' off'));
+    });
     ['w1', 'w2', 'w3'].forEach(function (c, i) {
-      var p = document.querySelector('#wifi-icon .' + c);
+      var p = document.querySelector('.sys .' + c);
       if (p) p.setAttribute('class', c + (level > i ? '' : ' off'));
     });
   }

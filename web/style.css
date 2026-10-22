@@ -468,3 +468,34 @@ body.compact .player.last .pl-btn.resume { height: 70px; font-size: 22px; paddin
 
 /* welcome: one line now */
 .welcome { padding-top: 14px; }
+
+/* ---------- system buttons at the end of the dock ---------- */
+.sys {
+  flex: none; position: relative; width: 84px; height: 84px; border-radius: 50%;
+  display: grid; place-items: center; color: var(--ink);
+  background: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.04));
+  border: 1px solid rgba(255,255,255,.2);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 8px 20px rgba(0,0,0,.35);
+  transition: transform .4s var(--spring), background .25s, color .25s, box-shadow .25s;
+  align-self: center;
+}
+.sys svg { width: 34px; height: 34px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.sys .off { opacity: .28; }
+.sys.first { margin-left: 30px; }
+.sys.first::before { content: ''; position: absolute; left: -48px; top: 2px; bottom: 2px; width: 2px; border-radius: 1px; background: linear-gradient(180deg, transparent, rgba(255,255,255,.35), transparent); }
+.dock .track > .sys + .sys { margin-left: -14px; }
+.sys.focus {
+  transform: scale(1.14); color: #15161a;
+  background: linear-gradient(180deg, #ffffff, #dcdfe6);
+  box-shadow: 0 0 0 3px rgba(255,255,255,.35), 0 12px 30px rgba(0,0,0,.5), 0 0 50px rgba(255,255,255,.28);
+}
+.sys.focus .off { opacity: .35; }
+.dock .track { align-items: center; }
+
+/* Wi-Fi status under the date */
+.net { display: flex; align-items: center; gap: 9px; margin-top: 2px; font-size: 19px; color: var(--muted); }
+.net-ico { width: 20px; height: 20px; fill: var(--ink); }
+.net-ico .off { fill: rgba(255,255,255,.22); }
+.net.down { color: var(--red); }
+.net.down .net-ico rect { fill: var(--red); opacity: .5; }
+.top { width: 800px; }
