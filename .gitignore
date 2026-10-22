@@ -3,3 +3,4 @@ scratch-data/
 *.jks
 *.keystore
 .gstack/
+dist/
