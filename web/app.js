@@ -65,13 +65,24 @@
     for (var j = 0; j < text.length; j++) {
       if (text[j] === clockShown[j]) continue;
       var sl = box.children[j];
-      var old = sl.querySelector('.cur');
+      // Retire every digit already in the slot (not just the ".cur" one): while the page sleeps behind
+      // Netflix/YouTube, rAF never fires, so earlier "in" digits never became "cur" and piled up.
+      var olds = Array.prototype.slice.call(sl.children);
       var nu = document.createElement('span');
-      nu.className = 'd in';
       nu.textContent = text[j];
+      if (document.hidden) {
+        olds.forEach(function (o) { sl.removeChild(o); });
+        nu.className = 'd cur';
+        sl.appendChild(nu);
+        continue;
+      }
+      nu.className = 'd in';
       sl.appendChild(nu);
-      if (old) { old.className = 'd out'; setTimeout((function (o) { return function () { if (o.parentNode) o.parentNode.removeChild(o); }; })(old), 700); }
-      requestAnimationFrame((function (n) { return function () { requestAnimationFrame(function () { n.className = 'd cur'; }); }; })(nu));
+      olds.forEach(function (o) {
+        o.className = 'd out';
+        setTimeout(function () { if (o.parentNode) o.parentNode.removeChild(o); }, 750);
+      });
+      setTimeout((function (n) { return function () { n.className = 'd cur'; }; })(nu), 30);
     }
     clockShown = text;
   }
