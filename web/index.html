@@ -5,41 +5,67 @@
 <!-- 1920 CSS px wide: the WebView zooms the page to the screen, so it rasterises at native size -->
 <meta name="viewport" content="width=1920, user-scalable=no">
 <title>Вітальня</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=2">
 </head>
 <body class="intro">
 <div class="sky-bg" aria-hidden="true"><div class="layer" id="bg-a"></div><div class="layer" id="bg-b"></div><div class="stars" id="stars"></div><div class="danger"></div></div>
 <div class="aurora" aria-hidden="true"><i></i><i></i></div>
 <div id="stage">
-  <header class="top"></header>
+  <main class="layout">
+    <section class="left">
+      <div class="kicker">
+        <span class="greet"><span class="spark"></span><span id="welcome-typed">Добрий вечір</span><span class="tcur"></span></span>
+        <span class="net" id="net"><svg viewBox="0 0 24 24" class="net-ico"><rect class="b1" x="3" y="15" width="3.6" height="5" rx="1.2"/><rect class="b2" x="10.2" y="10.5" width="3.6" height="9.5" rx="1.2"/><rect class="b3" x="17.4" y="5" width="3.6" height="15" rx="1.2"/></svg><span id="net-name">Wi‑Fi</span></span>
+      </div>
+      <div class="hero">
+        <div class="clock" id="clock">--:--</div>
+        <div class="date" id="date">—</div>
+      </div>
 
-  <main class="middle">
-    <section class="left cc">
-      <div class="cc-box">
-        <div class="cc-title"><span class="spark">✻</span> <span id="welcome-typed">Вітаю</span><span class="tcur"></span></div>
-        <div class="cc-main">
-          <div class="clock" id="clock">--:--</div>
-          <div class="date-col">
-            <div id="date">—</div>
-            <div class="wx"><svg viewBox="0 0 32 32" id="wx-icon" aria-hidden="true"></svg><span id="weather">—</span></div>
-            <div id="weather-next" class="muted">—</div>
-            <div class="net" id="net"><svg viewBox="0 0 24 24" class="net-ico"><rect class="b1" x="3" y="15" width="3.6" height="5" rx="1.2"/><rect class="b2" x="10.2" y="10.5" width="3.6" height="9.5" rx="1.2"/><rect class="b3" x="17.4" y="5" width="3.6" height="15" rx="1.2"/></svg><span id="net-name">Wi‑Fi</span></div>
-          </div>
+      <svg class="arc" id="arc" viewBox="0 0 800 120" aria-hidden="true">
+        <defs>
+          <linearGradient id="arc-g" x1="0" x2="1"><stop offset="0" stop-color="#f4a640" stop-opacity=".15"/><stop offset="1" stop-color="#f4a640"/></linearGradient>
+        </defs>
+        <path class="arc-horizon" d="M0 100H800"/>
+        <path class="arc-base" id="arc-base" d="M40 100 Q400 -20 760 100"/>
+        <path class="arc-done" id="arc-done" d="M40 100 Q400 -20 760 100"/>
+        <circle class="arc-glow" id="arc-glow" r="22" cx="40" cy="100"/>
+        <circle class="arc-sun" id="arc-sun" r="9" cx="40" cy="100"/>
+        <text class="arc-t" id="arc-rise" x="40" y="118" text-anchor="middle">—</text>
+        <text class="arc-t" id="arc-set" x="760" y="118" text-anchor="middle">—</text>
+        <text class="arc-mid" id="arc-label" x="400" y="80" text-anchor="middle"></text>
+      </svg>
+
+      <div class="weather" id="t-wx">
+        <svg viewBox="0 0 32 32" id="wx-icon" aria-hidden="true"></svg>
+        <div class="wx-now"><b id="weather">—</b></div>
+        <div class="wx-next">
+          <div id="weather-next">—</div>
+          <div id="fc-text" class="advice">—</div>
         </div>
-        <div class="cc-cwd">cwd: ~/вітальня · Львів</div>
       </div>
-      <div class="cc-log" id="log">
-        <div class="tool" id="alert-line"><div class="call"><i class="bullet"></i>Bash<span class="args">(alerts --city lviv)</span></div><div class="res"><span class="el">⎿</span><span id="alert-text">перевіряю…</span></div></div>
-        <div class="tool"><div class="call"><i class="bullet"></i>Bash<span class="args">(sky --now)</span></div><div class="res"><span class="el">⎿</span><span><b><span id="sky-n">0</span> <span id="sky-word">цілей</span></b> у небі · <span id="sky-t">0</span> за добу</span></div></div>
-        <div class="tool" id="t-wx"><div class="call"><i class="bullet"></i>Read<span class="args">(погода/львів.md)</span></div><div class="res"><span class="el">⎿</span><span id="fc-text">—</span></div></div>
-        <div class="tool"><div class="call"><i class="bullet"></i>Fetch<span class="args">(bank.gov.ua)</span></div><div class="res rates"><span class="el">⎿</span><span>$ <b id="r-USD">—</b> <i id="d-USD"></i>  € <b id="r-EUR">—</b> <i id="d-EUR"></i>  zł <b id="r-PLN">—</b> <i id="d-PLN"></i></span></div></div>
-        <div class="tool"><div class="call"><i class="bullet"></i>Fetch<span class="args" id="news-args">(news)</span></div><div class="res"><span class="el">⎿</span><span class="news" id="news"></span></div></div>
-        <div class="tool hot" id="pi-line" hidden><div class="call"><i class="bullet"></i>Bash<span class="args">(pi status)</span></div><div class="res"><span class="el">⎿</span><span id="pi-text">—</span></div></div>
+
+      <div class="status" id="alert-line">
+        <span class="st-dot"></span>
+        <span class="st-text" id="alert-text">перевіряю тривоги…</span>
+        <span class="st-sky"><b><span id="sky-n">0</span></b> <span id="sky-word">цілей</span> у небі · <span id="sky-t">0</span> за добу</span>
       </div>
+      <div class="pi-warn" id="pi-line" hidden><span id="pi-text">—</span></div>
+
+      <div class="info">
+        <div class="rates">
+          <span class="rate"><span class="cur">$</span><b id="r-USD">—</b><i id="d-USD"></i></span>
+          <span class="rate"><span class="cur">€</span><b id="r-EUR">—</b><i id="d-EUR"></i></span>
+          <span class="rate"><span class="cur">zł</span><b id="r-PLN">—</b><i id="d-PLN"></i></span>
+          <span class="rate-src">НБУ</span>
+        </div>
+        <div class="headline"><span class="news" id="news"></span><span class="src" id="news-args"></span></div>
+      </div>
+
       <section class="player empty" id="player" aria-label="Міні-плеєр">
-        <div class="pl-art" id="pl-art"><span class="spark">✻</span></div>
+        <div class="pl-art" id="pl-art"><svg viewBox="0 0 24 24" class="pl-note"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></div>
         <div class="pl-meta">
-          <div class="pl-top"><span id="pl-app">&gt; плеєр</span><span class="pl-state" id="pl-state"></span></div>
+          <div class="pl-top"><span id="pl-app">плеєр</span><span class="pl-state" id="pl-state"></span></div>
           <div class="pl-title" id="pl-title">нічого не грає</div>
           <div class="pl-sub" id="pl-sub">запусти щось із полиці нижче</div>
           <div class="pl-bar"><i id="pl-fill"></i></div>
@@ -52,14 +78,16 @@
           <button class="pl-btn" data-media="open" aria-label="Відкрити"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>
       </section>
-      <div class="cc-hint">‹ › вибір · ↑ плеєр · ОК відкрити</div>
     </section>
 
     <section class="sky">
-      <div class="sky-head"><span class="spark">✻</span> Небо зараз · <span id="sky-now-n">0</span> <span id="sky-now-word">цілей</span> · <span class="muted">сьогодні <span id="sky-today">0</span></span></div>
+      <div class="sky-head">
+        <div class="sky-title">Небо над Україною</div>
+        <div class="sky-count"><b id="sky-now-n">0</b> <span id="sky-now-word">цілей</span> <span class="muted">· сьогодні <span id="sky-today">0</span></span></div>
+      </div>
       <div class="map-clip">
       <div class="map-wrap">
-        <svg id="map" class="map" role="img" aria-label="Карта загроз України"></svg>
+        <svg id="map" class="map" role="img" aria-label="Карта тривог і цілей"></svg>
         <div class="fly" id="fly" aria-hidden="true"></div>
       </div>
       </div>
@@ -71,7 +99,7 @@
   <footer class="dock" id="dock" aria-label="Програми"></footer>
 
   <div class="drawer" id="drawer" hidden>
-    <div class="drawer-head"><span class="spark">✻</span> Усі програми <span class="muted">· Назад — закрити</span></div>
+    <div class="drawer-head">Усі програми <span class="muted">· Назад — закрити</span></div>
     <div class="grid" id="grid"></div>
   </div>
 </div>

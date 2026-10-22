@@ -76,10 +76,10 @@
     if (!el || el.getAttribute('data-typing')) return;
     var alarm = document.body.classList.contains('alarm');
     var h = new Date().getHours();
-    var text = alarm ? 'Повітряна тривога · Львів' : h >= 5 && h < 11 ? 'Доброго ранку' : h < 17 && h >= 11 ? 'Доброго дня' : h >= 17 && h < 23 ? 'Доброго вечора' : 'Добраніч';
+    var text = (alarm ? 'Повітряна тривога' : h >= 5 && h < 11 ? 'Доброго ранку' : h < 17 && h >= 11 ? 'Доброго дня' : h >= 17 && h < 23 ? 'Доброго вечора' : 'Добраніч') + ' · Львів';
     if (el.textContent !== text) el.textContent = text;
-    var spark = document.querySelector('.cc-title .spark');
-    if (spark) spark.textContent = alarm ? '⚠' : '✻';
+    var spark = document.querySelector('.greet .spark');
+    if (spark) spark.textContent = alarm ? '⚠ ' : '';
   }
   function tickClock() {
     var now = new Date();
@@ -350,6 +350,42 @@
     return CLOUD;
   }
 
+  // ---------- day arc: the sun travels from sunrise to sunset; at night the moon crosses the dark arc ----------
+  function arcPoint(t) { // quadratic bezier M40 100 Q400 -20 760 100
+    var u = 1 - t;
+    return [u * u * 40 + 2 * u * t * 400 + t * t * 760, u * u * 100 + 2 * u * t * -20 + t * t * 100];
+  }
+  function paintArc() {
+    var w = data && data.weather;
+    if (!w) return;
+    var now = Date.now();
+    var rise = new Date(w.sunrise[0]).getTime(), set = new Date(w.sunset[0]).getTime(), rise2 = new Date(w.sunrise[1]).getTime();
+    var day = now >= rise && now <= set, t, from, to, label;
+    if (day) {
+      t = (now - rise) / (set - rise); from = rise; to = set;
+      var left = Math.round((set - now) / 60000);
+      label = 'до заходу ' + (left >= 60 ? Math.floor(left / 60) + ' год ' + (left % 60) + ' хв' : left + ' хв');
+    } else {
+      var nightStart = now > set ? set : rise - (rise2 - set), nightEnd = now > set ? rise2 : rise;
+      t = (now - nightStart) / (nightEnd - nightStart); from = nightStart; to = nightEnd;
+      var l2 = Math.round((nightEnd - now) / 60000);
+      label = 'до світанку ' + (l2 >= 60 ? Math.floor(l2 / 60) + ' год ' + (l2 % 60) + ' хв' : l2 + ' хв');
+    }
+    t = Math.max(0, Math.min(1, t));
+    var p = arcPoint(t);
+    var arc = $('arc');
+    arc.classList.toggle('night', !day);
+    $('arc-sun').setAttribute('cx', p[0].toFixed(1)); $('arc-sun').setAttribute('cy', p[1].toFixed(1));
+    $('arc-glow').setAttribute('cx', p[0].toFixed(1)); $('arc-glow').setAttribute('cy', p[1].toFixed(1));
+    // progress: draw the done part of the curve with a dash
+    var done = $('arc-done'), len = done.getTotalLength ? done.getTotalLength() : 800;
+    done.style.strokeDasharray = (len * t).toFixed(1) + ' ' + len.toFixed(1);
+    $('arc-rise').textContent = (day ? '☀ ' : '☾ ') + hhmm(new Date(from));
+    $('arc-set').textContent = hhmm(new Date(to));
+    $('arc-label').textContent = label;
+  }
+  setInterval(function () { if (data) paintArc(); }, 60000);
+
   // ---------- rates + headlines ----------
   var newsPage = 0, newsKey = '';
   function ago(iso) {
@@ -368,7 +404,7 @@
     });
     var n = data.news;
     if (!n || !n.items || !n.items.length) return;
-    $('news-args').textContent = '(' + (n.source === 'Укрінформ' ? 'ukrinform.ua' : 'pravda.com.ua') + ')';
+    $('news-args').textContent = n.source;
     var key = n.items.map(function (x) { return x.title; }).join('|');
     if (key !== newsKey) { newsKey = key; newsPage = 0; renderNews(); }
   }
@@ -399,7 +435,7 @@
     var fc = data.forecast;
     if (fc) {
       $('weather-next').textContent = fc.label + ' ' + fc.max + '°/' + fc.min + '° · ' + fc.text;
-      var t = fc.precip ? fc.precip.kind + ' ' + fc.label + ' з ' + pad(fc.precip.from) + ':00 до ' + pad(fc.precip.to % 24) + ':00 · ' + fc.advice : fc.label + ': ' + fc.advice;
+      var t = fc.precip ? fc.precip.kind + ' з ' + pad(fc.precip.from) + ':00 до ' + pad(fc.precip.to % 24) + ':00 · ' + fc.advice : fc.advice.charAt(0).toUpperCase() + fc.advice.slice(1);
       $('fc-text').textContent = t;
       $('t-wx').classList.toggle('rain', !!fc.precip);
     }
@@ -426,16 +462,17 @@
     var a = data.alerts && data.alerts.city;
     var line = $('alert-line');
     if (!data.alerts) {
-      line.className = 'tool';
-      $('alert-text').textContent = 'тривоги: немає даних';
+      line.className = 'status unknown';
+      $('alert-text').textContent = 'Немає даних про тривоги';
     } else if (a && a.active) {
-      line.className = 'tool on';
-      var since = a.since ? ' · з ' + hhmm(new Date(a.since)) : '';
-      $('alert-text').textContent = 'повітряна тривога · ' + data.city + since;
+      line.className = 'status on';
+      var mins = a.since ? Math.max(1, Math.round((Date.now() - Date.parse(a.since)) / 60000)) : null;
+      $('alert-text').textContent = 'Тривога у Львові' + (mins ? ' · ' + (mins >= 60 ? Math.floor(mins / 60) + ' год ' + (mins % 60) + ' хв' : mins + ' хв') : '');
     } else {
-      line.className = 'tool';
-      $('alert-text').textContent = 'тривоги немає · ' + data.city;
+      line.className = 'status';
+      $('alert-text').textContent = 'У Львові спокійно';
     }
+    paintArc();
     var n = data.inSky || 0;
     countTo('sky-n', n);
     $('sky-word').textContent = plural(n, 'ціль', 'цілі', 'цілей');
@@ -822,7 +859,7 @@
       if (appInfo && appInfo.banner) glowFrom(m.pkg, appInfo.banner, pl, '--pl-accent');
       setTimeout(function () { var c = pl.style.getPropertyValue('--pl-accent'); if (c) pl.style.setProperty('--pl-accent-soft', c.replace(/,\s*[\d.]+\)$/, ',.22)')); }, 300);
     }
-    $('pl-app').textContent = '> ' + (m.live ? (m.app || 'плеєр') : 'продовжити · ' + (m.app || ''));
+    $('pl-app').textContent = m.live ? (m.app || 'плеєр') : 'продовжити · ' + (m.app || '');
     $('pl-state').textContent = m.live ? (m.playing ? '▶ грає' : '❚❚ пауза') : 'ОК — відкрити';
     var sub = m.sub || '';
     if (m.duration > 0) sub = (sub ? sub + ' · ' : '') + fmtTime(m.position || 0) + ' / ' + fmtTime(m.duration);
