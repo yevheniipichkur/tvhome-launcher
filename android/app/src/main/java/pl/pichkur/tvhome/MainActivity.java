@@ -116,6 +116,9 @@ public class MainActivity extends Activity {
 
             @Override
             public void onPageFinished(WebView view, String url) {
+                if (url.startsWith("http") && offline) {
+                    offline = false; // the offline page navigated back home by itself
+                }
                 if (url.startsWith("http")) {
                     offline = false;
                     loadedAt = SystemClock.elapsedRealtime();
