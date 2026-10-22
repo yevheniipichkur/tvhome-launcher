@@ -396,3 +396,62 @@ body.compact .player.empty .pl-title { font-size: 28px; }
 /* ---------- focus glow in the logo's colour ---------- */
 .tile.focus { box-shadow: 0 0 0 3px rgba(255,255,255,.55), 0 18px 44px rgba(0,0,0,.6), 0 0 80px var(--glow, rgba(255,255,255,.22)), 0 0 26px var(--glow, rgba(255,255,255,.12)); }
 #glint { background: radial-gradient(ellipse 50% 60% at 50% 55%, var(--glint, rgba(255,255,255,.20)), transparent 70%); }
+
+/* =================== visual pass (owner's list, 2026-10-22) =================== */
+/* 5. fewer outlined boxes: the welcome is a plain line, the player a matte card; only the map keeps its orange frame */
+.welcome { border: 0; background: none; box-shadow: none; padding: 6px 0 0; }
+.welcome::before { display: none; }
+.welcome-title { font-size: 30px; }
+.welcome-sub { font-size: 19px; }
+.player { border: 0; background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.03)); box-shadow: 0 12px 34px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08); }
+body.compact .player { border: 0; }
+
+/* 6. one glass capsule for the system buttons */
+.corner { gap: 4px; padding: 5px; border-radius: 40px; background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.05)); border: 1px solid rgba(255,255,255,.18); box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 10px 26px rgba(0,0,0,.3); }
+.corner .round { width: 50px; height: 50px; border: 0; background: transparent; box-shadow: none; }
+.corner .round.pill { background: rgba(255,255,255,.07); }
+.corner .round.focus { background: var(--ink); }
+.top { justify-content: space-between; }
+
+/* 7. hierarchy: what matters is big and white, the rest small and grey */
+.log { margin-top: 14px; line-height: 1.45; }
+.line.key { font-size: 31px; font-weight: 700; color: #fff; }
+.line.key .dot { width: 18px; height: 18px; }
+.line.prompt { font-size: 19px; color: var(--dim); margin-top: 6px; }
+.line.minor { font-size: 22px; color: #c9c6be; }
+.line.minor .dot { width: 11px; height: 11px; box-shadow: none; }
+.line.status { margin-top: 6px; }
+#alert-line.on { color: #ffb3a8; }
+
+/* 8. weather under the clock: now + next */
+.date-col { line-height: 1.5; }
+#weather { color: var(--ink); }
+
+/* 9. bigger map inside its frame */
+.middle { grid-template-columns: 800px; }
+.top { width: 800px; }
+.sky { width: 990px; padding: 12px 14px 10px; }
+.map { height: 700px; }
+.legend { bottom: 30px; }
+
+/* 11. per-oblast target counts */
+.fly .badge { position: absolute; left: 0; top: 0; transform-origin: 0 0; min-width: 24px; height: 22px; padding: 0 7px; margin-left: -12px; border-radius: 11px; background: #fff; color: #10131a; font-size: 14px; font-weight: 700; line-height: 22px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.5); }
+
+/* 2 + 13. dock fits, and the focused tile gets a caption under it */
+.dock .track { gap: 36px; }
+.tile { width: 204px; height: 115px; }
+.dock { align-items: flex-start; padding-top: 22px; }
+.tile.focus { transform: scale(1.14); }
+.tile.cont.focus { transform: scale(1.08); }
+#caption { position: absolute; left: 56px; bottom: 50px; z-index: 2; pointer-events: none; white-space: nowrap; text-align: center; font-size: 17px; color: var(--muted); transition: transform .5s var(--ease-out), opacity .3s; }
+#caption b { color: #fff; margin-right: 10px; }
+
+/* 4 + 14. player art falls back to the app logo; accent follows the app colour */
+.pl-art.logo { background-size: 92% auto; background-color: #101114; }
+.pl-bar i { background: var(--pl-accent, var(--clay)); }
+.player { background-image: radial-gradient(120% 140% at 0% 50%, var(--pl-accent-soft, transparent), transparent 60%), linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.03)); }
+.player.playing .pl-state { color: var(--pl-accent, var(--green)); filter: brightness(1.3); }
+
+/* 15. depth: light behind the map, darker edges (static, one layer) */
+.sky-bg::after { content: ''; position: absolute; inset: 0; background: radial-gradient(60% 70% at 72% 42%, rgba(255,255,255,.06), transparent 70%), radial-gradient(140% 120% at 50% 45%, transparent 55%, rgba(0,0,0,.45) 100%); }
+.corner .round.pill { width: auto; padding: 0 18px 0 13px; }

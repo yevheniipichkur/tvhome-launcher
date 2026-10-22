@@ -117,8 +117,10 @@
     return e;
   }
 
+  // label nudges (map units) so names don't collide with each other or the Lviv marker
+  var LABEL_OFF = { 'м. Київ': [0, -8], 'Львівська область': [-4, 20], 'Тернопільська область': [4, 14], 'Хмельницька область': [12, -6], 'Київська область': [0, 8], 'Івано-Франківська область': [0, 4] };
   function drawMap() {
-    map.setAttribute('viewBox', '-4 -4 ' + (geo.width + 8) + ' ' + (geo.height + 8));
+    map.setAttribute('viewBox', '-1 -1 ' + (geo.width + 2) + ' ' + (geo.height + 2));
     map.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     var gr = el('g', { 'class': 'raions' }, map);
     geo.raions.forEach(function (r) {
@@ -134,7 +136,8 @@
     var gl = el('g', { 'class': 'labels' }, map);
     geo.oblasts.forEach(function (o) {
       if (o.name === 'Севастополь') return;
-      var t = el('text', { x: o.label[0], y: o.label[1] + (o.name === 'м. Київ' ? -7 : o.name === 'Львівська область' ? 16 : 0) }, gl);
+      var off = LABEL_OFF[o.name] || [0, 0];
+      var t = el('text', { x: o.label[0] + off[0], y: o.label[1] + off[1] }, gl);
       t.textContent = o.name === 'м. Київ' ? 'м. Київ' : o.short;
     });
     // Moving things live in an HTML layer above the static SVG: animating them inside the SVG
@@ -156,17 +159,40 @@
     box = null;
     threatLayer.innerHTML = '';
     threatEls = {};
+    badgeEls = {};
     drawHome();
-    if (data) paintThreats();
+    if (data) { paintThreats(); paintBadges(); }
+  }
+
+  // "Харківська · 6": how many targets are over each oblast, as a small badge by its name
+  var badgeEls = {};
+  function paintBadges() {
+    toScreen(24, 49); // make sure the projection box exists
+    var per = {};
+    (data.threats || []).forEach(function (t) { if (!t.stale && t.region) per[t.region] = (per[t.region] || 0) + t.count; });
+    geo.oblasts.forEach(function (o) {
+      var n = per[o.name] || (o.name === 'м. Київ' ? 0 : 0);
+      var b = badgeEls[o.name];
+      if (!n) { if (b) { b.remove(); delete badgeEls[o.name]; } return; }
+      if (!b) {
+        b = badgeEls[o.name] = document.createElement('span');
+        b.className = 'badge';
+        var off = LABEL_OFF[o.name] || [0, 0];
+        var x = box.ox + (o.label[0] + off[0]) * box.k, y = box.oy + (o.label[1] + off[1]) * box.k;
+        b.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + (y + 4).toFixed(1) + 'px,0)';
+        threatLayer.appendChild(b);
+      }
+      if (b.textContent !== String(n)) b.textContent = n;
+    });
   }
 
   // map units → px inside the map box (matches viewBox + preserveAspectRatio meet)
   var box = null;
   function toScreen(lon, lat) {
     if (!box) {
-      var W = geo.width + 8, H = geo.height + 8, w = map.clientWidth, h = map.clientHeight;
+      var W = geo.width + 2, H = geo.height + 2, w = map.clientWidth, h = map.clientHeight;
       var k = Math.min(w / W, h / H);
-      box = { k: k, ox: (w - W * k) / 2 + 4 * k, oy: (h - H * k) / 2 + 4 * k };
+      box = { k: k, ox: (w - W * k) / 2 + 1 * k, oy: (h - H * k) / 2 + 1 * k };
     }
     var q = proj(lon, lat);
     return [box.ox + q[0] * box.k, box.oy + q[1] * box.k];
@@ -280,7 +306,7 @@
     if (!data) return;
     var w = data.weather;
     if (w) {
-      $('weather').textContent = w.temp + '° · ' + w.text + ' · ' + w.max + '°/' + w.min + '°';
+      $('weather').textContent = 'зараз ' + w.temp + '° · ' + w.text;
       var now = new Date();
       var rise = new Date(w.sunrise[0]), set = new Date(w.sunset[0]);
       if (now > set) $('sun-text').textContent = 'схід завтра о ' + hhmm(new Date(w.sunrise[1])) + ' · ' + data.city;
@@ -289,9 +315,8 @@
     }
     var fc = data.forecast;
     if (fc) {
-      var t = fc.label + ' ' + fc.max + '°/' + fc.min + '°';
-      if (fc.precip) t += ' · ' + fc.precip.kind + ' з ' + pad(fc.precip.from) + ':00 до ' + pad(fc.precip.to % 24) + ':00 · ' + fc.advice;
-      else t += ' · ' + fc.text + ' · ' + fc.advice;
+      $('weather-next').textContent = fc.label + ' ' + fc.max + '°/' + fc.min + '° · ' + fc.text;
+      var t = fc.precip ? fc.precip.kind + ' ' + fc.label + ' з ' + pad(fc.precip.from) + ':00 до ' + pad(fc.precip.to % 24) + ':00 · ' + fc.advice : fc.label + ': ' + fc.advice;
       $('fc-text').textContent = t;
       $('fc-dot').className = 'dot ' + (fc.precip ? 'blue' : 'amber');
     }
@@ -331,7 +356,7 @@
     countTo('sky-now-n', n);
     $('sky-now-word').textContent = plural(n, 'ціль', 'цілі', 'цілей');
     countTo('sky-today', data.today);
-    if (geo) { paintAlerts(); paintThreats(); paintLegend(); }
+    if (geo) { paintAlerts(); paintThreats(); paintBadges(); paintLegend(); }
   }
 
   function getJSON(url, cb) {
@@ -373,8 +398,9 @@
   }
   // Focus glow takes the logo's colour: average of the saturated pixels of its banner.
   var glowCache = {};
-  function glowFrom(pkg, src, el) {
-    if (glowCache[pkg]) { el.style.setProperty('--glow', glowCache[pkg]); return; }
+  function glowFrom(pkg, src, el, prop) {
+    prop = prop || '--glow';
+    if (glowCache[pkg]) { el.style.setProperty(prop, glowCache[pkg]); return; }
     var img = new Image();
     img.onload = function () {
       try {
@@ -388,7 +414,7 @@
         }
         var col = n > 8 ? 'rgba(' + Math.round(r / n) + ',' + Math.round(g / n) + ',' + Math.round(b / n) + ',.75)' : 'rgba(255,255,255,.35)';
         glowCache[pkg] = col;
-        el.style.setProperty('--glow', col);
+        el.style.setProperty(prop, col);
       } catch (e) {}
     };
     img.src = src;
@@ -414,6 +440,7 @@
     var glint = $('glint') || document.createElement('div');
     glint.id = 'glint';
     host.parentNode.insertBefore(glint, host.nextSibling);
+    if (!$('caption')) { var cap = document.createElement('div'); cap.id = 'caption'; host.parentNode.insertBefore(cap, host.nextSibling); }
     var fav = CFG.favorites || [];
     var byPkg = {};
     apps.forEach(function (a) { byPkg[a.pkg] = a; });
@@ -470,6 +497,25 @@
   }
   // The dock scrolls so the focused tile stays in view; the glint follows it.
   var trackX = 0;
+  function lastOpened(pkg) {
+    try { var t = Number(localStorage.getItem('opened:' + pkg)); } catch (e) { return ''; }
+    if (!t) return '';
+    var d = new Date(t), now = new Date();
+    var day = d.toDateString() === now.toDateString() ? 'сьогодні' : new Date(now - 864e5).toDateString() === d.toDateString() ? 'вчора' : d.getDate() + ' ' + MONTHS[d.getMonth()];
+    return 'востаннє: ' + day + ' ' + hhmm(d);
+  }
+  function moveCaption(f) {
+    var c = $('caption');
+    if (!c) return;
+    if (zone !== 'dock' || !f) { c.style.opacity = '0'; return; }
+    var name = f.getAttribute('aria-label') || '';
+    var pkg = f.getAttribute('data-pkg');
+    c.innerHTML = '<b></b><span></span>';
+    c.firstChild.textContent = name;
+    c.lastChild.textContent = pkg ? lastOpened(pkg) : '';
+    c.style.opacity = '1';
+    c.style.transform = 'translateX(' + (f.offsetLeft + trackX + 40 + f.offsetWidth / 2) + 'px) translateX(-50%)';
+  }
   function moveGlint(f) {
     var g = $('glint');
     var track = $('track');
@@ -497,6 +543,7 @@
     var f = list[idx[zone]];
     f.classList.add('focus');
     moveGlint(f);
+    moveCaption(f);
     if (zone === 'grid' && f.scrollIntoView) f.scrollIntoView({ block: 'nearest' });
   }
   function openDrawer() {
@@ -515,7 +562,7 @@
     if (intent) { if (TV && TV.openIntent) TV.openIntent(intent); return; }
     var pkg = elm.getAttribute('data-pkg');
     var action = elm.getAttribute('data-action');
-    if (pkg) { if (TV && TV.launch) TV.launch(pkg); return; }
+    if (pkg) { try { localStorage.setItem('opened:' + pkg, Date.now()); } catch (e) {} if (TV && TV.launch) TV.launch(pkg); return; }
     if (action === 'apps') return openDrawer();
     if (action === 'layout') return toggleLayout();
     if (TV && TV.openSettings) TV.openSettings(action);
@@ -683,13 +730,20 @@
     var pl = $('player');
     if (!m.title) { pl.className = 'player empty'; mediaKey = ''; return; }
     pl.className = 'player' + (m.live ? '' : ' last') + (m.playing ? ' playing' : '');
+    if (!m.title) return;
     var key = (m.pkg || '') + '|' + m.title;
     if (key !== mediaKey) {
       mediaKey = key;
       $('pl-title').textContent = m.title;
       var art = $('pl-art');
-      art.style.backgroundImage = m.art ? 'url(' + m.art + ')' : '';
-      art.classList.toggle('has', !!m.art);
+      var appInfo = null;
+      for (var ai = 0; ai < apps.length; ai++) if (apps[ai].pkg === m.pkg) appInfo = apps[ai];
+      var pic = m.art || (appInfo && (appInfo.banner || appInfo.icon)) || '';
+      art.style.backgroundImage = pic ? 'url(' + pic + ')' : '';
+      art.classList.toggle('has', !!pic);
+      art.classList.toggle('logo', !m.art && !!pic);
+      if (appInfo && appInfo.banner) glowFrom(m.pkg, appInfo.banner, pl, '--pl-accent');
+      setTimeout(function () { var c = pl.style.getPropertyValue('--pl-accent'); if (c) pl.style.setProperty('--pl-accent-soft', c.replace(/,\s*[\d.]+\)$/, ',.22)')); }, 300);
     }
     $('pl-app').textContent = '> ' + (m.live ? (m.app || 'плеєр') : 'продовжити · ' + (m.app || ''));
     $('pl-state').textContent = m.live ? (m.playing ? '▶ грає' : '❚❚ пауза') : 'ОК — відкрити';
