@@ -350,27 +350,46 @@
     return CLOUD;
   }
 
-  // ---------- «сьогодні»: 24 h attack chart + Lviv alerts + sunrise ----------
-  var histKey = '';
-  function paintToday() {
-    countTo('ts-targets', data.today || 0);
-    var c = data.cityToday || { count: 0, minutes: 0 };
-    $('ts-alerts').textContent = c.count + (c.minutes ? ' · ' + (c.minutes >= 60 ? Math.floor(c.minutes / 60) + ' год ' + (c.minutes % 60) + ' хв' : c.minutes + ' хв') : '');
-    $('ts-alerts-label').textContent = plural(c.count, 'тривога', 'тривоги', 'тривог') + ' у Львові';
-    var h = data.hist || [];
-    var key = h.join(',');
-    if (key === histKey) return;
-    histKey = key;
-    var max = Math.max.apply(null, h.concat([1]));
-    var bw = 240 / 24, html = '';
-    h.forEach(function (v, i) {
-      var bh = v ? Math.max(2, v / max * 40) : 1;
-      html += '<rect x="' + (i * bw + 1).toFixed(1) + '" y="' + (44 - bh).toFixed(1) + '" width="' + (bw - 2).toFixed(1) + '" height="' + bh.toFixed(1) + '" class="' + (v ? (i === 23 ? 'now' : 'bar') : 'zero') + '"/>';
-    });
-    $('hist').innerHTML = html;
-    var peakI = h.indexOf(max);
-    $('today-peak').textContent = max > 1 ? 'пік ' + max + ' о ' + pad((new Date().getHours() - (23 - peakI) + 24) % 24) + ':00' : '';
+  // ---------- rates + headlines ----------
+  var newsPage = 0, newsKey = '';
+  function ago(iso) {
+    if (!iso) return '';
+    var m = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
+    return m < 60 ? m + ' хв' : Math.floor(m / 60) + ' год';
   }
+  function paintInfo() {
+    var r = data.rates || {};
+    ['USD', 'EUR', 'PLN'].forEach(function (c) {
+      if (!r[c]) return;
+      $('r-' + c).textContent = r[c].rate.toFixed(2);
+      var d = r[c].delta, el = $('d-' + c);
+      el.textContent = d == null || Math.abs(d) < 0.005 ? '' : (d > 0 ? '▲ ' : '▼ ') + Math.abs(d).toFixed(2);
+      el.className = d > 0 ? 'up' : d < 0 ? 'down' : '';
+    });
+    var n = data.news;
+    if (!n || !n.items || !n.items.length) return;
+    $('news-src').textContent = n.source;
+    var key = n.items.map(function (x) { return x.title; }).join('|');
+    if (key !== newsKey) { newsKey = key; newsPage = 0; renderNews(); }
+  }
+  function renderNews() {
+    var n = data && data.news;
+    if (!n || !n.items || !n.items.length) return;
+    var pages = Math.ceil(n.items.length / 3), start = (newsPage % pages) * 3;
+    var box = $('news');
+    box.classList.add('swap');
+    setTimeout(function () {
+      var html = '';
+      n.items.slice(start, start + 3).forEach(function (x) {
+        html += '<div class="item"><span class="t"></span><span class="ago">' + ago(x.at) + '</span></div>';
+      });
+      box.innerHTML = html;
+      var ts = box.querySelectorAll('.t');
+      n.items.slice(start, start + 3).forEach(function (x, i) { ts[i].textContent = x.title; });
+      box.classList.remove('swap');
+    }, 350);
+  }
+  setInterval(function () { newsPage++; renderNews(); }, 20000);
 
   // ---------- data ----------
   function paint() {
@@ -380,10 +399,6 @@
       $('weather').textContent = 'зараз ' + w.temp + '° · ' + w.text;
       var wxKey = w.code + '|' + w.isDay + '|' + new Date().getDate();
       if ($('wx-icon').getAttribute('data-k') !== wxKey) { $('wx-icon').innerHTML = wxIcon(w.code, w.isDay); $('wx-icon').setAttribute('data-k', wxKey); }
-      var now = new Date();
-      var rise = new Date(w.sunrise[0]), set = new Date(w.sunset[0]);
-      if (now > set) { rise = new Date(w.sunrise[1]); set = new Date(w.sunset[1]); }
-      $('ts-sun').textContent = hhmm(rise) + ' · ' + hhmm(set);
     }
     var fc = data.forecast;
     if (fc) {
@@ -407,7 +422,7 @@
       $('pi-dot').className = 'dot ' + (level || 'warn');
       $('pi-line').hidden = !level;
     }
-    paintToday();
+    paintInfo();
     var alarm = !!(data.alerts && data.alerts.city && data.alerts.city.active) || /[?&]alarm/.test(location.search);
     if (alarm !== document.body.classList.contains('alarm')) {
       document.body.classList.toggle('alarm', alarm);

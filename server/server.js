@@ -185,6 +185,46 @@ every('alerts', 15_000, async () => {
   };
 });
 
+// ---- exchange rates (NBU, official) with change vs the previous day ----
+every('rates', 60 * 60_000, async () => {
+  const ymd = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d).replaceAll('-', '');
+  const pick = (list) => Object.fromEntries((list ?? []).filter((x) => ['USD', 'EUR', 'PLN'].includes(x.cc)).map((x) => [x.cc, x.rate]));
+  const list = await getJson('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json');
+  const today = pick(list);
+  // compare with the day before the rate's own date (NBU publishes tomorrow's rate in the evening)
+  const [dd, mm, yyyy] = String(list?.[0]?.exchangedate ?? '').split('.');
+  const base = dd ? new Date(Date.UTC(+yyyy, +mm - 1, +dd, 12)) : new Date();
+  const prev = pick(await getJson(`https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?date=${ymd(new Date(base - 86400e3))}&json`));
+  state.rates = Object.fromEntries(Object.entries(today).map(([k, v]) => [k, { rate: v, delta: prev[k] != null ? Math.round((v - prev[k]) * 1000) / 1000 : null }]));
+});
+
+// ---- headlines (RSS; Ukrainska Pravda, Ukrinform as backup) ----
+const FEEDS = [
+  { name: 'Українська правда', url: 'https://www.pravda.com.ua/rss/view_news/' },
+  { name: 'Укрінформ', url: 'https://www.ukrinform.ua/rss/block-lastnews' },
+];
+const unxml = (s) => s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/&quot;/g, '"').replace(/&#039;|&apos;/g, "'").replace(/&laquo;/g, '«').replace(/&raquo;/g, '»').replace(/&amp;/g, '&').replace(/<[^>]+>/g, '').trim();
+every('news', 10 * 60_000, async () => {
+  let lastError;
+  for (const f of FEEDS) {
+    try {
+      const res = await fetch(f.url, { headers: { 'User-Agent': UA }, signal: AbortSignal.timeout(12_000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const xml = await res.text();
+      const items = [...xml.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 9).map((m) => ({
+        title: unxml((/<title>([\s\S]*?)<\/title>/.exec(m[1]) ?? [])[1] ?? ''),
+        at: (/<pubDate>([\s\S]*?)<\/pubDate>/.exec(m[1]) ?? [])[1] ?? null,
+      })).filter((x) => x.title);
+      if (!items.length) throw new Error('empty feed');
+      state.news = { source: f.name, items: items.map((x) => ({ title: x.title, at: x.at ? new Date(x.at).toISOString() : null })) };
+      return;
+    } catch (e) {
+      lastError = e;
+    }
+  }
+  throw lastError;
+});
+
 every('fallback', 30_000, async () => {
   const d = await getJson('https://ubilling.net.ua/aerialalerts/');
   state.fallback = d.states ?? null;
@@ -316,6 +356,8 @@ function snapshot() {
     city: CITY.name,
     weather: state.weather,
     forecast: forecast(),
+    rates: state.rates ?? null,
+    news: state.news ?? null,
     pi: piStatus(),
     alerts,
     threats: state.threats,

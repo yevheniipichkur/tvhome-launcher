@@ -36,15 +36,15 @@
         <div class="line minor"><span class="dot amber" id="fc-dot"></span><span id="fc-text">—</span></div>
         <div class="line minor pi-hot" id="pi-line" hidden><span class="dot hot" id="pi-dot"></span><span id="pi-text">—</span></div>
       </div>
-      <section class="today" id="today" aria-label="Сьогодні">
-        <div class="today-head"><span>&gt; сьогодні</span><span id="today-peak"></span></div>
-        <svg class="hist" id="hist" viewBox="0 0 240 44" preserveAspectRatio="none" aria-hidden="true"></svg>
-        <div class="hist-axis"><span>−24 год</span><span>−12</span><span>зараз</span></div>
-        <div class="today-stats">
-          <div><b id="ts-targets">0</b><span>цілей за добу</span></div>
-          <div><b id="ts-alerts">0</b><span id="ts-alerts-label">тривог у Львові</span></div>
-          <div><b id="ts-sun">—</b><span>схід · захід</span></div>
+      <section class="info" id="info" aria-label="Курси й новини">
+        <div class="rates">
+          <div class="rate"><span class="cur">$</span><b id="r-USD">—</b><i id="d-USD"></i></div>
+          <div class="rate"><span class="cur">€</span><b id="r-EUR">—</b><i id="d-EUR"></i></div>
+          <div class="rate"><span class="cur">zł</span><b id="r-PLN">—</b><i id="d-PLN"></i></div>
+          <div class="rate-src">НБУ · ₴</div>
         </div>
+        <div class="news-head"><span>&gt; новини</span><span id="news-src"></span></div>
+        <div class="news" id="news"></div>
       </section>
       <section class="player empty" id="player" aria-label="Міні-плеєр">
         <div class="pl-art" id="pl-art"><span class="spark">✻</span></div>
