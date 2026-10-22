@@ -228,6 +228,23 @@ function piStatus() {
   };
 }
 
+// Newest mtime under web/: the page reloads itself when it changes, so edits reach the TV.
+let webVer = { at: 0, v: '' };
+function webVersion() {
+  if (Date.now() - webVer.at < 10_000) return webVer.v;
+  let max = 0;
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const f = path.join(dir, e.name);
+      if (e.isDirectory()) walk(f);
+      else max = Math.max(max, fs.statSync(f).mtimeMs);
+    }
+  };
+  try { walk(WEB); } catch {}
+  webVer = { at: Date.now(), v: String(Math.round(max)) };
+  return webVer.v;
+}
+
 function snapshot() {
   let { alerts } = state;
   // NEPTUN alerts down → oblast-level fallback so the screen never lies by omission.
@@ -250,6 +267,7 @@ function snapshot() {
     counts,
     inSky: Object.values(counts).reduce((a, b) => a + b, 0),
     today: Object.values(today.ids).reduce((a, b) => a + b, 0),
+    webVersion: webVersion(),
     updated: state.updated,
     errors: state.errors,
   };

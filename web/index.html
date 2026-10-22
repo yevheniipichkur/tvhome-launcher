@@ -2,7 +2,8 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- 1920 CSS px wide: the WebView zooms the page to the screen, so it rasterises at native size -->
+<meta name="viewport" content="width=1920, user-scalable=no">
 <title>Вітальня</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -56,7 +57,10 @@
 
     <section class="sky">
       <div class="sky-head"><span class="spark">✻</span> Небо зараз · <span id="sky-now-n">0</span> <span id="sky-now-word">цілей</span> · <span class="muted">сьогодні <span id="sky-today">0</span></span></div>
-      <svg id="map" class="map" role="img" aria-label="Карта загроз України"></svg>
+      <div class="map-wrap">
+        <svg id="map" class="map" role="img" aria-label="Карта загроз України"></svg>
+        <div class="fly" id="fly" aria-hidden="true"></div>
+      </div>
       <div class="legend" id="legend"></div>
       <div class="credit">дані: NEPTUN · neptun.in.ua · мапа © OpenStreetMap</div>
     </section>

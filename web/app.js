@@ -14,7 +14,9 @@
     var vw = document.documentElement.clientWidth || window.innerWidth;
     var vh = document.documentElement.clientHeight || window.innerHeight;
     var s = Math.min(vw / 1920, vh / 1080);
-    stage.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+    // At 1920 CSS px (the TV) no transform at all: a scaled full-screen layer is what made the box GPU crawl.
+    if (Math.abs(s - 1) < 0.01) { stage.style.transform = 'none'; stage.style.left = '0'; stage.style.top = '0'; }
+    else { stage.style.left = '50%'; stage.style.top = '50%'; stage.style.transform = 'translate(-50%, -50%) scale(' + s + ')'; }
   }
   window.addEventListener('resize', fit);
   fit();
@@ -22,6 +24,20 @@
     try { var x = new XMLHttpRequest(); x.open('GET', 'api/diag?t=' + tag + '&w=' + window.innerWidth + '&h=' + window.innerHeight + '&dpr=' + window.devicePixelRatio + '&cw=' + document.documentElement.clientWidth + '&vv=' + (window.visualViewport ? visualViewport.width + 'x' + visualViewport.height + '@' + visualViewport.scale : '-') + '&tr=' + encodeURIComponent(stage.style.transform)); x.send(); } catch (e) {}
   }
   diag('init');
+  window.addEventListener('error', function (e) { diag('err-' + encodeURIComponent(String(e.message).slice(0, 120)) + '@' + e.lineno); });
+  // fps probe: average and worst frame over 8 s, sent to the Pi log
+  (function fpsProbe() {
+    var n = 0, t0 = performance.now(), last = t0, worst = 0;
+    function f(t) {
+      n++; worst = Math.max(worst, t - last); last = t;
+      if (t - t0 > 8000) {
+        try { var x = new XMLHttpRequest(); x.open('GET', 'api/diag?t=fps&tv=' + (TV ? 1 : 0) + '&fps=' + (n * 1000 / (t - t0)).toFixed(1) + '&worst=' + worst.toFixed(0)); x.send(); } catch (e) {}
+        n = 0; t0 = t; worst = 0;
+      }
+      requestAnimationFrame(f);
+    }
+    requestAnimationFrame(f);
+  })();
   setTimeout(function () { diag('late'); }, 3000);
 
   // ---------- words ----------
@@ -138,13 +154,27 @@
       var t = el('text', { x: o.label[0], y: o.label[1] + (o.name === 'м. Київ' ? -7 : o.name === 'Львівська область' ? 16 : 0) }, gl);
       t.textContent = o.name === 'м. Київ' ? 'м. Київ' : o.short;
     });
-    var home = el('g', { 'class': 'home' }, map);
-    var p = proj(24.0297, 49.8397);
-    el('circle', { cx: p[0], cy: p[1], r: 6, 'class': 'ping' }, home);
-    el('circle', { cx: p[0], cy: p[1], r: 6, 'class': 'ping late' }, home);
-    el('circle', { cx: p[0], cy: p[1], r: 6, 'class': 'ring' }, home);
-    el('circle', { cx: p[0], cy: p[1], r: 2.4, 'class': 'core' }, home);
-    threatLayer = el('g', {}, map);
+    // Moving things live in an HTML layer above the static SVG: animating them inside the SVG
+    // made the WebView repaint the whole map every frame, which the box GPU can't keep up with.
+    threatLayer = $('fly');
+    var p = toScreen(24.0297, 49.8397);
+    var home = document.createElement('div');
+    home.className = 'home';
+    home.innerHTML = '<i class="ping"></i><i class="ping late"></i><i class="ring"></i><i class="core"></i>';
+    home.style.transform = 'translate3d(' + p[0].toFixed(1) + 'px,' + p[1].toFixed(1) + 'px,0)';
+    threatLayer.appendChild(home);
+  }
+
+  // map units → px inside the map box (matches viewBox + preserveAspectRatio meet)
+  var box = null;
+  function toScreen(lon, lat) {
+    if (!box) {
+      var W = geo.width + 8, H = geo.height + 8, w = map.clientWidth, h = map.clientHeight;
+      var k = Math.min(w / W, h / H);
+      box = { k: k, ox: (w - W * k) / 2 + 4 * k, oy: (h - H * k) / 2 + 4 * k };
+    }
+    var q = proj(lon, lat);
+    return [box.ox + q[0] * box.k, box.oy + q[1] * box.k];
   }
 
   // Top-view Shahed silhouette (nose up), rotated by heading; missile for rockets.
@@ -157,7 +187,8 @@
     var ob = al.oblasts || {};
     var ra = al.raions || {};
     raionEls.forEach(function (r) {
-      var lv = ra[r.key] || ob[r.oblast];
+      var lv = ra[r.key] || ob[r.oblast] || '';
+      if (lv === r.lv) return; // touch the SVG only when something changed
       var fresh = lv && !r.lv && painted ? ' flash' : '';
       r.lv = lv;
       r.el.setAttribute('class', 'raion' + (lv ? ' ' + lv : '') + fresh);
@@ -171,30 +202,34 @@
 
   // Targets are kept by id, so a moving Shahed glides to its new spot instead of blinking.
   var threatEls = {};
+  function iconSvg(kind) {
+    return '<svg viewBox="-15 -15 30 30"><path d="' + (kind === 'missile' ? MISSILE : SHAHED) + '"/></svg>';
+  }
   function paintThreats() {
     var seen = {};
     (data.threats || []).forEach(function (t) {
       seen[t.id] = true;
-      var p = proj(t.lon, t.lat);
+      var p = toScreen(t.lon, t.lat);
       var rot = t.heading == null ? 0 : t.heading;
       var item = threatEls[t.id];
+      var pos = 'translate3d(' + p[0].toFixed(1) + 'px,' + p[1].toFixed(1) + 'px,0)';
       if (!item) {
-        var g = el('g', { 'class': 't ' + t.kind + ' enter' }, threatLayer);
-        var inner = el('g', { 'class': 'rot' }, g);
-        el('path', { d: t.kind === 'missile' ? MISSILE : SHAHED }, inner);
-        var label = el('text', { x: 12, y: -10 }, g);
-        item = threatEls[t.id] = { g: g, inner: inner, label: label, rot: rot };
-        g.style.transform = 'translate(' + p[0].toFixed(1) + 'px,' + p[1].toFixed(1) + 'px)';
-        inner.style.transform = 'rotate(' + rot + 'deg) scale(1.15)';
+        var g = document.createElement('div');
+        g.className = 't ' + t.kind + ' enter';
+        g.innerHTML = '<div class="rot">' + iconSvg(t.kind) + '</div><b></b>';
+        g.style.transform = pos;
+        threatLayer.appendChild(g);
+        item = threatEls[t.id] = { g: g, inner: g.firstChild, label: g.lastChild, rot: rot, kind: t.kind, cls: '' };
+        item.inner.style.transform = 'rotate(' + rot + 'deg)';
         requestAnimationFrame(function () { requestAnimationFrame(function () { g.classList.remove('enter'); }); });
       }
-      // shortest way round when the heading changes
-      var d = ((rot - item.rot) % 360 + 540) % 360 - 180;
-      item.rot += d;
-      item.g.setAttribute('class', 't ' + t.kind + (t.stale ? ' stale' : ''));
-      item.g.style.transform = 'translate(' + p[0].toFixed(1) + 'px,' + p[1].toFixed(1) + 'px)';
-      item.inner.style.transform = 'rotate(' + item.rot + 'deg) scale(1.15)';
-      item.label.textContent = t.count > 1 ? '×' + t.count : '';
+      var cls = 't ' + t.kind + (t.stale ? ' stale' : '');
+      if (cls !== item.cls) { item.g.className = cls; item.cls = cls; }
+      if (pos !== item.pos) { item.g.style.transform = pos; item.pos = pos; }
+      var d = ((rot - item.rot) % 360 + 540) % 360 - 180; // shortest way round
+      if (d) { item.rot += d; item.inner.style.transform = 'rotate(' + item.rot + 'deg)'; }
+      var lab = t.count > 1 ? '×' + t.count : '';
+      if (lab !== item.lab) { item.label.textContent = lab; item.lab = lab; }
     });
     Object.keys(threatEls).forEach(function (id) {
       if (seen[id]) return;
@@ -207,6 +242,7 @@
 
   var KIND_LABEL = { uav: 'Шахед / БпЛА', jet: 'Реактивний шахед', missile: 'Ракети', kab: 'КАБ', other: 'Інше' };
   var KIND_ICON = { uav: '#ffffff', jet: '#ffb08a', missile: '#ff6b5e', kab: '#f3d36b', other: '#c8c3b8' };
+  var legendHtml = null;
   function paintLegend() {
     var html = '';
     ['jet', 'uav', 'missile', 'kab', 'other'].forEach(function (k) {
@@ -214,7 +250,7 @@
       if (!n) return;
       html += '<div class="row"><svg viewBox="-15 -15 30 30"><path d="' + (k === 'missile' ? MISSILE : SHAHED) + '" fill="' + KIND_ICON[k] + '" stroke="#10131a" stroke-width="1.6"/></svg>' + KIND_LABEL[k] + ' ' + n + '</div>';
     });
-    $('legend').innerHTML = html;
+    if (html !== legendHtml) { $('legend').innerHTML = html; legendHtml = html; }
   }
 
   // Numbers glide to their new value instead of jumping.
@@ -299,9 +335,14 @@
     x.onerror = x.ontimeout = function () { cb(new Error('net')); };
     x.send();
   }
+  var pageVersion = null;
   function poll() {
     getJSON('api/state', function (err, d) {
-      if (!err) { data = d; paint(); paintBackground(); }
+      if (err) return;
+      // a newer page on the Pi → reload (keeps the TV in sync with edits)
+      if (d.webVersion && pageVersion && d.webVersion !== pageVersion) { location.reload(); return; }
+      if (d.webVersion) pageVersion = d.webVersion;
+      data = d; paint(); paintBackground();
     });
   }
   getJSON('ukraine.json', function (err, g) { if (!err) { geo = g; drawMap(); paint(); } });
@@ -444,11 +485,56 @@
     if (action === 'apps') return openDrawer();
     if (TV && TV.openSettings) TV.openSettings(action);
   }
+  // ---------- UI sounds (Web Audio, synthesized: a soft tick on move, a two-note chime on launch) ----------
+  var actx = null;
+  function audio() {
+    if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: 'interactive' }); } catch (e) { return null; } }
+    if (actx.state === 'suspended') actx.resume();
+    return actx;
+  }
+  function blip(freq, at, dur, vol, type) {
+    var c = audio();
+    if (!c) return;
+    var t0 = c.currentTime + (at || 0);
+    var o = c.createOscillator(), g = c.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t0);
+    o.frequency.exponentialRampToValueAtTime(freq * 0.82, t0 + dur);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(vol, t0 + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(c.destination);
+    o.start(t0); o.stop(t0 + dur + 0.02);
+  }
+  var audioReported = false;
+  function reportAudio() {
+    if (audioReported || !actx) return;
+    audioReported = true;
+    setTimeout(function () { diag('audio-' + actx.state + '-' + Math.round((actx.baseLatency || 0) * 1000) + 'ms'); }, 500);
+  }
+  function play(name, fallback) {
+    if (TV && TV.sound) { try { TV.sound(name); return; } catch (e) {} }
+    fallback();
+  }
+  var SOUND_WEB = {
+    move: function () { blip(1450, 0, 0.045, 0.06, 'triangle'); reportAudio(); },
+    edge: function () { blip(520, 0, 0.07, 0.05, 'triangle'); },
+    open: function () { blip(880, 0, 0.12, 0.08); blip(1320, 0.07, 0.18, 0.07); },
+    back: function () { blip(990, 0, 0.09, 0.06); blip(700, 0.05, 0.12, 0.05); },
+  };
+  var SOUND = {
+    move: function () { play('move', SOUND_WEB.move); },
+    edge: function () { play('edge', SOUND_WEB.edge); },
+    open: function () { play('open', SOUND_WEB.open); },
+    back: function () { play('back', SOUND_WEB.back); },
+  };
+
   var COLS = 6;
   document.addEventListener('keydown', function (e) {
     var k = e.key || '';
     var code = e.keyCode;
     var list = items(zone);
+    var before = zone + ':' + idx[zone];
     if (k === 'ArrowRight' || code === 22) idx[zone]++;
     else if (k === 'ArrowLeft' || code === 21) idx[zone]--;
     else if (k === 'ArrowUp' || code === 19) {
@@ -458,13 +544,19 @@
       if (zone === 'corner') zone = 'dock';
       else if (zone === 'grid' && idx.grid + COLS < list.length) idx.grid += COLS;
     } else if (k === 'Enter' || code === 13 || code === 23) {
+      SOUND.open();
       activate(list[idx[zone]]);
     } else if (k === 'Escape' || k === 'Backspace' || k === 'GoBack' || code === 4 || code === 27) {
+      SOUND.back();
       if (zone === 'grid') closeDrawer();
       else { zone = 'dock'; idx.dock = 0; }
     } else return;
     e.preventDefault();
     render();
+    if (code >= 19 && code <= 22 || /^Arrow/.test(k)) {
+      var after = zone + ':' + idx[zone];
+      (after === before ? SOUND.edge : SOUND.move)();
+    }
   });
   document.addEventListener('click', function (e) {
     var t = e.target.closest ? e.target.closest('[data-pkg],[data-action],[data-intent]') : null;
@@ -510,7 +602,7 @@
   }
   (function makeStars() {
     var box = $('stars'), html = '';
-    for (var i = 0; i < 46; i++) {
+    for (var i = 0; i < 22; i++) {
       var x = (i * 137.5) % 100, y = (i * 61.8 * 1.7) % 100, sz = i % 7 === 0 ? 3 : 2;
       html += '<b style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;width:' + sz + 'px;height:' + sz + 'px;animation-delay:' + (i % 9 * 0.45).toFixed(2) + 's"></b>';
     }
@@ -549,7 +641,7 @@
   };
   // Called by the launcher with Back while the drawer is open.
   window.tvBack = function () {
-    if (!$('drawer').hidden) { closeDrawer(); return true; }
+    if (!$('drawer').hidden) { SOUND.back(); closeDrawer(); return true; }
     return false;
   };
 

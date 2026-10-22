@@ -8,7 +8,11 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.graphics.BitmapFactory;
+import android.media.AudioAttributes;
+import android.media.SoundPool;
 import android.media.tv.TvContract;
+import android.webkit.RenderProcessGoneDetail;
+import android.view.ViewGroup;
 import android.net.Uri;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -54,12 +58,28 @@ public class MainActivity extends Activity {
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final Map<String, String> imageCache = new HashMap<>();
     private WebView web;
+    private SoundPool sounds;
+    private final Map<String, Integer> soundIds = new HashMap<>();
     private boolean offline;
     private long loadedAt;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // UI sounds via SoundPool: low latency and independent of the WebView
+        sounds = new SoundPool.Builder().setMaxStreams(4).setAudioAttributes(new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()).build();
+        soundIds.put("move", sounds.load(this, R.raw.ui_move, 1));
+        soundIds.put("edge", sounds.load(this, R.raw.ui_edge, 1));
+        soundIds.put("open", sounds.load(this, R.raw.ui_open, 1));
+        soundIds.put("back", sounds.load(this, R.raw.ui_back, 1));
+        WebView.setWebContentsDebuggingEnabled(true); // chrome://inspect over ADB on the LAN
+        createWebView();
+        hideSystemUi();
+    }
+
+    private void createWebView() {
         web = new WebView(this);
         web.setBackgroundColor(Color.rgb(0x26, 0x27, 0x2b));
         web.setFocusable(true);
@@ -78,6 +98,16 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                // Low memory killed the page renderer: rebuild the WebView instead of showing white.
+                if (view != web) return true;
+                ((ViewGroup) view.getParent()).removeView(view);
+                view.destroy();
+                ui.post(MainActivity.this::createWebView);
+                return true;
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
                 if (url.startsWith("http")) {
                     offline = false;
@@ -86,9 +116,9 @@ public class MainActivity extends Activity {
             }
         });
         setContentView(web);
+        offline = false;
         web.loadUrl(HOME_URL);
         web.requestFocus();
-        hideSystemUi();
     }
 
     private void goOffline() {
@@ -355,6 +385,12 @@ public class MainActivity extends Activity {
                 } catch (Exception ignored) {
                 }
             });
+        }
+
+        @JavascriptInterface
+        public void sound(String name) {
+            Integer id = soundIds.get(name);
+            if (id != null && sounds != null) sounds.play(id, 0.5f, 0.5f, 1, 0, 1f);
         }
 
         @JavascriptInterface
