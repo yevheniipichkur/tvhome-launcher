@@ -437,14 +437,11 @@ body.compact .player { border: 0; }
 /* 11. per-oblast target counts */
 .fly .badge { position: absolute; left: 0; top: 0; transform-origin: 0 0; min-width: 24px; height: 22px; padding: 0 7px; margin-left: -12px; border-radius: 11px; background: #fff; color: #10131a; font-size: 14px; font-weight: 700; line-height: 22px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,.5); }
 
-/* 2 + 13. dock fits, and the focused tile gets a caption under it */
+/* 2. dock fits */
 .dock .track { gap: 36px; }
 .tile { width: 204px; height: 115px; }
-.dock { align-items: flex-start; padding-top: 22px; }
 .tile.focus { transform: scale(1.14); }
 .tile.cont.focus { transform: scale(1.08); }
-#caption { position: absolute; left: 56px; bottom: 50px; z-index: 2; pointer-events: none; white-space: nowrap; text-align: center; font-size: 17px; color: var(--muted); transition: transform .5s var(--ease-out), opacity .3s; }
-#caption b { color: #fff; margin-right: 10px; }
 
 /* 4 + 14. player art falls back to the app logo; accent follows the app colour */
 .pl-art.logo { background-size: 92% auto; background-color: #101114; }

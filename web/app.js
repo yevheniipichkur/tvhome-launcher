@@ -440,7 +440,6 @@
     var glint = $('glint') || document.createElement('div');
     glint.id = 'glint';
     host.parentNode.insertBefore(glint, host.nextSibling);
-    if (!$('caption')) { var cap = document.createElement('div'); cap.id = 'caption'; host.parentNode.insertBefore(cap, host.nextSibling); }
     var fav = CFG.favorites || [];
     var byPkg = {};
     apps.forEach(function (a) { byPkg[a.pkg] = a; });
@@ -497,25 +496,6 @@
   }
   // The dock scrolls so the focused tile stays in view; the glint follows it.
   var trackX = 0;
-  function lastOpened(pkg) {
-    try { var t = Number(localStorage.getItem('opened:' + pkg)); } catch (e) { return ''; }
-    if (!t) return '';
-    var d = new Date(t), now = new Date();
-    var day = d.toDateString() === now.toDateString() ? 'сьогодні' : new Date(now - 864e5).toDateString() === d.toDateString() ? 'вчора' : d.getDate() + ' ' + MONTHS[d.getMonth()];
-    return 'востаннє: ' + day + ' ' + hhmm(d);
-  }
-  function moveCaption(f) {
-    var c = $('caption');
-    if (!c) return;
-    if (zone !== 'dock' || !f) { c.style.opacity = '0'; return; }
-    var name = f.getAttribute('aria-label') || '';
-    var pkg = f.getAttribute('data-pkg');
-    c.innerHTML = '<b></b><span></span>';
-    c.firstChild.textContent = name;
-    c.lastChild.textContent = pkg ? lastOpened(pkg) : '';
-    c.style.opacity = '1';
-    c.style.transform = 'translateX(' + (f.offsetLeft + trackX + 40 + f.offsetWidth / 2) + 'px) translateX(-50%)';
-  }
   function moveGlint(f) {
     var g = $('glint');
     var track = $('track');
@@ -543,7 +523,6 @@
     var f = list[idx[zone]];
     f.classList.add('focus');
     moveGlint(f);
-    moveCaption(f);
     if (zone === 'grid' && f.scrollIntoView) f.scrollIntoView({ block: 'nearest' });
   }
   function openDrawer() {
