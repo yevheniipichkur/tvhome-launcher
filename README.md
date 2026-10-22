@@ -23,4 +23,4 @@ adb -s 192.168.1.18:5555 shell cmd package set-home-activity pl.pichkur.tvhome/.
 adb -s 192.168.1.18:5555 shell settings put secure enabled_accessibility_services pl.pichkur.tvhome/.HomeGuardService
 ```
 
-Projectivy stays installed as the fallback launcher (offline page → OK).
+Projectivy is disabled (2026-10-22); the offline page falls back to Settings.
