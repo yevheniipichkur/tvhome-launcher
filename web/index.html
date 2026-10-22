@@ -11,41 +11,31 @@
 <div class="sky-bg" aria-hidden="true"><div class="layer" id="bg-a"></div><div class="layer" id="bg-b"></div><div class="stars" id="stars"></div><div class="danger"></div></div>
 <div class="aurora" aria-hidden="true"><i></i><i></i></div>
 <div id="stage">
-  <header class="top">
-    <section class="welcome">
-      <div class="welcome-title"><span class="spark">✻</span> <span id="welcome-typed" data-text="Вітаю в Claude Code!">Вітаю в Claude Code!</span><span class="tcur"></span></div>
-    </section>
-  </header>
+  <header class="top"></header>
 
   <main class="middle">
-    <section class="left">
-      <div class="clock-row">
-        <div class="clock" id="clock">--:--</div>
-        <div class="date-col">
-          <div id="date">—</div>
-          <div class="wx"><svg viewBox="0 0 32 32" id="wx-icon" aria-hidden="true"></svg><span id="weather">—</span></div>
-          <div id="weather-next" class="muted">—</div>
-          <div class="net" id="net"><svg viewBox="0 0 24 24" class="net-ico"><rect class="b1" x="3" y="15" width="3.6" height="5" rx="1.2"/><rect class="b2" x="10.2" y="10.5" width="3.6" height="9.5" rx="1.2"/><rect class="b3" x="17.4" y="5" width="3.6" height="15" rx="1.2"/></svg><span id="net-name">Wi‑Fi</span></div>
+    <section class="left cc">
+      <div class="cc-box">
+        <div class="cc-title"><span class="spark">✻</span> <span id="welcome-typed">Вітаю</span><span class="tcur"></span></div>
+        <div class="cc-main">
+          <div class="clock" id="clock">--:--</div>
+          <div class="date-col">
+            <div id="date">—</div>
+            <div class="wx"><svg viewBox="0 0 32 32" id="wx-icon" aria-hidden="true"></svg><span id="weather">—</span></div>
+            <div id="weather-next" class="muted">—</div>
+            <div class="net" id="net"><svg viewBox="0 0 24 24" class="net-ico"><rect class="b1" x="3" y="15" width="3.6" height="5" rx="1.2"/><rect class="b2" x="10.2" y="10.5" width="3.6" height="9.5" rx="1.2"/><rect class="b3" x="17.4" y="5" width="3.6" height="15" rx="1.2"/></svg><span id="net-name">Wi‑Fi</span></div>
+          </div>
         </div>
+        <div class="cc-cwd">cwd: ~/вітальня · Львів</div>
       </div>
-      <div class="log" id="log">
-        <div class="line key" id="alert-line"><span class="dot"></span><span id="alert-text">перевіряю тривоги…</span></div>
-        <div class="line prompt">&gt; небо</div>
-        <div class="line key"><span class="dot amber"></span><span>у небі зараз <span id="sky-n">0</span> <span id="sky-word">цілей</span></span></div>
-        <div class="line prompt">&gt; погода</div>
-        <div class="line minor"><span class="dot amber" id="fc-dot"></span><span id="fc-text">—</span></div>
-        <div class="line minor pi-hot" id="pi-line" hidden><span class="dot hot" id="pi-dot"></span><span id="pi-text">—</span></div>
+      <div class="cc-log" id="log">
+        <div class="tool" id="alert-line"><div class="call"><i class="bullet"></i>Bash<span class="args">(alerts --city lviv)</span></div><div class="res"><span class="el">⎿</span><span id="alert-text">перевіряю…</span></div></div>
+        <div class="tool"><div class="call"><i class="bullet"></i>Bash<span class="args">(sky --now)</span></div><div class="res"><span class="el">⎿</span><span><b><span id="sky-n">0</span> <span id="sky-word">цілей</span></b> у небі · <span id="sky-t">0</span> за добу</span></div></div>
+        <div class="tool" id="t-wx"><div class="call"><i class="bullet"></i>Read<span class="args">(погода/львів.md)</span></div><div class="res"><span class="el">⎿</span><span id="fc-text">—</span></div></div>
+        <div class="tool"><div class="call"><i class="bullet"></i>Fetch<span class="args">(bank.gov.ua)</span></div><div class="res rates"><span class="el">⎿</span><span>$ <b id="r-USD">—</b> <i id="d-USD"></i>  € <b id="r-EUR">—</b> <i id="d-EUR"></i>  zł <b id="r-PLN">—</b> <i id="d-PLN"></i></span></div></div>
+        <div class="tool"><div class="call"><i class="bullet"></i>Fetch<span class="args" id="news-args">(news)</span></div><div class="res"><span class="el">⎿</span><span class="news" id="news"></span></div></div>
+        <div class="tool hot" id="pi-line" hidden><div class="call"><i class="bullet"></i>Bash<span class="args">(pi status)</span></div><div class="res"><span class="el">⎿</span><span id="pi-text">—</span></div></div>
       </div>
-      <section class="info" id="info" aria-label="Курси й новини">
-        <div class="rates">
-          <div class="rate"><span class="cur">$</span><b id="r-USD">—</b><i id="d-USD"></i></div>
-          <div class="rate"><span class="cur">€</span><b id="r-EUR">—</b><i id="d-EUR"></i></div>
-          <div class="rate"><span class="cur">zł</span><b id="r-PLN">—</b><i id="d-PLN"></i></div>
-          <div class="rate-src">НБУ · ₴</div>
-        </div>
-        <div class="news-head"><span>&gt; новини</span><span id="news-src"></span></div>
-        <div class="news" id="news"></div>
-      </section>
       <section class="player empty" id="player" aria-label="Міні-плеєр">
         <div class="pl-art" id="pl-art"><span class="spark">✻</span></div>
         <div class="pl-meta">
@@ -62,6 +52,7 @@
           <button class="pl-btn" data-media="open" aria-label="Відкрити"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
         </div>
       </section>
+      <div class="cc-hint">‹ › вибір · ↑ плеєр · ОК відкрити</div>
     </section>
 
     <section class="sky">

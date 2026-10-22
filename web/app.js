@@ -78,7 +78,7 @@
     var h = new Date().getHours();
     var text = alarm ? 'Повітряна тривога · Львів' : h >= 5 && h < 11 ? 'Доброго ранку' : h < 17 && h >= 11 ? 'Доброго дня' : h >= 17 && h < 23 ? 'Доброго вечора' : 'Добраніч';
     if (el.textContent !== text) el.textContent = text;
-    var spark = document.querySelector('.welcome-title .spark');
+    var spark = document.querySelector('.cc-title .spark');
     if (spark) spark.textContent = alarm ? '⚠' : '✻';
   }
   function tickClock() {
@@ -368,28 +368,24 @@
     });
     var n = data.news;
     if (!n || !n.items || !n.items.length) return;
-    $('news-src').textContent = n.source;
+    $('news-args').textContent = '(' + (n.source === 'Укрінформ' ? 'ukrinform.ua' : 'pravda.com.ua') + ')';
     var key = n.items.map(function (x) { return x.title; }).join('|');
     if (key !== newsKey) { newsKey = key; newsPage = 0; renderNews(); }
   }
   function renderNews() {
     var n = data && data.news;
     if (!n || !n.items || !n.items.length) return;
-    var pages = Math.ceil(n.items.length / 3), start = (newsPage % pages) * 3;
+    var x = n.items[newsPage % n.items.length];
     var box = $('news');
     box.classList.add('swap');
     setTimeout(function () {
-      var html = '';
-      n.items.slice(start, start + 3).forEach(function (x) {
-        html += '<div class="item"><span class="t"></span><span class="ago">' + ago(x.at) + '</span></div>';
-      });
-      box.innerHTML = html;
-      var ts = box.querySelectorAll('.t');
-      n.items.slice(start, start + 3).forEach(function (x, i) { ts[i].textContent = x.title; });
+      box.innerHTML = '<span class="t"></span> <span class="ago"></span>';
+      box.firstChild.textContent = x.title;
+      box.lastChild.textContent = ago(x.at);
       box.classList.remove('swap');
     }, 350);
   }
-  setInterval(function () { newsPage++; renderNews(); }, 20000);
+  setInterval(function () { newsPage++; renderNews(); }, 12000);
 
   // ---------- data ----------
   function paint() {
@@ -405,7 +401,7 @@
       $('weather-next').textContent = fc.label + ' ' + fc.max + '°/' + fc.min + '° · ' + fc.text;
       var t = fc.precip ? fc.precip.kind + ' ' + fc.label + ' з ' + pad(fc.precip.from) + ':00 до ' + pad(fc.precip.to % 24) + ':00 · ' + fc.advice : fc.label + ': ' + fc.advice;
       $('fc-text').textContent = t;
-      $('fc-dot').className = 'dot ' + (fc.precip ? 'blue' : 'amber');
+      $('t-wx').classList.toggle('rain', !!fc.precip);
     }
     var pi = data.pi;
     if (pi && pi.cpu != null) {
@@ -419,7 +415,6 @@
       $('pi-text').textContent = 'pi гріється: ' + bits.join(' · ');
       // Only shown when it matters: SSD overheating is what used to freeze the Pi; CPU throttles at 80–85°.
       var level = (pi.disk >= 75 || pi.cpu >= 80) ? 'hot' : (pi.disk >= 68 || pi.cpu >= 76) ? 'warn' : '';
-      $('pi-dot').className = 'dot ' + (level || 'warn');
       $('pi-line').hidden = !level;
     }
     paintInfo();
@@ -431,20 +426,21 @@
     var a = data.alerts && data.alerts.city;
     var line = $('alert-line');
     if (!data.alerts) {
-      line.className = 'line';
+      line.className = 'tool';
       $('alert-text').textContent = 'тривоги: немає даних';
     } else if (a && a.active) {
-      line.className = 'line on';
+      line.className = 'tool on';
       var since = a.since ? ' · з ' + hhmm(new Date(a.since)) : '';
       $('alert-text').textContent = 'повітряна тривога · ' + data.city + since;
     } else {
-      line.className = 'line';
+      line.className = 'tool';
       $('alert-text').textContent = 'тривоги немає · ' + data.city;
     }
     var n = data.inSky || 0;
     countTo('sky-n', n);
     $('sky-word').textContent = plural(n, 'ціль', 'цілі', 'цілей');
     countTo('sky-now-n', n);
+    countTo('sky-t', data.today || 0);
     $('sky-now-word').textContent = plural(n, 'ціль', 'цілі', 'цілей');
     countTo('sky-today', data.today);
     if (geo) { paintAlerts(); paintThreats(); paintBadges(); paintLegend(); }

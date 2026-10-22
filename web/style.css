@@ -581,3 +581,55 @@ body.alarm .fly .badge { transform-origin: 0 0; }
 .news .item { display: flex; gap: 12px; align-items: baseline; font-size: 20px; line-height: 1.45; }
 .news .item .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #dedbd3; }
 .news .item .ago { flex: none; font-size: 14px; color: var(--dim); }
+
+/* =================== Claude Code session (left column, 2026-10-22 redo) =================== */
+.top { display: none; }
+#stage { grid-template-rows: 1fr auto; }
+.left.cc { padding-top: 0; }
+.cc-box {
+  border: 2px solid #d97757; border-radius: 14px; padding: 16px 24px 12px;
+  background: linear-gradient(180deg, rgba(217,119,87,.07), rgba(217,119,87,.015));
+}
+.cc-title { font-size: 25px; font-weight: 700; color: #fff; white-space: nowrap; }
+.cc-main { display: flex; align-items: center; gap: 30px; margin-top: 2px; }
+.cc-main .clock { font-size: 132px; }
+.cc-main .date-col { font-size: 21px; }
+.cc-cwd { font-size: 16px; color: var(--dim); margin-top: 2px; }
+
+.cc-log { margin-top: 18px; display: flex; flex-direction: column; gap: 9px; }
+.tool .call { font-size: 22px; font-weight: 700; color: #ecebe6; white-space: nowrap; }
+.tool .call .args { font-weight: 400; color: var(--muted); }
+.tool .bullet { display: inline-block; width: 13px; height: 13px; border-radius: 50%; background: #7fbf6a; margin: 0 14px 2px 2px; vertical-align: middle; }
+.tool .res { display: flex; gap: 14px; font-size: 21px; color: #c9c6be; margin-top: 1px; padding-left: 8px; white-space: nowrap; overflow: hidden; }
+.tool .res .el { color: var(--dim); flex: none; }
+.tool .res > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.tool .res b { color: #fff; }
+.tool.on .bullet { background: var(--red); box-shadow: 0 0 14px rgba(229,88,79,.9); animation: pulse 1.2s ease-in-out infinite; }
+.tool.on .res { color: #ffb3a8; font-weight: 700; }
+.tool.rain .bullet { background: #6fa8dc; }
+.tool.hot .bullet { background: var(--red); }
+.tool.hot .res { color: #ffb3a8; }
+.tool .res.rates i { font-style: normal; font-size: 15px; }
+.tool .res.rates i.up { color: #f08a7e; }
+.tool .res.rates i.down { color: var(--green); }
+.tool .news { transition: opacity .35s ease; }
+.tool .news.swap { opacity: 0; }
+.tool .news .ago { color: var(--dim); font-size: 15px; }
+
+/* player = Claude Code input box */
+.left.cc .player { margin-top: 16px; height: 96px; border: 1.5px solid rgba(255,255,255,.32); border-radius: 14px; background: rgba(0,0,0,.18); box-shadow: none; padding: 0 14px 0 12px; }
+.left.cc .player .pl-art { width: 66px; height: 66px; }
+.left.cc .player .pl-top { font-size: 16px; }
+.left.cc .player .pl-title { font-size: 22px; }
+.cc-hint { margin-top: 8px; padding-left: 16px; font-size: 15px; color: var(--dim); }
+body.alarm .cc-box { border-color: var(--red); background: linear-gradient(180deg, rgba(239,90,76,.12), rgba(239,90,76,.02)); }
+.intro .cc-box { animation: pop .7s var(--ease-out) backwards; }
+.intro .cc-log .tool { animation: rise .5s var(--ease-out) backwards; }
+.intro .cc-log .tool:nth-child(1) { animation-delay: .5s; }
+.intro .cc-log .tool:nth-child(2) { animation-delay: .65s; }
+.intro .cc-log .tool:nth-child(3) { animation-delay: .8s; }
+.intro .cc-log .tool:nth-child(4) { animation-delay: .95s; }
+.intro .cc-log .tool:nth-child(5) { animation-delay: 1.1s; }
+.sky { top: 44px; }
+.cc-log { gap: 16px; margin-top: 24px; }
+.left.cc .player { margin-top: 24px; }
