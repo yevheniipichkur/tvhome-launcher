@@ -23,22 +23,8 @@
   function diag(tag) {
     try { var x = new XMLHttpRequest(); x.open('GET', 'api/diag?t=' + tag + '&w=' + window.innerWidth + '&h=' + window.innerHeight + '&dpr=' + window.devicePixelRatio + '&cw=' + document.documentElement.clientWidth + '&vv=' + (window.visualViewport ? visualViewport.width + 'x' + visualViewport.height + '@' + visualViewport.scale : '-') + '&tr=' + encodeURIComponent(stage.style.transform)); x.send(); } catch (e) {}
   }
-  diag('init');
   window.addEventListener('error', function (e) { diag('err-' + encodeURIComponent(String(e.message).slice(0, 120)) + '@' + e.lineno); });
-  // fps probe: average and worst frame over 8 s, sent to the Pi log
-  (function fpsProbe() {
-    var n = 0, t0 = performance.now(), last = t0, worst = 0;
-    function f(t) {
-      n++; worst = Math.max(worst, t - last); last = t;
-      if (t - t0 > 8000) {
-        try { var x = new XMLHttpRequest(); x.open('GET', 'api/diag?t=fps&tv=' + (TV ? 1 : 0) + '&fps=' + (n * 1000 / (t - t0)).toFixed(1) + '&worst=' + worst.toFixed(0)); x.send(); } catch (e) {}
-        n = 0; t0 = t; worst = 0;
-      }
-      requestAnimationFrame(f);
-    }
-    requestAnimationFrame(f);
-  })();
-  setTimeout(function () { diag('late'); }, 3000);
+
 
   // ---------- words ----------
   function plural(n, one, few, many) {
@@ -110,7 +96,7 @@
     $('verb').textContent = verb();
   }
   setInterval(tickClock, 1000);
-  setInterval(function () { $('spinner').textContent = SPIN[spinI++ % SPIN.length]; }, 130);
+  setInterval(function () { $('spinner').textContent = SPIN[spinI++ % SPIN.length]; }, 260);
   tickClock();
 
   var HINTS = ['← → обрати · ОК — запустити', '↑ — мережа й налаштування', 'остання плитка — усі програми'];
@@ -654,7 +640,7 @@
     t.textContent = '';
     var timer = setInterval(function () {
       t.textContent = text.slice(0, ++i);
-      if (i >= text.length) clearInterval(timer);
+      if (i >= text.length) { clearInterval(timer); setTimeout(function () { var c = document.querySelector('.tcur'); if (c) c.remove(); }, 2500); }
     }, 45);
   })();
   setTimeout(function () { document.body.classList.remove('intro'); }, 4000);

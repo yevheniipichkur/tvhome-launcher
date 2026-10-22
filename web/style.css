@@ -329,3 +329,9 @@ body.danger .sky-bg .danger { opacity: 1; animation: danger 2.4s ease-in-out inf
 .aurora { display: none; }
 .sky-bg .stars b { animation: none; opacity: .35; }
 #stage { background: none !important; }
+
+/* decorative loops off: on the box each one costs main-thread frames */
+.clock .slot.colon { animation: none; }
+.welcome::before { animation: none; opacity: .55; }
+.fly .home .ping.late { display: none; }
+.fly .home .ping { animation-duration: 3.2s; }
