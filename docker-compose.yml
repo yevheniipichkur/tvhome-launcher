@@ -1,0 +1,18 @@
+name: tvhome
+services:
+  tvhome:
+    build: .
+    image: tvhome:latest
+    container_name: tvhome
+    restart: unless-stopped
+    # LAN only: the Mi Box reads it at http://192.168.1.16:8098/
+    ports:
+      - "192.168.1.16:8098:8098"
+    volumes:
+      - /srv/tvhome/data:/data
+      - ./web:/app/web:ro
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      NODE_OPTIONS: --max-old-space-size=64
