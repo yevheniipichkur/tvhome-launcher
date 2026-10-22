@@ -104,28 +104,10 @@ public class HomeGuardService extends AccessibilityService {
 
     private void poll() {
         if (!polling) return;
-        new Thread(() -> {
-            JSONObject a = null;
-            try {
-                HttpURLConnection c = (HttpURLConnection) new URL(BuildConfig.HOME_URL + "api/alert").openConnection();
-                c.setConnectTimeout(5000);
-                c.setReadTimeout(5000);
-                if (c.getResponseCode() == 200) {
-                    InputStream in = c.getInputStream();
-                    ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    byte[] buf = new byte[4096];
-                    for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
-                    a = new JSONObject(out.toString("UTF-8"));
-                }
-                c.disconnect();
-            } catch (Exception ignored) {
-            }
-            final JSONObject alert = a;
-            ui.post(() -> {
-                if (alert != null) onAlertState(alert);
-                ui.postDelayed(this::poll, POLL_MS);
-            });
-        }).start();
+        // Same in-process data the home screen uses (DataService), no home server involved.
+        JSONObject alert = DataService.get(this).cityAlert();
+        if (alert.optBoolean("known")) onAlertState(alert);
+        ui.postDelayed(this::poll, POLL_MS);
     }
 
     private void onAlertState(JSONObject a) {

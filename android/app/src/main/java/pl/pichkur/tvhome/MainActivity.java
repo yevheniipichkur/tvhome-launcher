@@ -40,6 +40,7 @@ import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -57,8 +58,10 @@ import java.util.Map;
 
 /** Full-screen WebView home screen. The page itself lives on the Pi, so it can change without reinstalling. */
 public class MainActivity extends Activity {
-    private static final String HOME_URL = BuildConfig.HOME_URL;
-    private static final String OFFLINE_URL = "file:///android_asset/offline.html";
+    // The page ships inside the APK (assets/web) and is served under this https origin by
+    // shouldInterceptRequest; "api/state" is answered by DataService. No home server needed.
+    private static final String ORIGIN = "https://appassets.androidplatform.net";
+    private static final String HOME_URL = ORIGIN + "/web/index.html";
     private static final String FALLBACK_LAUNCHER = "com.spocky.projengmenu";
     private static final long RELOAD_AFTER_MS = 30 * 60_000L;
 
@@ -67,7 +70,6 @@ public class MainActivity extends Activity {
     private WebView web;
     private SoundPool sounds;
     private final Map<String, Integer> soundIds = new HashMap<>();
-    private boolean offline;
     private long loadedAt;
 
     @Override
@@ -82,6 +84,7 @@ public class MainActivity extends Activity {
         soundIds.put("open", sounds.load(this, R.raw.ui_open, 1));
         soundIds.put("back", sounds.load(this, R.raw.ui_back, 1));
         WebView.setWebContentsDebuggingEnabled(true); // chrome://inspect over ADB on the LAN
+        DataService.get(this); // start fetching right away
         createWebView();
         hideSystemUi();
     }
@@ -100,8 +103,30 @@ public class MainActivity extends Activity {
         web.addJavascriptInterface(new Bridge(), "TV");
         web.setWebViewClient(new WebViewClient() {
             @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
+                Uri u = req.getUrl();
+                if (!"appassets.androidplatform.net".equals(u.getHost())) return null; // real network (images etc.)
+                String path = u.getPath() == null ? "" : u.getPath();
+                Map<String, String> headers = new HashMap<>();
+                headers.put("Cache-Control", "no-store");
+                if (path.equals("/web/api/state")) {
+                    byte[] body = DataService.get(MainActivity.this).snapshot().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    return new WebResourceResponse("application/json", "utf-8", 200, "OK", headers, new java.io.ByteArrayInputStream(body));
+                }
+                if (path.startsWith("/web/") && !path.contains("..")) {
+                    try {
+                        java.io.InputStream in = getAssets().open(path.substring(1));
+                        return new WebResourceResponse(mime(path), "utf-8", 200, "OK", headers, in);
+                    } catch (java.io.IOException e) {
+                        return new WebResourceResponse("text/plain", "utf-8", 404, "Not Found", headers, new java.io.ByteArrayInputStream(new byte[0]));
+                    }
+                }
+                return new WebResourceResponse("text/plain", "utf-8", 404, "Not Found", headers, new java.io.ByteArrayInputStream(new byte[0]));
+            }
+
+            @Override
             public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError err) {
-                if (req.isForMainFrame()) goOffline();
+                if (req.isForMainFrame()) ui.postDelayed(() -> web.loadUrl(HOME_URL), 3000);
             }
 
             @Override
@@ -116,50 +141,23 @@ public class MainActivity extends Activity {
 
             @Override
             public void onPageFinished(WebView view, String url) {
-                if (url.startsWith("http") && offline) {
-                    offline = false; // the offline page navigated back home by itself
-                }
-                if (url.startsWith("http")) {
-                    offline = false;
-                    loadedAt = SystemClock.elapsedRealtime();
-                }
+                loadedAt = SystemClock.elapsedRealtime();
             }
         });
         setContentView(web);
-        offline = false;
         web.loadUrl(HOME_URL);
         web.requestFocus();
     }
 
-    private void goOffline() {
-        if (offline) return;
-        offline = true;
-        web.loadUrl(OFFLINE_URL);
-        ui.postDelayed(this::retry, 10_000);
-    }
-
-    private void retry() {
-        if (!offline) return;
-        new Thread(() -> {
-            boolean up = false;
-            try {
-                HttpURLConnection c = (HttpURLConnection) new URL(HOME_URL + "healthz").openConnection();
-                c.setConnectTimeout(4000);
-                c.setReadTimeout(4000);
-                up = c.getResponseCode() == 200;
-                c.disconnect();
-            } catch (Exception ignored) {
-            }
-            final boolean ok = up;
-            ui.post(() -> {
-                if (ok) {
-                    offline = false;
-                    web.loadUrl(HOME_URL);
-                } else {
-                    ui.postDelayed(this::retry, 10_000);
-                }
-            });
-        }).start();
+    private static String mime(String path) {
+        if (path.endsWith(".html")) return "text/html";
+        if (path.endsWith(".js")) return "text/javascript";
+        if (path.endsWith(".css")) return "text/css";
+        if (path.endsWith(".json")) return "application/json";
+        if (path.endsWith(".woff2")) return "font/woff2";
+        if (path.endsWith(".svg")) return "image/svg+xml";
+        if (path.endsWith(".png")) return "image/png";
+        return "application/octet-stream";
     }
 
     @Override
@@ -173,7 +171,7 @@ public class MainActivity extends Activity {
         super.onResume();
         HomeGuardService.homeInFront = true;
         hideSystemUi();
-        if (!offline && loadedAt > 0 && SystemClock.elapsedRealtime() - loadedAt > RELOAD_AFTER_MS) {
+        if (loadedAt > 0 && SystemClock.elapsedRealtime() - loadedAt > RELOAD_AFTER_MS) {
             web.loadUrl(HOME_URL);
         } else {
             web.evaluateJavascript("window.tvResume && window.tvResume()", null);

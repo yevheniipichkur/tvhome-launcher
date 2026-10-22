@@ -10,7 +10,6 @@ android {
         targetSdk = 28 // Mi Box S runs Android 9; sideloaded, never published
         versionCode = (System.getenv("BUILD_NUMBER") ?: "1").toInt()
         versionName = "1.0"
-        buildConfigField("String", "HOME_URL", "\"${System.getenv("TVHOME_URL") ?: "http://192.168.1.16:8098/"}\"")
     }
 
     signingConfigs {
@@ -37,3 +36,11 @@ android {
     }
     lint { abortOnError = false; checkReleaseBuilds = false }
 }
+
+// The home screen page (../../web) ships inside the APK as assets/web/.
+val copyWeb by tasks.registering(Copy::class) {
+    from(rootProject.file("../web")) { exclude("**/.gstack/**") }
+    into(layout.buildDirectory.dir("generated/webassets/web"))
+}
+android.sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/webassets"))
+tasks.named("preBuild") { dependsOn(copyWeb) }

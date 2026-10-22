@@ -164,11 +164,12 @@ function levelFrom(region) {
 
 every('alerts', 15_000, async () => {
   const d = await getJson('https://map.ukrainealarm.com/api/v2/data/mapUpdate');
-  const states = {}, districts = {}, communities = {};
+  const states = {}, districts = {}, communities = {}, since = {};
   let hit = null;
   for (const r of d.alerts ?? []) {
     const lv = levelFrom(r);
     if (!lv) continue;
+    if (lv.since) since[r.regionId] = lv.since;
     if (r.regionType === 'State') states[r.regionId] = lv.level;
     else if (r.regionType === 'District') districts[r.regionId] = lv.level;
     else if (r.regionType === 'Community' && communityShapes[r.regionId]) communities[r.regionId] = { level: lv.level, d: communityShapes[r.regionId].d };
@@ -181,6 +182,7 @@ every('alerts', 15_000, async () => {
     states,
     districts,
     communities,
+    since,
     city: hit ? { active: true, since: hit.since, level: hit.level, reasons: [] } : { active: false },
   };
 });
@@ -399,6 +401,13 @@ http
       testAlert = st === 'on' ? { until: Date.now() + 120_000, city: { active: true, since: new Date().toISOString(), level: 'red', reasons: ['Тест сповіщення'] } }
         : st === 'off' ? { until: Date.now() + 120_000, city: { active: false } } : null;
       return res.end('ok ' + (st ?? 'auto'));
+    }
+    if (url.pathname === '/api/public/alerts') {
+      // Public (through the Cloudflare tunnel): official ukrainealarm alerts by oblast/district/community,
+      // for TVHome APKs outside this LAN. Nothing about the Pi or the household is exposed here.
+      const al = state.alerts ?? null;
+      res.writeHead(al ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=10', 'Access-Control-Allow-Origin': '*' });
+      return res.end(JSON.stringify(al ? { source: al.source, updated: state.updated.alerts ?? null, states: al.states, districts: al.districts, communities: al.communities, since: al.since ?? {} } : { error: 'no data yet' }));
     }
     if (url.pathname === '/api/diag') {
       log('[diag]', url.search.slice(0, 300));
