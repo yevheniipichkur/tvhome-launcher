@@ -272,7 +272,7 @@
   }
   function poll() {
     getJSON('api/state', function (err, d) {
-      if (!err) { data = d; paint(); }
+      if (!err) { data = d; paint(); paintBackground(); }
     });
   }
   getJSON('ukraine.json', function (err, g) { if (!err) { geo = g; drawMap(); paint(); } });
@@ -396,6 +396,57 @@
     var t = e.target.closest ? e.target.closest('[data-pkg],[data-action]') : null;
     if (t) activate(t);
   });
+
+  // ---------- time-of-day background ----------
+  // Palettes stay dark so text and the map keep their contrast.
+  var PHASES = {
+    night:  { bg: 'radial-gradient(140% 90% at 70% -10%, #23305a 0%, transparent 60%), linear-gradient(180deg, #121830 0%, #161a28 55%, #17181d 100%)', g1: 'rgba(90,110,210,.20)', g2: 'rgba(160,90,200,.10)', stars: true },
+    dawn:   { bg: 'radial-gradient(120% 80% at 30% 120%, #9a4e3c 0%, transparent 60%), linear-gradient(180deg, #2a2a48 0%, #4a3346 55%, #6b3d38 100%)', g1: 'rgba(255,150,110,.24)', g2: 'rgba(200,120,180,.14)' },
+    day:    { bg: 'radial-gradient(130% 90% at 75% -20%, #3d5670 0%, transparent 60%), linear-gradient(180deg, #2b3644 0%, #2a2f37 55%, #25272b 100%)', g1: 'rgba(150,190,230,.16)', g2: 'rgba(217,119,87,.10)' },
+    golden: { bg: 'radial-gradient(120% 80% at 80% 115%, #a0602e 0%, transparent 60%), linear-gradient(180deg, #33302f 0%, #4a3527 55%, #5e3a24 100%)', g1: 'rgba(255,170,90,.24)', g2: 'rgba(217,119,87,.16)' },
+    dusk:   { bg: 'radial-gradient(120% 80% at 20% 115%, #7a3348 0%, transparent 60%), linear-gradient(180deg, #1d1d38 0%, #2f2240 55%, #432a3c 100%)', g1: 'rgba(220,110,150,.20)', g2: 'rgba(110,100,210,.14)', stars: true },
+  };
+  function phaseNow() {
+    var w = data && data.weather;
+    var now = Date.now();
+    if (!w) { var h = new Date().getHours(); return h >= 7 && h < 18 ? 'day' : 'night'; }
+    var rise = new Date(w.sunrise[0]).getTime(), set = new Date(w.sunset[0]).getTime(), H = 3600e3;
+    if (now < rise - H || now > set + 1.2 * H) return 'night';
+    if (now < rise + H) return 'dawn';
+    if (now < set - 1.5 * H) return 'day';
+    if (now < set) return 'golden';
+    return 'dusk';
+  }
+  var bgPhase = null, bgFront = 'bg-a';
+  function paintBackground() {
+    var ph = phaseNow();
+    document.body.classList.toggle('danger', !!(data && data.alerts && data.alerts.city && data.alerts.city.active));
+    if (ph === bgPhase) return;
+    var P2 = PHASES[ph];
+    var back = bgFront === 'bg-a' ? 'bg-b' : 'bg-a';
+    $(back).style.background = P2.bg;
+    $(back).classList.add('on');
+    $(bgFront).classList.remove('on');
+    bgFront = back;
+    document.documentElement.style.setProperty('--glow1', P2.g1);
+    document.documentElement.style.setProperty('--glow2', P2.g2);
+    $('stars').classList.toggle('on', !!P2.stars);
+    document.body.setAttribute('data-phase', ph);
+    bgPhase = ph;
+  }
+  (function makeStars() {
+    var box = $('stars'), html = '';
+    for (var i = 0; i < 46; i++) {
+      var x = (i * 137.5) % 100, y = (i * 61.8 * 1.7) % 100, sz = i % 7 === 0 ? 3 : 2;
+      html += '<b style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;width:' + sz + 'px;height:' + sz + 'px;animation-delay:' + (i % 9 * 0.45).toFixed(2) + 's"></b>';
+    }
+    box.innerHTML = html;
+  })();
+  paintBackground();
+  setInterval(paintBackground, 60000);
+  // preview any phase: ?phase=dawn
+  var forced = /[?&]phase=(\w+)/.exec(location.search);
+  if (forced && PHASES[forced[1]]) { phaseNow = function () { return forced[1]; }; bgPhase = null; paintBackground(); }
 
   // ---------- Wi-Fi ----------
   function paintWifi() {

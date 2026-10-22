@@ -20,7 +20,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: linear-gradient(180deg, #34353a 0%, #2a2b2f 45%, #222326 100%); }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #1d1f25; }
 body { font-family: 'JBM', ui-monospace, monospace; color: var(--ink); -webkit-font-smoothing: antialiased; }
 button { font: inherit; color: inherit; background: none; border: 0; outline: none; }
 [hidden] { display: none !important; }
@@ -36,7 +36,7 @@ button { font: inherit; color: inherit; background: none; border: 0; outline: no
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
     radial-gradient(1100px 650px at 80% 28%, rgba(217, 119, 87, 0.10), transparent 70%),
     radial-gradient(1000px 700px at 18% 18%, rgba(255, 255, 255, 0.07), transparent 70%),
-    linear-gradient(180deg, rgba(52,53,58,.55) 0%, rgba(42,43,47,.35) 45%, rgba(34,35,38,.6) 100%);
+    linear-gradient(180deg, rgba(40,41,46,.30) 0%, rgba(34,35,39,.15) 45%, rgba(28,29,32,.45) 100%);
   padding: 44px 56px 40px;
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -196,8 +196,8 @@ button { font: inherit; color: inherit; background: none; border: 0; outline: no
 /* ambient light: two soft glows drifting slowly behind everything */
 .aurora { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
 .aurora i { position: absolute; width: 60vw; height: 60vw; border-radius: 50%; filter: blur(40px); opacity: .55; will-change: transform; }
-.aurora i:first-child { background: radial-gradient(circle, rgba(217,119,87,.20), transparent 62%); left: 35vw; top: -25vw; animation: drift1 38s ease-in-out infinite alternate; }
-.aurora i:last-child { background: radial-gradient(circle, rgba(120,140,200,.12), transparent 62%); left: -20vw; top: 20vw; animation: drift2 46s ease-in-out infinite alternate; }
+.aurora i:first-child { background: radial-gradient(circle, var(--glow1, rgba(217,119,87,.20)), transparent 62%); transition: background 20s; left: 35vw; top: -25vw; animation: drift1 38s ease-in-out infinite alternate; }
+.aurora i:last-child { background: radial-gradient(circle, var(--glow2, rgba(120,140,200,.12)), transparent 62%); transition: background 20s; left: -20vw; top: 20vw; animation: drift2 46s ease-in-out infinite alternate; }
 @keyframes drift1 { to { transform: translate(-18vw, 14vw) scale(1.15); } }
 @keyframes drift2 { to { transform: translate(22vw, -10vw) scale(.9); } }
 #stage { z-index: 1; }
@@ -292,3 +292,15 @@ button { font: inherit; color: inherit; background: none; border: 0; outline: no
 .intro .dock .tile:nth-child(7) { animation-delay: 1.28s; }
 .intro .dock .tile:nth-child(8) { animation-delay: 1.36s; }
 .intro .dock .tile.focus { animation: rise .6s .8s var(--ease-out) backwards; }
+
+/* time-of-day sky: two layers crossfade between phases (night, dawn, day, golden hour, dusk) */
+.sky-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+.sky-bg .layer { position: absolute; inset: 0; opacity: 0; transition: opacity 12s ease; }
+.sky-bg .layer.on { opacity: 1; }
+.sky-bg .stars { position: absolute; inset: 0 0 35% 0; opacity: 0; transition: opacity 15s ease; }
+.sky-bg .stars.on { opacity: 1; }
+.sky-bg .stars b { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: #fff; opacity: .5; animation: twinkle 4s ease-in-out infinite; }
+@keyframes twinkle { 50% { opacity: .08; } }
+.sky-bg .danger { position: absolute; inset: 0; opacity: 0; background: radial-gradient(120% 90% at 50% 110%, rgba(229,70,60,.32), transparent 60%); transition: opacity 2s; }
+body.danger .sky-bg .danger { opacity: 1; animation: danger 2.4s ease-in-out infinite; }
+@keyframes danger { 50% { opacity: .35; } }
