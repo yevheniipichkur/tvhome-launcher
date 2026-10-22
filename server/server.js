@@ -283,6 +283,10 @@ http
         : st === 'off' ? { until: Date.now() + 120_000, city: { active: false } } : null;
       return res.end('ok ' + (st ?? 'auto'));
     }
+    if (url.pathname === '/api/diag') {
+      log('[diag]', url.search.slice(0, 300));
+      return res.end('ok');
+    }
     if (url.pathname === '/healthz') return res.end('ok');
     const rel = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname).replace(/^\/+/, '');
     const file = path.resolve(WEB, rel);

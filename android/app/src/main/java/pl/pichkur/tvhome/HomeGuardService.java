@@ -205,6 +205,8 @@ public class HomeGuardService extends AccessibilityService {
         s.setTypeface(Typeface.MONOSPACE);
         s.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
         s.setPadding(0, (int) dp(3), 0, 0);
+        t.setSingleLine(true);
+        s.setSingleLine(true);
         texts.addView(t);
         texts.addView(s);
         box.addView(texts);
@@ -216,6 +218,9 @@ public class HomeGuardService extends AccessibilityService {
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT);
         lp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
+        // overlay windows get a narrow default width; size it to the text explicitly
+        box.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        lp.width = Math.min(box.getMeasuredWidth(), getResources().getDisplayMetrics().widthPixels - (int) dp(80));
         lp.y = (int) dp(24);
         try {
             ((WindowManager) getSystemService(WINDOW_SERVICE)).addView(box, lp);

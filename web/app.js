@@ -10,11 +10,19 @@
   // ---------- canvas scale ----------
   var stage = $('stage');
   function fit() {
-    var s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    // innerWidth grows with the 1920px canvas inside a WebView; the layout viewport doesn't.
+    var vw = document.documentElement.clientWidth || window.innerWidth;
+    var vh = document.documentElement.clientHeight || window.innerHeight;
+    var s = Math.min(vw / 1920, vh / 1080);
     stage.style.transform = 'translate(-50%, -50%) scale(' + s + ')';
   }
   window.addEventListener('resize', fit);
   fit();
+  function diag(tag) {
+    try { var x = new XMLHttpRequest(); x.open('GET', 'api/diag?t=' + tag + '&w=' + window.innerWidth + '&h=' + window.innerHeight + '&dpr=' + window.devicePixelRatio + '&cw=' + document.documentElement.clientWidth + '&vv=' + (window.visualViewport ? visualViewport.width + 'x' + visualViewport.height + '@' + visualViewport.scale : '-') + '&tr=' + encodeURIComponent(stage.style.transform)); x.send(); } catch (e) {}
+  }
+  diag('init');
+  setTimeout(function () { diag('late'); }, 3000);
 
   // ---------- words ----------
   function plural(n, one, few, many) {
@@ -116,9 +124,6 @@
     var gr = el('g', { 'class': 'raions' }, map);
     geo.raions.forEach(function (r) {
       var e = el('path', { d: r.d, 'class': 'raion' }, gr);
-      // intro: raions fade in sweeping west → east
-      var x0 = parseFloat(r.d.slice(1));
-      e.style.animationDelay = (300 + x0 * 1.6).toFixed(0) + 'ms';
       raionEls.push({ key: r.key, oblast: r.key.split('|')[0], el: e });
     });
     // Kyiv city and Sevastopol have no raions in the set: draw them as their own areas.
@@ -310,7 +315,7 @@
     if (TV && TV.apps) { try { list = JSON.parse(TV.apps()); } catch (e) { list = []; } }
     else {
       list = [
-        { pkg: 'top.rootu.lampa', label: 'Lampa' }, { pkg: 'com.google.android.youtube.tv', label: 'YouTube' },
+        { pkg: 'top.rootu.lamps', label: 'Lampa' }, { pkg: 'com.google.android.youtube.tv', label: 'YouTube' },
         { pkg: 'com.megogo.application', label: 'MEGOGO' }, { pkg: 'com.netflix.ninja', label: 'Netflix' },
         { pkg: 'studio.scillarium.ottnavigator', label: 'OTT Navigator' }, { pkg: 'demo.x', label: 'Kodi' },
       ];
@@ -357,10 +362,10 @@
     var list = [];
     if (TV && TV.watchNext) { try { list = JSON.parse(TV.watchNext()); } catch (e) { list = []; } }
     else if (/[?&]demo/.test(location.search)) {
-      list = [{ pkg: 'top.rootu.lampa', title: 'Тед Лассо', episode: 'Шахи', season: '3', number: '4', position: 1560000, duration: 2700000, art: null, intent: 'x' }];
+      list = [{ pkg: 'top.rootu.lamps', title: 'Тед Лассо', episode: 'Шахи', season: '3', number: '4', position: 1560000, duration: 2700000, art: null, intent: 'x' }];
     }
     if (!list.length) return null;
-    var lampa = list.filter(function (x) { return x.pkg === 'top.rootu.lampa'; });
+    var lampa = list.filter(function (x) { return x.pkg === 'top.rootu.lamps'; });
     var w = (lampa.length ? lampa : list)[0];
     var b = document.createElement('button');
     b.className = 'tile cont';

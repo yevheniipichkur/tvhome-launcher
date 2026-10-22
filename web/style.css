@@ -44,18 +44,18 @@ button { font: inherit; color: inherit; background: none; border: 0; outline: no
 }
 
 /* ---- top ---- */
-.top { display: flex; gap: 14px; align-items: center; width: 826px; }
+.top { display: flex; gap: 12px; align-items: center; width: 826px; }
 .welcome {
   flex: 1; min-width: 0; padding: 18px 26px 18px;
   border: 2px solid #e0825f; border-radius: 16px;
   background: linear-gradient(180deg, rgba(217, 119, 87, 0.10), rgba(217, 119, 87, 0.02));
   box-shadow: 0 0 0 1px rgba(217, 119, 87, 0.25), 0 0 34px rgba(217, 119, 87, 0.28), inset 0 0 24px rgba(217, 119, 87, 0.08);
 }
-.welcome-title { font-size: 31px; font-weight: 700; letter-spacing: 0.01em; }
-.welcome-sub { margin-top: 8px; font-size: 22px; color: var(--muted); }
+.welcome-title { white-space: nowrap; font-size: 28px; font-weight: 700; letter-spacing: 0.01em; }
+.welcome-sub { white-space: nowrap; margin-top: 8px; font-size: 20px; color: var(--muted); }
 .corner { display: flex; gap: 14px; }
 .round {
-  width: 54px; height: 54px; border-radius: 50%;
+  flex: none; width: 54px; height: 54px; border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.35);
   background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.22), rgba(20,20,22,.85) 70%);
   box-shadow: 0 6px 18px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.25);
@@ -183,7 +183,7 @@ button { font: inherit; color: inherit; background: none; border: 0; outline: no
 }
 
 /* Wi-Fi pill: network name + signal strength */
-.round.pill { width: auto; max-width: 300px; padding: 0 22px 0 16px; border-radius: 30px; gap: 10px; display: flex; align-items: center; font-size: 21px; white-space: nowrap; }
+.round.pill { width: auto; max-width: 250px; flex: none; padding: 0 20px 0 14px; border-radius: 30px; gap: 9px; display: flex; align-items: center; font-size: 19px; white-space: nowrap; }
 .round.pill span { overflow: hidden; text-overflow: ellipsis; }
 .round.pill.focus { color: #1d1e20; }
 #wifi-icon .off { stroke: rgba(255,255,255,.25); }
@@ -279,7 +279,7 @@ button { font: inherit; color: inherit; background: none; border: 0; outline: no
 .intro .log .line:nth-child(6) { animation-delay: 1.45s; }
 .intro .input { animation: rise .6s 2.05s var(--ease-out) backwards; }
 .intro .sky { animation: pop .9s .3s var(--ease-out) backwards; }
-.intro .map .raion { animation: fade .5s ease backwards; }
+.intro .map .raions { animation: fade .9s .3s ease backwards; }
 .intro .map .labels, .intro .map .oblasts { animation: fade 1s 1.4s ease backwards; }
 .intro .dock { animation: rise .8s .5s var(--ease-out) backwards; }
 .intro .dock .tile { animation: rise .6s var(--ease-out) backwards; }
