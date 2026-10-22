@@ -499,3 +499,10 @@ body.compact .player.last .pl-btn.resume { height: 70px; font-size: 22px; paddin
 .net.down { color: var(--red); }
 .net.down .net-ico rect { fill: var(--red); opacity: .5; }
 .top { width: 800px; }
+/* fit 6 apps + 4 system buttons on one dock without scrolling */
+.tile { width: 188px; height: 106px; }
+.dock .track { gap: 30px; }
+.sys { width: 76px; height: 76px; }
+.sys svg { width: 31px; height: 31px; }
+.sys.first { margin-left: 26px; }
+.sys.first::before { left: -42px; }
