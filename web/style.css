@@ -506,3 +506,54 @@ body.compact .player.last .pl-btn.resume { height: 70px; font-size: 22px; paddin
 .sys svg { width: 31px; height: 31px; }
 .sys.first { margin-left: 26px; }
 .sys.first::before { left: -42px; }
+
+/* ---------- weather icon ---------- */
+.wx { display: flex; align-items: center; gap: 10px; }
+#wx-icon { width: 34px; height: 34px; flex: none; fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+#wx-icon .sun { fill: #f5c25b; stroke: #f5c25b; }
+#wx-icon .rays { stroke: #f5c25b; }
+#wx-icon .cloud { fill: #3a3f4c; stroke: #d9dce4; }
+#wx-icon .moon { fill: #f1ecd8; stroke: none; }
+#wx-icon .moon-dark { fill: rgba(241,236,216,.12); stroke: rgba(241,236,216,.35); stroke-width: 1; }
+#wx-icon .rain { stroke: #7fb2ea; stroke-width: 1.8; }
+#wx-icon .snow { stroke: #fff; stroke-width: 3; }
+#wx-icon .fog { stroke: #b8bcc6; }
+#wx-icon .bolt { stroke: #f5c25b; stroke-width: 1.8; }
+
+/* ---------- «сьогодні» card ---------- */
+.today { margin-top: 16px; padding: 14px 20px 14px; border-radius: 16px; background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.025)); box-shadow: inset 0 1px 0 rgba(255,255,255,.07); }
+.today-head { display: flex; justify-content: space-between; font-size: 18px; color: var(--dim); }
+#today-peak { color: var(--clay-soft); }
+.hist { display: block; width: 100%; height: 50px; margin-top: 8px; }
+.hist .bar { fill: rgba(217,119,87,.55); }
+.hist .now { fill: var(--clay); }
+.hist .zero { fill: rgba(255,255,255,.1); }
+.hist-axis { display: flex; justify-content: space-between; font-size: 13px; color: var(--dim); margin-top: 4px; }
+.today-stats { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 14px; margin-top: 12px; }
+.today-stats div { display: flex; flex-direction: column; }
+.today-stats b { font-size: 26px; color: #fff; white-space: nowrap; }
+.today-stats span { font-size: 15px; color: var(--muted); }
+.pi-hot { color: #ffb3a8; }
+
+/* ---------- target freshness ---------- */
+.fly .t.aging { opacity: .7; }
+.fly .t.old { opacity: .42; }
+
+/* ---------- alarm mode: Lviv under alert ---------- */
+.map-wrap { transition: transform 1.4s var(--ease-out); }
+.sky { overflow: hidden; }
+body.alarm { --clay: #ef5a4c; --clay-soft: #ff9d92; }
+body.alarm .sky { border-color: rgba(239,90,76,.9); box-shadow: 0 0 40px rgba(239,90,76,.35), 0 18px 40px rgba(0,0,0,.35); }
+body.alarm .welcome-title { color: #ffb3a8; }
+body.alarm .map-wrap { transform: scale(1.75); }
+body.alarm .fly .t svg { transform: scale(.7); }
+body.alarm .map .labels text { font-size: 7px; }
+body.alarm .fly .badge { transform-origin: 0 0; }
+
+/* 1. left column balanced against the map: spacing tuned for the new card */
+.log { margin-top: 10px; }
+.line.key { font-size: 30px; }
+.player { margin-top: 16px; }
+
+.map-clip { overflow: hidden; border-radius: 8px; margin: 4px 0 2px; }
+.map-clip .map-wrap { margin: 0; }

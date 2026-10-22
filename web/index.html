@@ -23,7 +23,7 @@
         <div class="clock" id="clock">--:--</div>
         <div class="date-col">
           <div id="date">—</div>
-          <div id="weather">—</div>
+          <div class="wx"><svg viewBox="0 0 32 32" id="wx-icon" aria-hidden="true"></svg><span id="weather">—</span></div>
           <div id="weather-next" class="muted">—</div>
           <div class="net" id="net"><svg viewBox="0 0 24 24" class="net-ico"><rect class="b1" x="3" y="15" width="3.6" height="5" rx="1.2"/><rect class="b2" x="10.2" y="10.5" width="3.6" height="9.5" rx="1.2"/><rect class="b3" x="17.4" y="5" width="3.6" height="15" rx="1.2"/></svg><span id="net-name">Wi‑Fi</span></div>
         </div>
@@ -31,14 +31,21 @@
       <div class="log" id="log">
         <div class="line key" id="alert-line"><span class="dot"></span><span id="alert-text">перевіряю тривоги…</span></div>
         <div class="line prompt">&gt; небо</div>
-        <div class="line key"><span class="dot amber"></span><span>у небі зараз <span id="sky-n">0</span> <span id="sky-word">цілей</span> · сьогодні <span id="sky-t">0</span></span></div>
+        <div class="line key"><span class="dot amber"></span><span>у небі зараз <span id="sky-n">0</span> <span id="sky-word">цілей</span></span></div>
         <div class="line prompt">&gt; погода</div>
-        <div class="line minor"><span class="dot amber"></span><span id="sun-text">—</span></div>
         <div class="line minor"><span class="dot amber" id="fc-dot"></span><span id="fc-text">—</span></div>
-        <div class="line prompt">&gt; pi</div>
-        <div class="line minor"><span class="dot" id="pi-dot"></span><span id="pi-text">—</span></div>
-        <div class="line status minor"><span class="spark spin" id="spinner">✻</span> <span id="verb">Шукаю сонце…</span> <span class="muted" id="elapsed">(0 с)</span></div>
+        <div class="line minor pi-hot" id="pi-line" hidden><span class="dot hot" id="pi-dot"></span><span id="pi-text">—</span></div>
       </div>
+      <section class="today" id="today" aria-label="Сьогодні">
+        <div class="today-head"><span>&gt; сьогодні</span><span id="today-peak"></span></div>
+        <svg class="hist" id="hist" viewBox="0 0 240 44" preserveAspectRatio="none" aria-hidden="true"></svg>
+        <div class="hist-axis"><span>−24 год</span><span>−12</span><span>зараз</span></div>
+        <div class="today-stats">
+          <div><b id="ts-targets">0</b><span>цілей за добу</span></div>
+          <div><b id="ts-alerts">0</b><span id="ts-alerts-label">тривог у Львові</span></div>
+          <div><b id="ts-sun">—</b><span>схід · захід</span></div>
+        </div>
+      </section>
       <section class="player empty" id="player" aria-label="Міні-плеєр">
         <div class="pl-art" id="pl-art"><span class="spark">✻</span></div>
         <div class="pl-meta">
@@ -59,9 +66,11 @@
 
     <section class="sky">
       <div class="sky-head"><span class="spark">✻</span> Небо зараз · <span id="sky-now-n">0</span> <span id="sky-now-word">цілей</span> · <span class="muted">сьогодні <span id="sky-today">0</span></span></div>
+      <div class="map-clip">
       <div class="map-wrap">
         <svg id="map" class="map" role="img" aria-label="Карта загроз України"></svg>
         <div class="fly" id="fly" aria-hidden="true"></div>
+      </div>
       </div>
       <div class="legend" id="legend"></div>
       <div class="credit">дані: NEPTUN · neptun.in.ua · мапа © OpenStreetMap</div>

@@ -40,25 +40,8 @@
 
   // ---------- clock + Claude-style status line ----------
   var started = Date.now();
-  var SPIN = ['·', '✢', '✳', '✶', '✻', '✽', '✻', '✶', '✳', '✢'];
-  var spinI = 0;
   var data = null;
 
-  function verb() {
-    if (data && data.alerts && data.alerts.city && data.alerts.city.active) return 'Слухаю небо…';
-    var h = new Date().getHours();
-    if (h >= 22 || h < 5) return 'Шукаю сонце…';
-    if (h < 9) return 'Варю каву…';
-    if (h < 18) return 'Ловлю промені…';
-    return 'Запалюю лампу…';
-  }
-  function elapsed() {
-    var s = Math.floor((Date.now() - started) / 1000);
-    if (s < 60) return '(' + s + ' с)';
-    var m = Math.floor(s / 60);
-    if (m < 60) return '(' + m + ' хв ' + (s % 60) + ' с)';
-    return '(' + Math.floor(m / 60) + ' год ' + (m % 60) + ' хв)';
-  }
   // Each clock character is a slot; a changed digit rolls up out of view and the new one rolls in.
   var clockShown = '';
   function setClock(text) {
@@ -88,15 +71,23 @@
     }
     clockShown = text;
   }
+  function greet() {
+    var el = $('welcome-typed');
+    if (!el || el.getAttribute('data-typing')) return;
+    var alarm = document.body.classList.contains('alarm');
+    var h = new Date().getHours();
+    var text = alarm ? 'Повітряна тривога · Львів' : h >= 5 && h < 11 ? 'Доброго ранку' : h < 17 && h >= 11 ? 'Доброго дня' : h >= 17 && h < 23 ? 'Доброго вечора' : 'Добраніч';
+    if (el.textContent !== text) el.textContent = text;
+    var spark = document.querySelector('.welcome-title .spark');
+    if (spark) spark.textContent = alarm ? '⚠' : '✻';
+  }
   function tickClock() {
     var now = new Date();
     setClock(hhmm(now));
     $('date').textContent = DAYS[now.getDay()] + ', ' + now.getDate() + ' ' + MONTHS[now.getMonth()];
-    $('elapsed').textContent = elapsed();
-    $('verb').textContent = verb();
+    greet();
   }
   setInterval(tickClock, 1000);
-  setInterval(function () { $('spinner').textContent = SPIN[spinI++ % SPIN.length]; }, 260);
   tickClock();
 
 
@@ -150,6 +141,8 @@
   }
   function drawHome() {
     var p = toScreen(24.0297, 49.8397);
+    // alarm zoom centres on Lviv
+    document.querySelector('.map-wrap').style.transformOrigin = p[0].toFixed(0) + 'px ' + p[1].toFixed(0) + 'px';
     var home = document.createElement('div');
     home.className = 'home';
     home.innerHTML = '<i class="ping"></i><i class="ping late"></i><i class="ring"></i><i class="core"></i>';
@@ -255,7 +248,7 @@
         item.inner.style.transform = 'rotate(' + rot + 'deg)';
         requestAnimationFrame(function () { requestAnimationFrame(function () { g.classList.remove('enter'); }); });
       }
-      var cls = 't ' + t.kind + (t.stale ? ' stale' : '');
+      var cls = 't ' + t.kind + (t.stale ? ' stale' : t.ageMin == null || t.ageMin <= 5 ? ' fresh' : t.ageMin <= 15 ? ' aging' : ' old');
       if (cls !== item.cls) { item.g.className = cls; item.cls = cls; }
       if (pos !== item.pos) { item.g.style.transform = pos; item.pos = pos; }
       var d = ((rot - item.rot) % 360 + 540) % 360 - 180; // shortest way round
@@ -310,17 +303,74 @@
     })(t0);
   }
 
+  // ---------- weather icons (code = WMO; night shows the real moon phase) ----------
+  function moonPhase(d) {
+    var syn = 29.530588853, ref = Date.UTC(2000, 0, 6, 18, 14) / 864e5;
+    var p = ((d.getTime() / 864e5 - ref) % syn + syn) % syn / syn; // 0 new … .5 full
+    return p;
+  }
+  function moonSvg(cx, cy, r) {
+    var p = moonPhase(new Date());
+    var lit = p <= 0.5 ? p * 2 : (1 - p) * 2;       // 0 … 1 illuminated
+    var waxing = p < 0.5;
+    var k = Math.cos(lit * Math.PI);                 // terminator ellipse
+    var rx = Math.abs(k) * r;
+    var outer = waxing ? 1 : 0, sweep = (k > 0) === waxing ? 0 : 1;
+    var d = 'M' + cx + ',' + (cy - r) + ' A' + r + ',' + r + ' 0 0,' + outer + ' ' + cx + ',' + (cy + r) + ' A' + rx.toFixed(2) + ',' + r + ' 0 0,' + sweep + ' ' + cx + ',' + (cy - r) + 'Z';
+    return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" class="moon-dark"/><path d="' + d + '" class="moon"/>';
+  }
+  var SUN = '<circle cx="16" cy="16" r="5.5" class="sun"/><g class="rays"><path d="M16 4v3M16 25v3M4 16h3M25 16h3M7.5 7.5l2.1 2.1M22.4 22.4l2.1 2.1M7.5 24.5l2.1-2.1M22.4 9.6l2.1-2.1"/></g>';
+  var CLOUD = '<path class="cloud" d="M10 25h13.5a5.5 5.5 0 0 0 .6-10.97A7.5 7.5 0 0 0 9.6 16.1 4.5 4.5 0 0 0 10 25z"/>';
+  function wxIcon(code, day) {
+    var sky = day ? SUN : moonSvg(16, 15, 8);
+    var small = day ? '<g transform="translate(-5 -5) scale(.8)">' + SUN + '</g>' : '<g transform="translate(-4 -5) scale(.8)">' + moonSvg(16, 15, 8) + '</g>';
+    var drops = '<path class="rain" d="M12 27.5l-1 2.5M17 27.5l-1 2.5M22 27.5l-1 2.5"/>';
+    var flakes = '<path class="snow" d="M12 28.5h.01M17 29.5h.01M22 28.5h.01"/>';
+    if (code <= 1) return sky;
+    if (code === 2) return small + CLOUD;
+    if (code === 3) return CLOUD;
+    if (code === 45 || code === 48) return '<path class="fog" d="M5 13h22M7 18h18M5 23h22"/>';
+    if (code >= 51 && code <= 57) return '<g transform="translate(0 -3)">' + CLOUD + '</g><path class="rain" d="M13 27v1.5M19 27v1.5"/>';
+    if ((code >= 61 && code <= 67) || (code >= 80 && code <= 82)) return '<g transform="translate(0 -3)">' + CLOUD + '</g>' + drops;
+    if ((code >= 71 && code <= 77) || code === 85 || code === 86) return '<g transform="translate(0 -3)">' + CLOUD + '</g>' + flakes;
+    if (code >= 95) return '<g transform="translate(0 -3)">' + CLOUD + '</g><path class="bolt" d="M17 22l-3 5h3l-2 4"/>';
+    return CLOUD;
+  }
+
+  // ---------- «сьогодні»: 24 h attack chart + Lviv alerts + sunrise ----------
+  var histKey = '';
+  function paintToday() {
+    countTo('ts-targets', data.today || 0);
+    var c = data.cityToday || { count: 0, minutes: 0 };
+    $('ts-alerts').textContent = c.count + (c.minutes ? ' · ' + (c.minutes >= 60 ? Math.floor(c.minutes / 60) + ' год ' + (c.minutes % 60) + ' хв' : c.minutes + ' хв') : '');
+    $('ts-alerts-label').textContent = plural(c.count, 'тривога', 'тривоги', 'тривог') + ' у Львові';
+    var h = data.hist || [];
+    var key = h.join(',');
+    if (key === histKey) return;
+    histKey = key;
+    var max = Math.max.apply(null, h.concat([1]));
+    var bw = 240 / 24, html = '';
+    h.forEach(function (v, i) {
+      var bh = v ? Math.max(2, v / max * 40) : 1;
+      html += '<rect x="' + (i * bw + 1).toFixed(1) + '" y="' + (44 - bh).toFixed(1) + '" width="' + (bw - 2).toFixed(1) + '" height="' + bh.toFixed(1) + '" class="' + (v ? (i === 23 ? 'now' : 'bar') : 'zero') + '"/>';
+    });
+    $('hist').innerHTML = html;
+    var peakI = h.indexOf(max);
+    $('today-peak').textContent = max > 1 ? 'пік ' + max + ' о ' + pad((new Date().getHours() - (23 - peakI) + 24) % 24) + ':00' : '';
+  }
+
   // ---------- data ----------
   function paint() {
     if (!data) return;
     var w = data.weather;
     if (w) {
       $('weather').textContent = 'зараз ' + w.temp + '° · ' + w.text;
+      var wxKey = w.code + '|' + w.isDay + '|' + new Date().getDate();
+      if ($('wx-icon').getAttribute('data-k') !== wxKey) { $('wx-icon').innerHTML = wxIcon(w.code, w.isDay); $('wx-icon').setAttribute('data-k', wxKey); }
       var now = new Date();
       var rise = new Date(w.sunrise[0]), set = new Date(w.sunset[0]);
-      if (now > set) $('sun-text').textContent = 'схід завтра о ' + hhmm(new Date(w.sunrise[1])) + ' · ' + data.city;
-      else if (now < rise) $('sun-text').textContent = 'схід о ' + hhmm(rise) + ' · захід о ' + hhmm(set);
-      else $('sun-text').textContent = 'сонце до ' + hhmm(set) + ' · схід був о ' + hhmm(rise);
+      if (now > set) { rise = new Date(w.sunrise[1]); set = new Date(w.sunset[1]); }
+      $('ts-sun').textContent = hhmm(rise) + ' · ' + hhmm(set);
     }
     var fc = data.forecast;
     if (fc) {
@@ -338,12 +388,17 @@
         var days = Math.floor(pi.uptimeSec / 86400), hrs = Math.floor(pi.uptimeSec / 3600);
         bits.push('аптайм ' + (days >= 1 ? days + ' д' : hrs + ' год'));
       }
-      $('pi-text').textContent = bits.join(' · ');
-      // SSD overheating is what used to freeze the Pi; CPU throttles at 80–85°.
-      var level = (pi.disk >= 75 || pi.cpu >= 80) ? 'hot' : (pi.disk >= 65 || pi.cpu >= 72) ? 'warn' : '';
-      $('pi-dot').className = 'dot ' + level;
-    } else {
-      $('pi-text').textContent = 'pi: немає даних';
+      $('pi-text').textContent = 'pi гріється: ' + bits.join(' · ');
+      // Only shown when it matters: SSD overheating is what used to freeze the Pi; CPU throttles at 80–85°.
+      var level = (pi.disk >= 75 || pi.cpu >= 80) ? 'hot' : (pi.disk >= 68 || pi.cpu >= 76) ? 'warn' : '';
+      $('pi-dot').className = 'dot ' + (level || 'warn');
+      $('pi-line').hidden = !level;
+    }
+    paintToday();
+    var alarm = !!(data.alerts && data.alerts.city && data.alerts.city.active) || /[?&]alarm/.test(location.search);
+    if (alarm !== document.body.classList.contains('alarm')) {
+      document.body.classList.toggle('alarm', alarm);
+      greet();
     }
     var a = data.alerts && data.alerts.city;
     var line = $('alert-line');
@@ -361,7 +416,6 @@
     var n = data.inSky || 0;
     countTo('sky-n', n);
     $('sky-word').textContent = plural(n, 'ціль', 'цілі', 'цілей');
-    countTo('sky-t', data.today);
     countTo('sky-now-n', n);
     $('sky-now-word').textContent = plural(n, 'ціль', 'цілі', 'цілей');
     countTo('sky-today', data.today);
@@ -785,12 +839,17 @@
   // Intro sequence lives in CSS (body.intro); typed welcome line here.
   (function typeWelcome() {
     var t = $('welcome-typed');
-    var text = t.getAttribute('data-text');
+    t.setAttribute('data-typing', '1');
+    t.textContent = '';
+    t.removeAttribute('data-typing');
+    greet();
+    var text = t.textContent;
+    t.setAttribute('data-typing', '1');
     var i = 0;
     t.textContent = '';
     var timer = setInterval(function () {
       t.textContent = text.slice(0, ++i);
-      if (i >= text.length) { clearInterval(timer); setTimeout(function () { var c = document.querySelector('.tcur'); if (c) c.remove(); }, 2500); }
+      if (i >= text.length) { clearInterval(timer); t.removeAttribute('data-typing'); setTimeout(function () { var c = document.querySelector('.tcur'); if (c) c.remove(); }, 2500); }
     }, 45);
   })();
   setTimeout(function () { document.body.classList.remove('intro'); }, 4000);

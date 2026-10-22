@@ -55,23 +55,54 @@ try {
   if (saved.date === today.date) today = saved;
 } catch {}
 let todayDirty = false;
+// Rolling 24 h: hour bucket (epoch hour) → targets first seen in it; plus every id ever counted in the window.
+const histFile = path.join(DATA, 'hist.json');
+let hist = { buckets: {}, seen: {} };
+try { hist = JSON.parse(fs.readFileSync(histFile, 'utf8')); } catch {}
+// Lviv alerts today: how many started, total minutes.
+const cityFile = path.join(DATA, 'city-alerts.json');
+let cityDay = { date: localDate(), count: 0, minutes: 0, since: null };
+try { const c = JSON.parse(fs.readFileSync(cityFile, 'utf8')); if (c.date === cityDay.date) cityDay = c; } catch {}
+function trackCityAlert(active, sinceIso) {
+  const d = localDate();
+  if (cityDay.date !== d) cityDay = { date: d, count: 0, minutes: 0, since: cityDay.since };
+  if (active && !cityDay.since) { cityDay.since = sinceIso || new Date().toISOString(); cityDay.count++; todayDirty = true; }
+  if (!active && cityDay.since) { cityDay.minutes += Math.max(1, Math.round((Date.now() - Date.parse(cityDay.since)) / 60000)); cityDay.since = null; todayDirty = true; }
+}
 function countToday(threats) {
   const d = localDate();
   if (today.date !== d) today = { date: d, ids: {} };
+  const hour = Math.floor(Date.now() / 3600e3);
   for (const t of threats) {
     const n = Math.max(1, Number(t.count) || 1);
     if ((today.ids[t.id] ?? 0) < n) {
       today.ids[t.id] = n;
       todayDirty = true;
     }
+    const was = hist.seen[t.id] ?? 0;
+    if (n > was) {
+      hist.buckets[hour] = (hist.buckets[hour] ?? 0) + (n - was);
+      hist.seen[t.id] = n;
+      todayDirty = true;
+    }
   }
+  for (const h of Object.keys(hist.buckets)) if (Number(h) <= hour - 24) delete hist.buckets[h];
+  if (Object.keys(hist.seen).length > 5000) hist.seen = Object.fromEntries(Object.entries(hist.seen).slice(-2000));
+}
+function histogram() {
+  const hour = Math.floor(Date.now() / 3600e3);
+  const out = [];
+  for (let h = hour - 23; h <= hour; h++) out.push(hist.buckets[h] ?? 0);
+  return out;
 }
 setInterval(() => {
   if (!todayDirty) return;
   todayDirty = false;
   try {
-    fs.writeFileSync(todayFile + '.tmp', JSON.stringify(today));
-    fs.renameSync(todayFile + '.tmp', todayFile);
+    for (const [f, v] of [[todayFile, today], [histFile, hist], [cityFile, cityDay]]) {
+      fs.writeFileSync(f + '.tmp', JSON.stringify(v));
+      fs.renameSync(f + '.tmp', f);
+    }
   } catch (error) {
     log('[today]', error.message);
   }
@@ -100,6 +131,7 @@ every('threats', 10_000, async () => {
     heading: t.velocity?.bearingDeg ?? t.heading ?? null,
     count: Math.max(1, Number(t.count) || 1),
     stale: t.status === 'stale',
+    ageMin: t.updatedAt ? Math.max(0, Math.round((Date.now() - Date.parse(t.updatedAt)) / 60000)) : null,
     // last few observed points (oldest first) for the fading trail behind the icon
     trail: (t.trail ?? []).slice(-4, -1).map((p) => [Math.round(p.lat * 1e4) / 1e4, Math.round(p.lon * 1e4) / 1e4]),
   }));
@@ -125,6 +157,7 @@ every('alerts', 15_000, async () => {
   const whole = (d.oblasts ?? []).find((o) => (o.oblast ?? o.name) === CITY.oblast);
   const raion = (d.raions ?? []).find((r) => r.name === CITY.raion);
   const hit = whole ?? raion ?? null;
+  trackCityAlert(Boolean(hit), hit?.since);
   state.alerts = {
     oblasts,
     raions,
@@ -269,6 +302,8 @@ function snapshot() {
     counts,
     inSky: Object.values(counts).reduce((a, b) => a + b, 0),
     today: Object.values(today.ids).reduce((a, b) => a + b, 0),
+    hist: histogram(),
+    cityToday: { count: cityDay.count, minutes: cityDay.minutes + (cityDay.since ? Math.round((Date.now() - Date.parse(cityDay.since)) / 60000) : 0), active: Boolean(cityDay.since) },
     webVersion: webVersion(),
     updated: state.updated,
     errors: state.errors,
