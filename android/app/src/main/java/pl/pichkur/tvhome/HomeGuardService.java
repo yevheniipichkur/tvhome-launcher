@@ -266,7 +266,7 @@ public class HomeGuardService extends AccessibilityService {
     private void playChime(int res) {
         try {
             MediaPlayer mp = MediaPlayer.create(this, res, new AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+                    .setUsage(AudioAttributes.USAGE_GAME) // media volume, audible over HDMI
                     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build(), 0);
             if (mp == null) return;
             mp.setVolume(0.6f, 0.6f);

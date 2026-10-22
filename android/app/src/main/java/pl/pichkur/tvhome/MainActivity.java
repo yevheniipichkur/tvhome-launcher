@@ -68,7 +68,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         // UI sounds via SoundPool: low latency and independent of the WebView
         sounds = new SoundPool.Builder().setMaxStreams(4).setAudioAttributes(new AudioAttributes.Builder()
-                .setUsage(AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                .setUsage(AudioAttributes.USAGE_GAME) // media volume: the system stream is near-silent over HDMI on this box
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()).build();
         soundIds.put("move", sounds.load(this, R.raw.ui_move, 1));
         soundIds.put("edge", sounds.load(this, R.raw.ui_edge, 1));
