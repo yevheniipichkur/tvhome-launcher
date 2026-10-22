@@ -465,19 +465,14 @@ public class MainActivity extends Activity {
                         }
                         if (art != null) o.put("art", art);
                         lastController = c;
-                        // remember it: YouTube drops its session on exit, the player still offers to go back
-                        JSONObject keep = new JSONObject(o.toString());
-                        keep.put("live", false);
-                        keep.put("playing", false);
-                        keep.put("at", System.currentTimeMillis());
-                        prefs().edit().putString("last_media", keep.toString()).apply();
                         return o.toString();
                     }
                 }
             } catch (Exception ignored) {
                 // listener not enabled yet, or the app has no session
             }
-            String last = prefs().getString("last_media", null);
+            lastController = null;
+            String last = prefs().getString("last_media", null); // kept by MediaListener in the background
             return last != null ? last : "{}";
         }
 
