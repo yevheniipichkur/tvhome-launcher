@@ -13,6 +13,7 @@ online || { echo "Mi Box offline"; exit 1; }
 sleep 5 # let a just-woken box settle
 adb -s "$DEV" install -r "$APK" || exit 1
 A pm grant pl.pichkur.tvhome android.permission.ACCESS_COARSE_LOCATION
+A pm grant pl.pichkur.tvhome com.android.providers.tv.permission.READ_EPG_DATA
 A cmd package set-home-activity pl.pichkur.tvhome/.MainActivity
 A settings put secure enabled_accessibility_services pl.pichkur.tvhome/pl.pichkur.tvhome.HomeGuardService
 A settings put secure accessibility_enabled 1

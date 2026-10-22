@@ -255,6 +255,8 @@ function snapshot() {
   };
 }
 
+let testAlert = null;
+
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.png': 'image/png' };
 
 http
@@ -263,6 +265,23 @@ http
     if (url.pathname === '/api/state') {
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
       return res.end(JSON.stringify(snapshot()));
+    }
+    if (url.pathname === '/api/alert') {
+      // Small poll target for the launcher's background alert watch.
+      const snap = snapshot();
+      let city = snap.alerts?.city ?? { active: false };
+      if (testAlert && testAlert.until > Date.now()) city = testAlert.city;
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+      return res.end(JSON.stringify({ city: CITY.name, ...city, known: Boolean(snap.alerts) }));
+    }
+    if (url.pathname === '/api/test-alert' && req.method === 'POST') {
+      // Only from the Pi itself: lets us check the overlay on the box without a real alert.
+      const ip = req.socket.remoteAddress ?? '';
+      if (!/^(::ffff:)?(127\.|172\.|192\.168\.1\.16$)/.test(ip)) { res.writeHead(403); return res.end('forbidden'); }
+      const st = url.searchParams.get('state');
+      testAlert = st === 'on' ? { until: Date.now() + 120_000, city: { active: true, since: new Date().toISOString(), level: 'red', reasons: ['Тест сповіщення'] } }
+        : st === 'off' ? { until: Date.now() + 120_000, city: { active: false } } : null;
+      return res.end('ok ' + (st ?? 'auto'));
     }
     if (url.pathname === '/healthz') return res.end('ok');
     const rel = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname).replace(/^\/+/, '');

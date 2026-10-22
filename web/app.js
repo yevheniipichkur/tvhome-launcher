@@ -330,14 +330,20 @@
     return b;
   }
   function buildDock() {
-    var dock = $('dock');
-    dock.innerHTML = '';
+    var host = $('dock');
+    host.innerHTML = '';
+    var dock = document.createElement('div');
+    dock.className = 'track';
+    dock.id = 'track';
+    host.appendChild(dock);
     var glint = $('glint') || document.createElement('div');
     glint.id = 'glint';
-    dock.parentNode.insertBefore(glint, dock.nextSibling);
+    host.parentNode.insertBefore(glint, host.nextSibling);
     var fav = CFG.favorites || [];
     var byPkg = {};
     apps.forEach(function (a) { byPkg[a.pkg] = a; });
+    var cont = continueTile(byPkg);
+    if (cont) dock.appendChild(cont);
     fav.forEach(function (p) { if (byPkg[p]) dock.appendChild(tile(byPkg[p])); });
     var more = document.createElement('button');
     more.className = 'tile more';
@@ -346,6 +352,32 @@
     more.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg>';
     dock.appendChild(more);
   }
+  // «Продовжити»: the newest Android TV "Play Next" item, Lampa first.
+  function continueTile(byPkg) {
+    var list = [];
+    if (TV && TV.watchNext) { try { list = JSON.parse(TV.watchNext()); } catch (e) { list = []; } }
+    else if (/[?&]demo/.test(location.search)) {
+      list = [{ pkg: 'top.rootu.lampa', title: 'Тед Лассо', episode: 'Шахи', season: '3', number: '4', position: 1560000, duration: 2700000, art: null, intent: 'x' }];
+    }
+    if (!list.length) return null;
+    var lampa = list.filter(function (x) { return x.pkg === 'top.rootu.lampa'; });
+    var w = (lampa.length ? lampa : list)[0];
+    var b = document.createElement('button');
+    b.className = 'tile cont';
+    b.setAttribute('data-intent', w.intent);
+    b.setAttribute('aria-label', 'Продовжити: ' + w.title);
+    if (w.art) b.style.backgroundImage = 'url(' + w.art + ')';
+    var ep = w.season && w.number ? 'S' + w.season + ' · E' + w.number + (w.episode ? ' · ' + w.episode : '') : (w.episode || '');
+    var pct = w.duration ? Math.min(100, Math.round(w.position / w.duration * 100)) : 0;
+    var app = byPkg[w.pkg] ? byPkg[w.pkg].label : '';
+    b.innerHTML = '<span class="cont-shade"></span><span class="cont-tag">▶ Продовжити' + (app ? ' · ' + app : '') + '</span>' +
+      '<span class="cont-title"></span><span class="cont-ep"></span>' +
+      (pct ? '<span class="cont-bar"><i style="width:' + pct + '%"></i></span>' : '');
+    b.querySelector('.cont-title').textContent = w.title;
+    b.querySelector('.cont-ep').textContent = ep;
+    return b;
+  }
+
   function buildGrid() {
     var grid = $('grid');
     grid.innerHTML = '';
@@ -356,16 +388,27 @@
   var zone = 'dock'; // 'dock' | 'corner' | 'grid'
   var idx = { dock: 0, corner: 0, grid: 0 };
   function items(z) {
-    if (z === 'dock') return $('dock').children;
+    if (z === 'dock') return $('track') ? $('track').children : [];
     if (z === 'corner') return document.querySelectorAll('.corner .round');
     return $('grid').children;
   }
+  // The dock scrolls so the focused tile stays in view; the glint follows it.
+  var trackX = 0;
   function moveGlint(f) {
     var g = $('glint');
+    var track = $('track');
+    if (zone === 'dock' && f && track) {
+      var view = $('dock').clientWidth - 120;
+      var left = f.offsetLeft, right = left + f.offsetWidth;
+      if (left + trackX < 30) trackX = 30 - left;
+      if (right + trackX > view) trackX = view - right;
+      trackX = Math.min(0, trackX);
+      track.style.transform = 'translateX(' + trackX + 'px)';
+    }
     if (!g) return;
     if (zone !== 'dock' || !f) { g.style.opacity = '0'; return; }
     g.style.opacity = '1';
-    g.style.transform = 'translateX(' + (f.offsetLeft + f.offsetWidth / 2 - 170) + 'px)';
+    g.style.transform = 'translateX(' + (f.offsetLeft + trackX + 40 + f.offsetWidth / 2 - 170) + 'px)';
   }
   function render() {
     var all = document.querySelectorAll('.focus');
@@ -388,6 +431,8 @@
   function closeDrawer() { $('drawer').hidden = true; zone = 'dock'; render(); }
   function activate(elm) {
     if (!elm) return;
+    var intent = elm.getAttribute('data-intent');
+    if (intent) { if (TV && TV.openIntent) TV.openIntent(intent); return; }
     var pkg = elm.getAttribute('data-pkg');
     var action = elm.getAttribute('data-action');
     if (pkg) { if (TV && TV.launch) TV.launch(pkg); return; }
@@ -417,7 +462,7 @@
     render();
   });
   document.addEventListener('click', function (e) {
-    var t = e.target.closest ? e.target.closest('[data-pkg],[data-action]') : null;
+    var t = e.target.closest ? e.target.closest('[data-pkg],[data-action],[data-intent]') : null;
     if (t) activate(t);
   });
 

@@ -163,7 +163,7 @@ button { font: inherit; color: inherit; background: none; border: 0; outline: no
 }
 .tile.more { background: rgba(255,255,255,.06); }
 .tile.more svg { width: 46px; height: 46px; fill: var(--ink); }
-.dock .tile:first-child { margin-left: 20px; }
+.dock .tile:first-child { margin-left: 0; }
 .tile.text .label { display: none; }
 
 /* ---- drawer ---- */
@@ -312,3 +312,16 @@ body.danger .sky-bg .danger { opacity: 1; animation: danger 2.4s ease-in-out inf
 .intro .log .line:nth-child(7) { animation-delay: 1.6s; }
 .intro .log .line:nth-child(8) { animation-delay: 1.75s; }
 .intro .log .line:nth-child(9) { animation-delay: 1.9s; }
+
+/* «Продовжити» tile: wide poster card with progress */
+.tile.cont { width: 330px; background-color: #26211f; background-size: cover; background-position: center; display: block; text-align: left; border-color: rgba(217,119,87,.55); }
+.tile.cont .cont-shade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(14,14,16,.92) 0%, rgba(14,14,16,.6) 60%, rgba(14,14,16,.2) 100%); }
+.tile.cont .cont-tag { position: absolute; left: 16px; top: 12px; font-size: 14px; font-weight: 700; color: var(--clay-soft); letter-spacing: .02em; }
+.tile.cont .cont-title { position: absolute; left: 16px; right: 14px; top: 38px; font-size: 21px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile.cont .cont-ep { position: absolute; left: 16px; right: 14px; top: 68px; font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile.cont .cont-bar { position: absolute; left: 16px; right: 16px; bottom: 12px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.18); overflow: hidden; }
+.tile.cont .cont-bar i { display: block; height: 100%; background: var(--clay); border-radius: 2px; }
+.dock { gap: 44px; }
+
+.dock .track { display: flex; align-items: center; gap: 44px; padding: 0 30px; transition: transform .55s var(--ease-out); will-change: transform; }
+.tile.cont.focus { transform: scale(1.12); }

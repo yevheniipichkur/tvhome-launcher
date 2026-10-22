@@ -6,6 +6,10 @@ import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.database.Cursor;
+import android.graphics.BitmapFactory;
+import android.media.tv.TvContract;
+import android.net.Uri;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -119,8 +123,15 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    protected void onPause() {
+        HomeGuardService.homeInFront = false;
+        super.onPause();
+    }
+
+    @Override
     protected void onResume() {
         super.onResume();
+        HomeGuardService.homeInFront = true;
         hideSystemUi();
         if (!offline && loadedAt > 0 && SystemClock.elapsedRealtime() - loadedAt > RELOAD_AFTER_MS) {
             web.loadUrl(HOME_URL);
@@ -158,6 +169,33 @@ public class MainActivity extends Activity {
         d.setBounds(0, 0, w, h);
         d.draw(c);
         return b;
+    }
+
+    private static String str(Cursor c, String col) {
+        int i = c.getColumnIndex(col);
+        return i < 0 || c.isNull(i) ? null : c.getString(i);
+    }
+
+    private static long num(Cursor c, String col) {
+        int i = c.getColumnIndex(col);
+        return i < 0 || c.isNull(i) ? 0 : c.getLong(i);
+    }
+
+    /** http(s) art loads directly; content:// and android.resource:// are inlined so the page can show them. */
+    private String webImage(String uri) {
+        if (uri.startsWith("http")) return uri;
+        String cached = imageCache.get("w:" + uri);
+        if (cached != null) return cached;
+        try (java.io.InputStream in = getContentResolver().openInputStream(Uri.parse(uri))) {
+            Bitmap b = BitmapFactory.decodeStream(in);
+            if (b == null) return null;
+            int w = 400, h = Math.max(1, Math.round(400f * b.getHeight() / b.getWidth()));
+            String d = dataUri(Bitmap.createScaledBitmap(b, w, h, true));
+            imageCache.put("w:" + uri, d);
+            return d;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private static String dataUri(Bitmap b) {
@@ -270,6 +308,53 @@ public class MainActivity extends Activity {
             } catch (Exception ignored) {
             }
             return o.toString();
+        }
+
+        /** Android TV "Play Next" row (what apps like Lampa offer to continue), newest first. */
+        @JavascriptInterface
+        public String watchNext() {
+            JSONArray arr = new JSONArray();
+            Cursor c = null;
+            try {
+                c = getContentResolver().query(TvContract.WatchNextPrograms.CONTENT_URI, null, null, null, null);
+                if (c == null) return arr.toString();
+                java.util.List<JSONObject> rows = new java.util.ArrayList<>();
+                while (c.moveToNext()) {
+                    JSONObject o = new JSONObject();
+                    o.put("pkg", str(c, TvContract.WatchNextPrograms.COLUMN_PACKAGE_NAME));
+                    o.put("title", str(c, TvContract.WatchNextPrograms.COLUMN_TITLE));
+                    o.put("episode", str(c, TvContract.WatchNextPrograms.COLUMN_EPISODE_TITLE));
+                    o.put("season", str(c, TvContract.WatchNextPrograms.COLUMN_SEASON_DISPLAY_NUMBER));
+                    o.put("number", str(c, TvContract.WatchNextPrograms.COLUMN_EPISODE_DISPLAY_NUMBER));
+                    o.put("intent", str(c, TvContract.WatchNextPrograms.COLUMN_INTENT_URI));
+                    o.put("position", num(c, TvContract.WatchNextPrograms.COLUMN_LAST_PLAYBACK_POSITION_MILLIS));
+                    o.put("duration", num(c, TvContract.WatchNextPrograms.COLUMN_DURATION_MILLIS));
+                    o.put("engaged", num(c, TvContract.WatchNextPrograms.COLUMN_LAST_ENGAGEMENT_TIME_UTC_MILLIS));
+                    String art = str(c, TvContract.WatchNextPrograms.COLUMN_POSTER_ART_URI);
+                    if (art == null) art = str(c, TvContract.WatchNextPrograms.COLUMN_THUMBNAIL_URI);
+                    o.put("art", art == null ? null : webImage(art));
+                    if (o.optString("intent", null) != null && o.optString("title", null) != null) rows.add(o);
+                }
+                java.util.Collections.sort(rows, (x, y) -> Long.compare(y.optLong("engaged"), x.optLong("engaged")));
+                for (int i = 0; i < Math.min(rows.size(), 6); i++) arr.put(rows.get(i));
+            } catch (Exception ignored) {
+                // no TV provider or no permission: the page simply shows no "continue" tile
+            } finally {
+                if (c != null) c.close();
+            }
+            return arr.toString();
+        }
+
+        @JavascriptInterface
+        public void openIntent(String uri) {
+            ui.post(() -> {
+                try {
+                    Intent i = Intent.parseUri(uri, Intent.URI_INTENT_SCHEME);
+                    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    startActivity(i);
+                } catch (Exception ignored) {
+                }
+            });
         }
 
         @JavascriptInterface
