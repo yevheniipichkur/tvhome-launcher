@@ -10,6 +10,13 @@ import android.database.Cursor;
 import android.graphics.BitmapFactory;
 import android.media.AudioAttributes;
 import android.media.SoundPool;
+import android.media.MediaMetadata;
+import android.media.session.MediaController;
+import android.media.session.MediaSessionManager;
+import android.media.session.PlaybackState;
+import android.app.PendingIntent;
+import android.content.ComponentName;
+import android.content.SharedPreferences;
 import android.media.tv.TvContract;
 import android.webkit.RenderProcessGoneDetail;
 import android.view.ViewGroup;
@@ -201,6 +208,39 @@ public class MainActivity extends Activity {
         return b;
     }
 
+    private volatile MediaController lastController;
+
+    private SharedPreferences prefs() {
+        return getSharedPreferences("tvhome", MODE_PRIVATE);
+    }
+
+    private MediaController pickController() {
+        MediaSessionManager msm = (MediaSessionManager) getSystemService(MEDIA_SESSION_SERVICE);
+        List<MediaController> list = msm.getActiveSessions(new ComponentName(this, MediaListener.class));
+        MediaController best = null;
+        for (MediaController c : list) {
+            if (c.getPackageName().equals(getPackageName())) continue;
+            PlaybackState ps = c.getPlaybackState();
+            if (ps != null && ps.getState() == PlaybackState.STATE_PLAYING) return c;
+            if (best == null && c.getMetadata() != null) best = c;
+        }
+        return best;
+    }
+
+    private String appLabel(String pkg) {
+        try {
+            PackageManager pm = getPackageManager();
+            return String.valueOf(pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)));
+        } catch (Exception e) {
+            return pkg;
+        }
+    }
+
+    private static String first(String... xs) {
+        for (String x : xs) if (x != null && !x.isEmpty()) return x;
+        return null;
+    }
+
     private static String str(Cursor c, String col) {
         int i = c.getColumnIndex(col);
         return i < 0 || c.isNull(i) ? null : c.getString(i);
@@ -382,6 +422,86 @@ public class MainActivity extends Activity {
                     Intent i = Intent.parseUri(uri, Intent.URI_INTENT_SCHEME);
                     i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(i);
+                } catch (Exception ignored) {
+                }
+            });
+        }
+
+        /** What is playing now (or what played last), for the mini player. */
+        @JavascriptInterface
+        public String media() {
+            JSONObject o = new JSONObject();
+            try {
+                MediaController c = pickController();
+                if (c != null) {
+                    MediaMetadata md = c.getMetadata();
+                    PlaybackState ps = c.getPlaybackState();
+                    String pkg = c.getPackageName();
+                    String title = md == null ? null : first(md.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE), md.getString(MediaMetadata.METADATA_KEY_TITLE));
+                    if (title != null) {
+                        o.put("live", true);
+                        o.put("pkg", pkg);
+                        o.put("app", appLabel(pkg));
+                        o.put("title", title);
+                        o.put("sub", first(md.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE), md.getString(MediaMetadata.METADATA_KEY_ARTIST), md.getString(MediaMetadata.METADATA_KEY_ALBUM)));
+                        long dur = md.getLong(MediaMetadata.METADATA_KEY_DURATION);
+                        o.put("duration", dur);
+                        int st = ps == null ? PlaybackState.STATE_NONE : ps.getState();
+                        o.put("playing", st == PlaybackState.STATE_PLAYING || st == PlaybackState.STATE_BUFFERING);
+                        long pos = ps == null ? 0 : ps.getPosition();
+                        if (ps != null && st == PlaybackState.STATE_PLAYING) pos += (long) ((SystemClock.elapsedRealtime() - ps.getLastPositionUpdateTime()) * ps.getPlaybackSpeed());
+                        o.put("position", Math.max(0, pos));
+                        String artKey = pkg + "|" + title;
+                        String art = imageCache.get("m:" + artKey);
+                        if (art == null) {
+                            Bitmap b = md.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON);
+                            if (b == null) b = md.getBitmap(MediaMetadata.METADATA_KEY_ART);
+                            if (b == null) b = md.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
+                            if (b != null) {
+                                int w = 240, h = Math.max(1, Math.round(240f * b.getHeight() / b.getWidth()));
+                                art = dataUri(Bitmap.createScaledBitmap(b, w, h, true));
+                                imageCache.put("m:" + artKey, art);
+                            }
+                        }
+                        if (art != null) o.put("art", art);
+                        lastController = c;
+                        // remember it: YouTube drops its session on exit, the player still offers to go back
+                        JSONObject keep = new JSONObject(o.toString());
+                        keep.put("live", false);
+                        keep.put("playing", false);
+                        keep.put("at", System.currentTimeMillis());
+                        prefs().edit().putString("last_media", keep.toString()).apply();
+                        return o.toString();
+                    }
+                }
+            } catch (Exception ignored) {
+                // listener not enabled yet, or the app has no session
+            }
+            String last = prefs().getString("last_media", null);
+            return last != null ? last : "{}";
+        }
+
+        @JavascriptInterface
+        public void mediaAction(String action) {
+            ui.post(() -> {
+                try {
+                    MediaController c = lastController;
+                    if ("open".equals(action) || c == null) {
+                        if (c != null && c.getSessionActivity() != null) {
+                            c.getSessionActivity().send();
+                            return;
+                        }
+                        JSONObject last = new JSONObject(prefs().getString("last_media", "{}"));
+                        String pkg = last.optString("pkg", null);
+                        if (pkg != null) new Bridge().launch(pkg);
+                        return;
+                    }
+                    MediaController.TransportControls t = c.getTransportControls();
+                    PlaybackState ps = c.getPlaybackState();
+                    boolean playing = ps != null && ps.getState() == PlaybackState.STATE_PLAYING;
+                    if ("toggle".equals(action)) { if (playing) t.pause(); else t.play(); }
+                    else if ("next".equals(action)) t.skipToNext();
+                    else if ("prev".equals(action)) t.skipToPrevious();
                 } catch (Exception ignored) {
                 }
             });

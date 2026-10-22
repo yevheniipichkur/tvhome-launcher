@@ -335,3 +335,64 @@ body.danger .sky-bg .danger { opacity: 1; animation: danger 2.4s ease-in-out inf
 .welcome::before { animation: none; opacity: .55; }
 .fly .home .ping.late { display: none; }
 .fly .home .ping { animation-duration: 3.2s; }
+
+/* ---------- mini player (replaces the input line) ---------- */
+.player {
+  margin-top: 20px; width: 100%; height: 108px; display: flex; align-items: center; gap: 18px;
+  padding: 0 18px 0 14px; border-radius: 16px;
+  border: 2px solid rgba(255,255,255,.22);
+  background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(0,0,0,.18));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 10px 30px rgba(0,0,0,.25);
+}
+.pl-art { flex: none; width: 80px; height: 80px; border-radius: 12px; background: #1a1b1f center/cover no-repeat; display: grid; place-items: center; font-size: 34px; border: 1px solid rgba(255,255,255,.12); }
+.pl-art.has .spark { display: none; }
+.pl-meta { flex: 1; min-width: 0; }
+.pl-top { display: flex; justify-content: space-between; font-size: 17px; color: var(--muted); }
+.pl-state { color: var(--clay-soft); }
+.player.playing .pl-state { color: var(--green); }
+.pl-title { margin-top: 2px; font-size: 24px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-sub { font-size: 16px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-bar { margin-top: 7px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.14); overflow: hidden; }
+.pl-bar i { display: block; height: 100%; background: var(--clay); transform-origin: 0 50%; transform: scaleX(0); transition: transform 2s linear; }
+.pl-ctrls { flex: none; display: flex; align-items: center; gap: 10px; }
+.pl-btn { width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; color: var(--ink); background: rgba(255,255,255,.07); border: 1.5px solid rgba(255,255,255,.18); transition: transform .35s var(--spring), background .2s, color .2s; }
+.pl-btn svg { width: 22px; height: 22px; fill: currentColor; }
+.pl-btn.big { width: 58px; height: 58px; }
+.pl-btn.focus { transform: scale(1.18); background: var(--ink); color: #1d1e20; border-color: var(--ink); }
+.player.empty .pl-ctrls, .player.empty .pl-bar { display: none; }
+.player.empty .pl-title { color: var(--muted); font-weight: 400; }
+.player.last .pl-btn:not([data-media="open"]) { opacity: .35; }
+.intro .player { animation: rise .6s 2.05s var(--ease-out) backwards; }
+
+/* ---------- compact map: small map top-right, big player under it ---------- */
+.sky { transition: opacity .22s ease; }
+.sky.swap { opacity: 0; }
+body.compact .sky { height: 440px; }
+body.compact .map { height: 352px; }
+body.compact .legend { bottom: 34px; font-size: 16px; }
+body.compact .player {
+  position: absolute; right: 56px; top: 506px; width: 960px; height: 312px; margin: 0;
+  display: grid; grid-template-columns: 250px 1fr; grid-template-rows: 1fr auto; column-gap: 30px; padding: 28px 32px;
+  border-color: rgba(224,130,95,.6);
+  background: linear-gradient(180deg, #1b1d24, #14161c);
+}
+body.compact .pl-art { grid-row: 1 / 3; width: 250px; height: 250px; border-radius: 18px; font-size: 80px; }
+body.compact .pl-top { font-size: 20px; }
+body.compact .pl-title { font-size: 34px; margin-top: 10px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+body.compact .pl-sub { font-size: 20px; margin-top: 6px; }
+body.compact .pl-bar { margin-top: 18px; height: 6px; }
+body.compact .pl-ctrls { gap: 18px; }
+body.compact .pl-btn { width: 64px; height: 64px; }
+body.compact .pl-btn.big { width: 76px; height: 76px; }
+body.compact .pl-btn svg { width: 28px; height: 28px; }
+body.compact .player.empty .pl-title { font-size: 28px; }
+
+/* ---------- Shahed trails ---------- */
+.fly .trail { position: absolute; left: -4px; top: -4px; width: 8px; height: 8px; border-radius: 50%; background: #fff; will-change: transform; transition: opacity .6s; }
+.fly .trail.t0 { opacity: .45; }
+.fly .trail.t1 { opacity: .28; width: 7px; height: 7px; }
+.fly .trail.t2 { opacity: .14; width: 6px; height: 6px; }
+
+/* ---------- focus glow in the logo's colour ---------- */
+.tile.focus { box-shadow: 0 0 0 3px rgba(255,255,255,.55), 0 18px 44px rgba(0,0,0,.6), 0 0 80px var(--glow, rgba(255,255,255,.22)), 0 0 26px var(--glow, rgba(255,255,255,.12)); }
+#glint { background: radial-gradient(ellipse 50% 60% at 50% 55%, var(--glint, rgba(255,255,255,.20)), transparent 70%); }

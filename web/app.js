@@ -99,9 +99,6 @@
   setInterval(function () { $('spinner').textContent = SPIN[spinI++ % SPIN.length]; }, 260);
   tickClock();
 
-  var HINTS = ['← → обрати · ОК — запустити', '↑ — мережа й налаштування', 'остання плитка — усі програми'];
-  var hintI = 0;
-  setInterval(function () { $('hint').textContent = HINTS[++hintI % HINTS.length]; }, 6000);
 
   // ---------- map: raion-level alerts + live targets ----------
   var map = $('map');
@@ -143,12 +140,24 @@
     // Moving things live in an HTML layer above the static SVG: animating them inside the SVG
     // made the WebView repaint the whole map every frame, which the box GPU can't keep up with.
     threatLayer = $('fly');
+    drawHome();
+  }
+  function drawHome() {
     var p = toScreen(24.0297, 49.8397);
     var home = document.createElement('div');
     home.className = 'home';
     home.innerHTML = '<i class="ping"></i><i class="ping late"></i><i class="ring"></i><i class="core"></i>';
     home.style.transform = 'translate3d(' + p[0].toFixed(1) + 'px,' + p[1].toFixed(1) + 'px,0)';
     threatLayer.appendChild(home);
+  }
+  // Map size changed (compact <-> big): recompute the projection box and rebuild the moving layer.
+  function relayoutMap() {
+    if (!geo) return;
+    box = null;
+    threatLayer.innerHTML = '';
+    threatEls = {};
+    drawHome();
+    if (data) paintThreats();
   }
 
   // map units → px inside the map box (matches viewBox + preserveAspectRatio meet)
@@ -203,9 +212,11 @@
         var g = document.createElement('div');
         g.className = 't ' + t.kind + ' enter';
         g.innerHTML = '<div class="rot">' + iconSvg(t.kind) + '</div><b></b>';
+        var tr = [];
+        for (var k = 0; k < 3; k++) { var dot = document.createElement('i'); dot.className = 'trail t' + k; threatLayer.insertBefore(dot, threatLayer.firstChild); tr.push(dot); }
         g.style.transform = pos;
         threatLayer.appendChild(g);
-        item = threatEls[t.id] = { g: g, inner: g.firstChild, label: g.lastChild, rot: rot, kind: t.kind, cls: '' };
+        item = threatEls[t.id] = { g: g, inner: g.firstChild, label: g.lastChild, rot: rot, kind: t.kind, cls: '', trail: tr };
         item.inner.style.transform = 'rotate(' + rot + 'deg)';
         requestAnimationFrame(function () { requestAnimationFrame(function () { g.classList.remove('enter'); }); });
       }
@@ -214,12 +225,22 @@
       if (pos !== item.pos) { item.g.style.transform = pos; item.pos = pos; }
       var d = ((rot - item.rot) % 360 + 540) % 360 - 180; // shortest way round
       if (d) { item.rot += d; item.inner.style.transform = 'rotate(' + item.rot + 'deg)'; }
+      // fading trail: up to 3 earlier positions, oldest faintest
+      var pts = t.trail || [];
+      for (var q = 0; q < 3; q++) {
+        var pt = pts[pts.length - 1 - q], dotEl = item.trail[q];
+        if (!pt) { dotEl.style.opacity = '0'; continue; }
+        var sp = toScreen(pt[1], pt[0]);
+        dotEl.style.opacity = '';
+        dotEl.style.transform = 'translate3d(' + sp[0].toFixed(1) + 'px,' + sp[1].toFixed(1) + 'px,0)';
+      }
       var lab = t.count > 1 ? '×' + t.count : '';
       if (lab !== item.lab) { item.label.textContent = lab; item.lab = lab; }
     });
     Object.keys(threatEls).forEach(function (id) {
       if (seen[id]) return;
       var g = threatEls[id].g;
+      threatEls[id].trail.forEach(function (d) { if (d.parentNode) d.parentNode.removeChild(d); });
       delete threatEls[id];
       g.classList.add('leave');
       setTimeout(function () { if (g.parentNode) g.parentNode.removeChild(g); }, 800);
@@ -350,11 +371,33 @@
     var hidden = CFG.hidden || [];
     apps = list.filter(function (a) { return hidden.indexOf(a.pkg) < 0 && a.pkg !== 'pl.pichkur.tvhome'; });
   }
+  // Focus glow takes the logo's colour: average of the saturated pixels of its banner.
+  var glowCache = {};
+  function glowFrom(pkg, src, el) {
+    if (glowCache[pkg]) { el.style.setProperty('--glow', glowCache[pkg]); return; }
+    var img = new Image();
+    img.onload = function () {
+      try {
+        var c = document.createElement('canvas'); c.width = 32; c.height = 18;
+        var x = c.getContext('2d'); x.drawImage(img, 0, 0, 32, 18);
+        var d = x.getImageData(0, 0, 32, 18).data, r = 0, g = 0, b = 0, n = 0;
+        for (var i = 0; i < d.length; i += 4) {
+          var mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]);
+          if (mx - mn < 60 || mx < 70) continue; // skip greys, white, black
+          r += d[i]; g += d[i + 1]; b += d[i + 2]; n++;
+        }
+        var col = n > 8 ? 'rgba(' + Math.round(r / n) + ',' + Math.round(g / n) + ',' + Math.round(b / n) + ',.75)' : 'rgba(255,255,255,.35)';
+        glowCache[pkg] = col;
+        el.style.setProperty('--glow', col);
+      } catch (e) {}
+    };
+    img.src = src;
+  }
   function tile(a) {
     var b = document.createElement('button');
     b.className = 'tile';
     b.setAttribute('data-pkg', a.pkg);
-    if (a.banner) { b.className += ' banner'; b.style.backgroundImage = 'url(' + a.banner + ')'; }
+    if (a.banner) { b.className += ' banner'; b.style.backgroundImage = 'url(' + a.banner + ')'; glowFrom(a.pkg, a.banner, b); }
     else if (a.icon) { var i = document.createElement('img'); i.className = 'icon'; i.src = a.icon; b.appendChild(i); }
     else { b.className += ' text'; b.appendChild(document.createTextNode(a.label)); }
     var l = document.createElement('span'); l.className = 'label'; l.textContent = a.label; b.appendChild(l);
@@ -422,6 +465,7 @@
   function items(z) {
     if (z === 'dock') return $('track') ? $('track').children : [];
     if (z === 'corner') return document.querySelectorAll('.corner .round');
+    if (z === 'player') return document.querySelectorAll('#player .pl-btn');
     return $('grid').children;
   }
   // The dock scrolls so the focused tile stays in view; the glint follows it.
@@ -440,6 +484,8 @@
     if (!g) return;
     if (zone !== 'dock' || !f) { g.style.opacity = '0'; return; }
     g.style.opacity = '1';
+    var gc = f.style.getPropertyValue('--glow');
+    g.style.setProperty('--glint', gc ? gc.replace(/,\s*[\d.]+\)$/, ',.28)') : 'rgba(255,255,255,.20)');
     g.style.transform = 'translateX(' + (f.offsetLeft + trackX + 40 + f.offsetWidth / 2 - 170) + 'px)';
   }
   function render() {
@@ -463,12 +509,15 @@
   function closeDrawer() { $('drawer').hidden = true; zone = 'dock'; render(); }
   function activate(elm) {
     if (!elm) return;
+    var media = elm.getAttribute('data-media');
+    if (media) { if (TV && TV.mediaAction) TV.mediaAction(media); setTimeout(pollMedia, 500); return; }
     var intent = elm.getAttribute('data-intent');
     if (intent) { if (TV && TV.openIntent) TV.openIntent(intent); return; }
     var pkg = elm.getAttribute('data-pkg');
     var action = elm.getAttribute('data-action');
     if (pkg) { if (TV && TV.launch) TV.launch(pkg); return; }
     if (action === 'apps') return openDrawer();
+    if (action === 'layout') return toggleLayout();
     if (TV && TV.openSettings) TV.openSettings(action);
   }
   // ---------- UI sounds (Web Audio, synthesized: a soft tick on move, a two-note chime on launch) ----------
@@ -524,10 +573,12 @@
     if (k === 'ArrowRight' || code === 22) idx[zone]++;
     else if (k === 'ArrowLeft' || code === 21) idx[zone]--;
     else if (k === 'ArrowUp' || code === 19) {
-      if (zone === 'dock') zone = 'corner';
+      if (zone === 'dock') { zone = 'player'; idx.player = 1; }
+      else if (zone === 'player') zone = 'corner';
       else if (zone === 'grid') idx.grid = idx.grid >= COLS ? idx.grid - COLS : idx.grid;
     } else if (k === 'ArrowDown' || code === 20) {
-      if (zone === 'corner') zone = 'dock';
+      if (zone === 'corner') { zone = 'player'; idx.player = 1; }
+      else if (zone === 'player') zone = 'dock';
       else if (zone === 'grid' && idx.grid + COLS < list.length) idx.grid += COLS;
     } else if (k === 'Enter' || code === 13 || code === 23) {
       SOUND.open();
@@ -545,7 +596,7 @@
     }
   });
   document.addEventListener('click', function (e) {
-    var t = e.target.closest ? e.target.closest('[data-pkg],[data-action],[data-intent]') : null;
+    var t = e.target.closest ? e.target.closest('[data-pkg],[data-action],[data-intent],[data-media]') : null;
     if (t) activate(t);
   });
 
@@ -619,11 +670,57 @@
   paintWifi();
   setInterval(paintWifi, 10000);
 
+  // ---------- mini player ----------
+  function fmtTime(ms) {
+    var s2 = Math.floor(ms / 1000), h = Math.floor(s2 / 3600), m = Math.floor(s2 % 3600 / 60), sec = s2 % 60;
+    return (h ? h + ':' + pad(m) : m) + ':' + pad(sec);
+  }
+  var mediaKey = '';
+  function pollMedia() {
+    var m = {};
+    if (TV && TV.media) { try { m = JSON.parse(TV.media()); } catch (e) { m = {}; } }
+    else if (/[?&]demo/.test(location.search)) m = { live: true, playing: true, app: 'YouTube', pkg: 'com.google.android.youtube.tv', title: 'Lofi Girl — beats to relax/study to', sub: 'Lofi Girl', position: 1534000, duration: 3600000 };
+    var pl = $('player');
+    if (!m.title) { pl.className = 'player empty'; mediaKey = ''; return; }
+    pl.className = 'player' + (m.live ? '' : ' last') + (m.playing ? ' playing' : '');
+    var key = (m.pkg || '') + '|' + m.title;
+    if (key !== mediaKey) {
+      mediaKey = key;
+      $('pl-title').textContent = m.title;
+      var art = $('pl-art');
+      art.style.backgroundImage = m.art ? 'url(' + m.art + ')' : '';
+      art.classList.toggle('has', !!m.art);
+    }
+    $('pl-app').textContent = '> ' + (m.live ? (m.app || 'плеєр') : 'продовжити · ' + (m.app || ''));
+    $('pl-state').textContent = m.live ? (m.playing ? '▶ грає' : '❚❚ пауза') : 'ОК — відкрити';
+    var sub = m.sub || '';
+    if (m.duration > 0) sub = (sub ? sub + ' · ' : '') + fmtTime(m.position || 0) + ' / ' + fmtTime(m.duration);
+    $('pl-sub').textContent = sub;
+    var frac = m.duration > 0 ? Math.min(1, (m.position || 0) / m.duration) : 0;
+    $('pl-fill').style.transform = 'scaleX(' + frac.toFixed(4) + ')';
+    $('pl-toggle').innerHTML = m.playing ? '<path d="M7 5h4v14H7zM13 5h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+  }
+  pollMedia();
+  setInterval(pollMedia, 2000);
+
+  // ---------- big map <-> compact map with a big player ----------
+  function setLayout(compact) {
+    document.body.classList.toggle('compact', compact);
+    try { localStorage.setItem('tv-layout', compact ? 'compact' : 'big'); } catch (e) {}
+    setTimeout(relayoutMap, 60);
+  }
+  function toggleLayout() {
+    var sky = document.querySelector('.sky');
+    sky.classList.add('swap');
+    setTimeout(function () { setLayout(!document.body.classList.contains('compact')); sky.classList.remove('swap'); }, 220);
+  }
+  try { if (localStorage.getItem('tv-layout') === 'compact') document.body.classList.add('compact'); } catch (e) {}
+
   // Called by the launcher when the home screen comes back to the front.
   window.tvResume = function () {
     loadApps(); buildDock();
     if (!$('drawer').hidden) closeDrawer();
-    zone = 'dock'; render(); poll(); paintWifi();
+    zone = 'dock'; render(); poll(); paintWifi(); pollMedia();
   };
   // Called by the launcher with Back while the drawer is open.
   window.tvBack = function () {

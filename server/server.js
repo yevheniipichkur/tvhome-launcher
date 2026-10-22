@@ -100,6 +100,8 @@ every('threats', 10_000, async () => {
     heading: t.velocity?.bearingDeg ?? t.heading ?? null,
     count: Math.max(1, Number(t.count) || 1),
     stale: t.status === 'stale',
+    // last few observed points (oldest first) for the fading trail behind the icon
+    trail: (t.trail ?? []).slice(-4, -1).map((p) => [Math.round(p.lat * 1e4) / 1e4, Math.round(p.lon * 1e4) / 1e4]),
   }));
   countToday(list.filter((t) => t.status === 'active'));
 });
