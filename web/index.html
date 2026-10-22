@@ -6,11 +6,12 @@
 <title>Вітальня</title>
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="intro">
+<div class="aurora" aria-hidden="true"><i></i><i></i></div>
 <div id="stage">
   <header class="top">
     <section class="welcome">
-      <div class="welcome-title"><span class="spark">✻</span> Вітаю в Claude Code!</div>
+      <div class="welcome-title"><span class="spark">✻</span> <span id="welcome-typed" data-text="Вітаю в Claude Code!">Вітаю в Claude Code!</span><span class="tcur"></span></div>
       <div class="welcome-sub">/help — допомога · cwd: ~/вітальня</div>
     </section>
     <nav class="corner" aria-label="Системні дії">
@@ -39,7 +40,7 @@
       <div class="log" id="log">
         <div class="line" id="alert-line"><span class="dot"></span><span id="alert-text">перевіряю тривоги…</span></div>
         <div class="line prompt">&gt; небо</div>
-        <div class="line"><span class="dot amber"></span><span id="sky-text">—</span></div>
+        <div class="line"><span class="dot amber"></span><span>у небі зараз <span id="sky-n">0</span> <span id="sky-word">цілей</span> · сьогодні <span id="sky-t">0</span></span></div>
         <div class="line prompt">&gt; світанок</div>
         <div class="line"><span class="dot amber"></span><span id="sun-text">—</span></div>
         <div class="line status"><span class="spark spin" id="spinner">✻</span> <span id="verb">Шукаю сонце…</span> <span class="muted" id="elapsed">(0 с)</span></div>
@@ -50,7 +51,7 @@
     </section>
 
     <section class="sky">
-      <div class="sky-head"><span class="spark">✻</span> Небо зараз · <span id="sky-now">0 цілей</span> · <span class="muted">сьогодні <span id="sky-today">0</span></span></div>
+      <div class="sky-head"><span class="spark">✻</span> Небо зараз · <span id="sky-now-n">0</span> <span id="sky-now-word">цілей</span> · <span class="muted">сьогодні <span id="sky-today">0</span></span></div>
       <svg id="map" class="map" role="img" aria-label="Карта загроз України"></svg>
       <div class="legend" id="legend"></div>
       <div class="credit">дані: NEPTUN · neptun.in.ua · мапа © OpenStreetMap</div>

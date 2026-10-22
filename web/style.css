@@ -20,7 +20,7 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { width: 100%; height: 100%; overflow: hidden; background: #111; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: linear-gradient(180deg, #34353a 0%, #2a2b2f 45%, #222326 100%); }
 body { font-family: 'JBM', ui-monospace, monospace; color: var(--ink); -webkit-font-smoothing: antialiased; }
 button { font: inherit; color: inherit; background: none; border: 0; outline: none; }
 [hidden] { display: none !important; }
@@ -36,7 +36,7 @@ button { font: inherit; color: inherit; background: none; border: 0; outline: no
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
     radial-gradient(1100px 650px at 80% 28%, rgba(217, 119, 87, 0.10), transparent 70%),
     radial-gradient(1000px 700px at 18% 18%, rgba(255, 255, 255, 0.07), transparent 70%),
-    linear-gradient(180deg, #34353a 0%, #2a2b2f 45%, #222326 100%);
+    linear-gradient(180deg, rgba(52,53,58,.55) 0%, rgba(42,43,47,.35) 45%, rgba(34,35,38,.6) 100%);
   padding: 44px 56px 40px;
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -189,3 +189,106 @@ button { font: inherit; color: inherit; background: none; border: 0; outline: no
 #wifi-icon .off { stroke: rgba(255,255,255,.25); }
 .round.pill.focus #wifi-icon .off { stroke: rgba(0,0,0,.25); }
 .round.pill.down span { color: var(--red); }
+
+/* =================== motion =================== */
+:root { --ease-out: cubic-bezier(.16, 1, .3, 1); --spring: cubic-bezier(.34, 1.56, .64, 1); }
+
+/* ambient light: two soft glows drifting slowly behind everything */
+.aurora { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.aurora i { position: absolute; width: 60vw; height: 60vw; border-radius: 50%; filter: blur(40px); opacity: .55; will-change: transform; }
+.aurora i:first-child { background: radial-gradient(circle, rgba(217,119,87,.20), transparent 62%); left: 35vw; top: -25vw; animation: drift1 38s ease-in-out infinite alternate; }
+.aurora i:last-child { background: radial-gradient(circle, rgba(120,140,200,.12), transparent 62%); left: -20vw; top: 20vw; animation: drift2 46s ease-in-out infinite alternate; }
+@keyframes drift1 { to { transform: translate(-18vw, 14vw) scale(1.15); } }
+@keyframes drift2 { to { transform: translate(22vw, -10vw) scale(.9); } }
+#stage { z-index: 1; }
+#stage { background-color: transparent; }
+
+/* welcome: breathing glow + typing caret */
+.welcome { animation: breathe 6s ease-in-out infinite; }
+@keyframes breathe {
+  50% { box-shadow: 0 0 0 1px rgba(217,119,87,.35), 0 0 52px rgba(217,119,87,.42), inset 0 0 30px rgba(217,119,87,.12); }
+}
+.tcur { display: inline-block; width: 14px; height: 30px; margin-left: 6px; vertical-align: -4px; background: var(--clay); animation: blink 1.05s steps(1) infinite; }
+
+/* clock: digits roll */
+.clock { display: flex; }
+.clock .slot { position: relative; display: inline-block; overflow: hidden; height: 1em; line-height: 1em; width: .6em; }
+.clock .slot.colon { width: .6em; animation: colon 2s ease-in-out infinite; }
+@keyframes colon { 50% { opacity: .35; } }
+.clock .d { position: absolute; left: 0; right: 0; top: 0; text-align: center; transition: transform .65s var(--ease-out), opacity .65s var(--ease-out), filter .65s; }
+.clock .d.in { transform: translateY(70%); opacity: 0; filter: blur(6px); }
+.clock .d.cur { transform: none; opacity: 1; filter: none; }
+.clock .d.out { transform: translateY(-70%); opacity: 0; filter: blur(6px); }
+
+/* dock: tiles spring, light sweeps over the focused one, a glass glint follows focus */
+.tile { overflow: hidden; }
+.tile::after {
+  content: ''; position: absolute; inset: -2px; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.28) 48%, transparent 66%);
+  transform: translateX(-120%); opacity: 0;
+}
+.tile.focus::after { animation: sheen 1.1s .12s var(--ease-out) forwards; }
+@keyframes sheen { 0% { transform: translateX(-120%); opacity: 1; } 100% { transform: translateX(120%); opacity: 1; } }
+.tile { transition: transform .45s var(--spring), box-shadow .3s ease, border-color .3s ease, background-color .3s ease; }
+.tile.focus { animation: lift 3.2s 0.5s ease-in-out infinite; }
+@keyframes lift { 50% { box-shadow: 0 0 0 3px rgba(255,255,255,.7), 0 22px 50px rgba(0,0,0,.6), 0 0 90px rgba(255,255,255,.3); } }
+#glint {
+  position: absolute; left: 56px; bottom: 40px; width: 340px; height: 200px; pointer-events: none; z-index: 0;
+  background: radial-gradient(ellipse 50% 60% at 50% 55%, rgba(255,255,255,.20), transparent 70%);
+  transition: transform .55s var(--ease-out), opacity .4s ease; will-change: transform;
+}
+.dock { position: relative; z-index: 1; }
+.round { transition: transform .4s var(--spring), background .25s ease, border-color .25s ease, color .25s ease; }
+
+/* map: targets glide between updates, new alerts flash, Lviv pings */
+.map .t { transition: transform 5.2s linear, opacity .8s ease; }
+.map .t .rot { transition: transform 1.2s var(--ease-out); }
+.map .t.enter { opacity: 0; }
+.map .t.leave { opacity: 0; transition: opacity .8s ease; }
+.map .t path { filter: none; }
+.map .t.missile path { animation: hot 0.9s ease-in-out infinite; }
+@keyframes hot { 50% { stroke: #ff9b8f; } }
+.map .raion.flash { animation: flash 1.6s ease-out 2; }
+@keyframes flash { 30% { fill: #ffe08a; } }
+.map .home .ping { fill: none; stroke: #fff; stroke-width: 1.5; transform-box: fill-box; transform-origin: center; animation: ping 2.8s ease-out infinite; }
+.map .home .ping.late { animation-delay: 1.4s; }
+@keyframes ping { from { transform: scale(1); opacity: .85; } to { transform: scale(4.5); opacity: 0; } }
+#alert-line.on ~ * { }
+
+/* drawer */
+.drawer:not([hidden]) { animation: drawer .45s var(--ease-out); }
+@keyframes drawer { from { opacity: 0; transform: scale(1.04); } }
+.drawer:not([hidden]) .tile { animation: rise .5s var(--ease-out) backwards; }
+
+/* intro: the screen "boots" like a terminal session */
+@keyframes rise { from { opacity: 0; transform: translateY(26px); } }
+@keyframes fade { from { opacity: 0; } }
+@keyframes pop { from { opacity: 0; transform: scale(.94); } }
+.intro .welcome { animation: pop .7s var(--ease-out) backwards, breathe 6s 1s ease-in-out infinite; }
+.intro .corner .round { animation: rise .6s var(--ease-out) backwards; }
+.intro .corner .round:nth-child(1) { animation-delay: .25s; }
+.intro .corner .round:nth-child(2) { animation-delay: .32s; }
+.intro .corner .round:nth-child(3) { animation-delay: .39s; }
+.intro .clock-row { animation: rise .8s .35s var(--ease-out) backwards; }
+.intro .log .line { animation: rise .5s var(--ease-out) backwards; }
+.intro .log .line:nth-child(1) { animation-delay: .7s; }
+.intro .log .line:nth-child(2) { animation-delay: .85s; }
+.intro .log .line:nth-child(3) { animation-delay: 1.0s; }
+.intro .log .line:nth-child(4) { animation-delay: 1.15s; }
+.intro .log .line:nth-child(5) { animation-delay: 1.3s; }
+.intro .log .line:nth-child(6) { animation-delay: 1.45s; }
+.intro .input { animation: rise .6s 1.6s var(--ease-out) backwards; }
+.intro .sky { animation: pop .9s .3s var(--ease-out) backwards; }
+.intro .map .raion { animation: fade .5s ease backwards; }
+.intro .map .labels, .intro .map .oblasts { animation: fade 1s 1.4s ease backwards; }
+.intro .dock { animation: rise .8s .5s var(--ease-out) backwards; }
+.intro .dock .tile { animation: rise .6s var(--ease-out) backwards; }
+.intro .dock .tile:nth-child(1) { animation-delay: .8s; }
+.intro .dock .tile:nth-child(2) { animation-delay: .88s; }
+.intro .dock .tile:nth-child(3) { animation-delay: .96s; }
+.intro .dock .tile:nth-child(4) { animation-delay: 1.04s; }
+.intro .dock .tile:nth-child(5) { animation-delay: 1.12s; }
+.intro .dock .tile:nth-child(6) { animation-delay: 1.2s; }
+.intro .dock .tile:nth-child(7) { animation-delay: 1.28s; }
+.intro .dock .tile:nth-child(8) { animation-delay: 1.36s; }
+.intro .dock .tile.focus { animation: rise .6s .8s var(--ease-out) backwards; }

@@ -49,9 +49,38 @@
     if (m < 60) return '(' + m + ' хв ' + (s % 60) + ' с)';
     return '(' + Math.floor(m / 60) + ' год ' + (m % 60) + ' хв)';
   }
+  // Each clock character is a slot; a changed digit rolls up out of view and the new one rolls in.
+  var clockShown = '';
+  function setClock(text) {
+    var box = $('clock');
+    if (box.children.length !== text.length) {
+      box.innerHTML = '';
+      for (var i = 0; i < text.length; i++) {
+        var slot = document.createElement('span');
+        slot.className = 'slot' + (text[i] === ':' ? ' colon' : '');
+        slot.innerHTML = '<span class="d cur"></span>';
+        slot.firstChild.textContent = text[i];
+        box.appendChild(slot);
+      }
+      clockShown = text;
+      return;
+    }
+    for (var j = 0; j < text.length; j++) {
+      if (text[j] === clockShown[j]) continue;
+      var sl = box.children[j];
+      var old = sl.querySelector('.cur');
+      var nu = document.createElement('span');
+      nu.className = 'd in';
+      nu.textContent = text[j];
+      sl.appendChild(nu);
+      if (old) { old.className = 'd out'; setTimeout((function (o) { return function () { if (o.parentNode) o.parentNode.removeChild(o); }; })(old), 700); }
+      requestAnimationFrame((function (n) { return function () { requestAnimationFrame(function () { n.className = 'd cur'; }); }; })(nu));
+    }
+    clockShown = text;
+  }
   function tickClock() {
     var now = new Date();
-    $('clock').textContent = hhmm(now);
+    setClock(hhmm(now));
     $('date').textContent = DAYS[now.getDay()] + ', ' + now.getDate() + ' ' + MONTHS[now.getMonth()];
     $('elapsed').textContent = elapsed();
     $('verb').textContent = verb();
@@ -72,6 +101,7 @@
   var raionEls = [];
   var oblastEls = {};
   var threatLayer;
+  var painted = false;
 
   function el(name, attrs, parent) {
     var e = document.createElementNS(SVGNS, name);
@@ -86,6 +116,9 @@
     var gr = el('g', { 'class': 'raions' }, map);
     geo.raions.forEach(function (r) {
       var e = el('path', { d: r.d, 'class': 'raion' }, gr);
+      // intro: raions fade in sweeping west → east
+      var x0 = parseFloat(r.d.slice(1));
+      e.style.animationDelay = (300 + x0 * 1.6).toFixed(0) + 'ms';
       raionEls.push({ key: r.key, oblast: r.key.split('|')[0], el: e });
     });
     // Kyiv city and Sevastopol have no raions in the set: draw them as their own areas.
@@ -102,6 +135,8 @@
     });
     var home = el('g', { 'class': 'home' }, map);
     var p = proj(24.0297, 49.8397);
+    el('circle', { cx: p[0], cy: p[1], r: 6, 'class': 'ping' }, home);
+    el('circle', { cx: p[0], cy: p[1], r: 6, 'class': 'ping late' }, home);
     el('circle', { cx: p[0], cy: p[1], r: 6, 'class': 'ring' }, home);
     el('circle', { cx: p[0], cy: p[1], r: 2.4, 'class': 'core' }, home);
     threatLayer = el('g', {}, map);
@@ -118,22 +153,50 @@
     var ra = al.raions || {};
     raionEls.forEach(function (r) {
       var lv = ra[r.key] || ob[r.oblast];
-      r.el.setAttribute('class', 'raion' + (lv ? ' ' + lv : ''));
+      var fresh = lv && !r.lv && painted ? ' flash' : '';
+      r.lv = lv;
+      r.el.setAttribute('class', 'raion' + (lv ? ' ' + lv : '') + fresh);
     });
+    painted = true;
     var kyiv = ob['м. Київ'] || ra['м. Київ|м. Київ'] || ra['м. Київ|Київ'];
     if (oblastEls['м. Київ']) oblastEls['м. Київ'].setAttribute('class', 'raion city' + (kyiv ? ' ' + kyiv : ''));
     var sev = ob['Севастополь'] || ob['Автономна Республіка Крим'];
     if (oblastEls['Севастополь']) oblastEls['Севастополь'].setAttribute('class', 'raion city' + (sev ? ' ' + sev : ''));
   }
 
+  // Targets are kept by id, so a moving Shahed glides to its new spot instead of blinking.
+  var threatEls = {};
   function paintThreats() {
-    while (threatLayer.firstChild) threatLayer.removeChild(threatLayer.firstChild);
+    var seen = {};
     (data.threats || []).forEach(function (t) {
+      seen[t.id] = true;
       var p = proj(t.lon, t.lat);
-      var g = el('g', { 'class': 't ' + t.kind + (t.stale ? ' stale' : ''), transform: 'translate(' + p[0].toFixed(1) + ',' + p[1].toFixed(1) + ')' }, threatLayer);
       var rot = t.heading == null ? 0 : t.heading;
-      el('path', { d: t.kind === 'missile' ? MISSILE : SHAHED, transform: 'rotate(' + rot + ') scale(1.15)' }, g);
-      if (t.count > 1) { var n = el('text', { x: 12, y: -10 }, g); n.textContent = '×' + t.count; }
+      var item = threatEls[t.id];
+      if (!item) {
+        var g = el('g', { 'class': 't ' + t.kind + ' enter' }, threatLayer);
+        var inner = el('g', { 'class': 'rot' }, g);
+        el('path', { d: t.kind === 'missile' ? MISSILE : SHAHED }, inner);
+        var label = el('text', { x: 12, y: -10 }, g);
+        item = threatEls[t.id] = { g: g, inner: inner, label: label, rot: rot };
+        g.style.transform = 'translate(' + p[0].toFixed(1) + 'px,' + p[1].toFixed(1) + 'px)';
+        inner.style.transform = 'rotate(' + rot + 'deg) scale(1.15)';
+        requestAnimationFrame(function () { requestAnimationFrame(function () { g.classList.remove('enter'); }); });
+      }
+      // shortest way round when the heading changes
+      var d = ((rot - item.rot) % 360 + 540) % 360 - 180;
+      item.rot += d;
+      item.g.setAttribute('class', 't ' + t.kind + (t.stale ? ' stale' : ''));
+      item.g.style.transform = 'translate(' + p[0].toFixed(1) + 'px,' + p[1].toFixed(1) + 'px)';
+      item.inner.style.transform = 'rotate(' + item.rot + 'deg) scale(1.15)';
+      item.label.textContent = t.count > 1 ? '×' + t.count : '';
+    });
+    Object.keys(threatEls).forEach(function (id) {
+      if (seen[id]) return;
+      var g = threatEls[id].g;
+      delete threatEls[id];
+      g.classList.add('leave');
+      setTimeout(function () { if (g.parentNode) g.parentNode.removeChild(g); }, 800);
     });
   }
 
@@ -147,6 +210,21 @@
       html += '<div class="row"><svg viewBox="-15 -15 30 30"><path d="' + (k === 'missile' ? MISSILE : SHAHED) + '" fill="' + KIND_ICON[k] + '" stroke="#10131a" stroke-width="1.6"/></svg>' + KIND_LABEL[k] + ' ' + n + '</div>';
     });
     $('legend').innerHTML = html;
+  }
+
+  // Numbers glide to their new value instead of jumping.
+  function countTo(id, target) {
+    var e = $(id);
+    var from = Number(e.getAttribute('data-v') || 0);
+    e.setAttribute('data-v', target);
+    if (from === target) { e.textContent = target; return; }
+    var t0 = performance.now(), dur = 900;
+    (function step(t) {
+      var k = Math.min(1, (t - t0) / dur);
+      k = 1 - Math.pow(1 - k, 3);
+      e.textContent = Math.round(from + (target - from) * k);
+      if (k < 1) requestAnimationFrame(step);
+    })(t0);
   }
 
   // ---------- data ----------
@@ -175,9 +253,12 @@
       $('alert-text').textContent = 'тривоги немає · ' + data.city;
     }
     var n = data.inSky || 0;
-    $('sky-text').textContent = 'у небі зараз ' + n + ' ' + plural(n, 'ціль', 'цілі', 'цілей') + ' · сьогодні ' + data.today;
-    $('sky-now').textContent = n + ' ' + plural(n, 'ціль', 'цілі', 'цілей');
-    $('sky-today').textContent = data.today;
+    countTo('sky-n', n);
+    $('sky-word').textContent = plural(n, 'ціль', 'цілі', 'цілей');
+    countTo('sky-t', data.today);
+    countTo('sky-now-n', n);
+    $('sky-now-word').textContent = plural(n, 'ціль', 'цілі', 'цілей');
+    countTo('sky-today', data.today);
     if (geo) { paintAlerts(); paintThreats(); paintLegend(); }
   }
 
@@ -227,6 +308,9 @@
   function buildDock() {
     var dock = $('dock');
     dock.innerHTML = '';
+    var glint = $('glint') || document.createElement('div');
+    glint.id = 'glint';
+    dock.parentNode.insertBefore(glint, dock.nextSibling);
     var fav = CFG.favorites || [];
     var byPkg = {};
     apps.forEach(function (a) { byPkg[a.pkg] = a; });
@@ -252,6 +336,13 @@
     if (z === 'corner') return document.querySelectorAll('.corner .round');
     return $('grid').children;
   }
+  function moveGlint(f) {
+    var g = $('glint');
+    if (!g) return;
+    if (zone !== 'dock' || !f) { g.style.opacity = '0'; return; }
+    g.style.opacity = '1';
+    g.style.transform = 'translateX(' + (f.offsetLeft + f.offsetWidth / 2 - 170) + 'px)';
+  }
   function render() {
     var all = document.querySelectorAll('.focus');
     for (var i = 0; i < all.length; i++) all[i].classList.remove('focus');
@@ -260,11 +351,14 @@
     idx[zone] = Math.max(0, Math.min(idx[zone], list.length - 1));
     var f = list[idx[zone]];
     f.classList.add('focus');
+    moveGlint(f);
     if (zone === 'grid' && f.scrollIntoView) f.scrollIntoView({ block: 'nearest' });
   }
   function openDrawer() {
     loadApps(); buildGrid();
     $('drawer').hidden = false;
+    var kids = $('grid').children;
+    for (var i = 0; i < kids.length; i++) kids[i].style.animationDelay = Math.min(i * 35, 600) + 'ms';
     zone = 'grid'; idx.grid = 0; render();
   }
   function closeDrawer() { $('drawer').hidden = true; zone = 'dock'; render(); }
@@ -335,4 +429,16 @@
   };
 
   loadApps(); buildDock(); render();
+  // Intro sequence lives in CSS (body.intro); typed welcome line here.
+  (function typeWelcome() {
+    var t = $('welcome-typed');
+    var text = t.getAttribute('data-text');
+    var i = 0;
+    t.textContent = '';
+    var timer = setInterval(function () {
+      t.textContent = text.slice(0, ++i);
+      if (i >= text.length) clearInterval(timer);
+    }, 45);
+  })();
+  setTimeout(function () { document.body.classList.remove('intro'); }, 4000);
 })();
