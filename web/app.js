@@ -710,7 +710,7 @@
     if (!m.title) { pl.className = 'player empty'; mediaKey = ''; return; }
     pl.className = 'player' + (m.live ? '' : ' last') + (m.playing ? ' playing' : '');
     if (!m.title) return;
-    var key = (m.pkg || '') + '|' + m.title;
+    var key = (m.pkg || '') + '|' + m.title + '|' + apps.length; // re-pick the art once the app list (logos) is in
     if (key !== mediaKey) {
       mediaKey = key;
       $('pl-title').textContent = m.title;
