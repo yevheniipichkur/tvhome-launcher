@@ -14,9 +14,13 @@
     var vw = document.documentElement.clientWidth || window.innerWidth;
     var vh = document.documentElement.clientHeight || window.innerHeight;
     var s = Math.min(vw / 1920, vh / 1080);
-    // At 1920 CSS px (the TV) no transform at all: a scaled full-screen layer is what made the box GPU crawl.
-    if (Math.abs(s - 1) < 0.01) { stage.style.transform = 'none'; stage.style.left = '0'; stage.style.top = '0'; }
-    else { stage.style.left = '50%'; stage.style.top = '50%'; stage.style.transform = 'translate(-50%, -50%) scale(' + s + ')'; }
+    // CSS zoom (not a transform): layout happens at the zoomed size and everything rasterises 1:1.
+    // A transform or page-scale made the box draw a 3840×2160 surface and shrink it every frame.
+    stage.style.transform = 'none';
+    stage.style.left = '0'; stage.style.top = '0';
+    stage.style.zoom = s;
+    var bg = document.querySelector('.sky-bg');
+    if (bg) bg.style.zoom = s;
   }
   window.addEventListener('resize', fit);
   fit();
@@ -154,7 +158,7 @@
     var home = document.createElement('div');
     home.className = 'home';
     home.innerHTML = '<i class="ping"></i><i class="ping late"></i><i class="ring"></i><i class="core"></i>';
-    home.style.transform = 'translate3d(' + p[0].toFixed(1) + 'px,' + p[1].toFixed(1) + 'px,0)';
+    home.style.transform = 'translate(' + p[0].toFixed(1) + 'px,' + p[1].toFixed(1) + 'px)';
     threatLayer.appendChild(home);
   }
   // Map size changed (compact <-> big): recompute the projection box and rebuild the moving layer.
@@ -189,7 +193,7 @@
         } else {
           x = box.ox + o.label[0] * box.k; y = box.oy + o.label[1] * box.k;
         }
-        b.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0)';
+        b.style.transform = 'translate(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px)';
         threatLayer.appendChild(b);
       }
       if (b.textContent !== String(n)) b.textContent = n;
@@ -248,7 +252,7 @@
       var p = toScreen(t.lon, t.lat);
       var rot = t.heading == null ? 0 : t.heading;
       var item = threatEls[t.id];
-      var pos = 'translate3d(' + p[0].toFixed(1) + 'px,' + p[1].toFixed(1) + 'px,0)';
+      var pos = 'translate(' + p[0].toFixed(1) + 'px,' + p[1].toFixed(1) + 'px)';
       if (!item) {
         var g = document.createElement('div');
         g.className = 't ' + t.kind + ' enter';
@@ -273,7 +277,7 @@
         if (!pt) { dotEl.style.opacity = '0'; continue; }
         var sp = toScreen(pt[1], pt[0]);
         dotEl.style.opacity = '';
-        dotEl.style.transform = 'translate3d(' + sp[0].toFixed(1) + 'px,' + sp[1].toFixed(1) + 'px,0)';
+        dotEl.style.transform = 'translate(' + sp[0].toFixed(1) + 'px,' + sp[1].toFixed(1) + 'px)';
       }
       var lab = t.count > 1 ? '×' + t.count : '';
       if (lab !== item.lab) { item.label.textContent = lab; item.lab = lab; }
@@ -644,7 +648,7 @@
     if (zone !== 'dock' || !f) { g.style.opacity = '0'; return; }
     g.style.opacity = '1';
     var gc = f.style.getPropertyValue('--glow');
-    g.style.setProperty('--glint', gc ? gc.replace(/,\s*[\d.]+\)$/, ',.28)') : 'rgba(255,255,255,.20)');
+    g.style.setProperty('--glint', gc ? gc.replace(/,\s*[\d.]+\)$/, ',.45)') : 'rgba(255,255,255,.20)');
     g.style.transform = 'translateX(' + (f.offsetLeft + trackX + 40 + f.offsetWidth / 2 - 170) + 'px)';
   }
   function render() {

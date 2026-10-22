@@ -305,3 +305,29 @@ body.compact .pl-btn.big { width: 76px; height: 76px; }
 .arc { height: 118px; margin-top: 2px; }
 .clock { font-size: 180px; }
 .clock { font-variant-numeric: normal; font-feature-settings: "zero" 0, "tnum" 0; }
+
+/* focus as before the redesign: white ring + glow in the logo's colour (owner: no yellow outline) */
+.tile.focus { transform: scale(1.14); border-color: rgba(255,255,255,.95); box-shadow: 0 0 0 3px rgba(255,255,255,.55), 0 18px 44px rgba(0,0,0,.6), 0 0 80px var(--glow, rgba(255,255,255,.22)), 0 0 26px var(--glow, rgba(255,255,255,.12)); }
+.tile.cont { border-color: rgba(255,255,255,.14); }
+.tile.cont.focus { transform: scale(1.08); }
+.sys.focus { box-shadow: 0 0 0 3px rgba(255,255,255,.35), 0 12px 30px rgba(0,0,0,.5), 0 0 50px rgba(255,255,255,.25); }
+#glint { background: radial-gradient(ellipse 50% 60% at 50% 55%, var(--glint, rgba(255,255,255,.16)), transparent 70%); }
+
+/* ===== GPU budget pass (measured on the box: ~14 screens of composited layers → aim for ~3) ===== */
+/* the sky background is part of the page, not a fixed layer (a fixed layer forced the whole stage into its own layer) */
+.sky-bg { position: absolute; width: 1920px; height: 1080px; }
+.sky-bg .layer, .sky-bg .stars, .sky-bg .danger { transition: none; }
+/* moving map things: no permanent layers; targets glide for 1 s after each update, then sit still */
+.fly .t { will-change: auto; transition: transform 1s var(--ease-out), opacity .6s ease; }
+.fly .trail, .fly .home .ping, #glint, .dock .track { will-change: auto; }
+/* focus without huge blurred shadows (re-rasterised on every move on the box); the moving glint carries the logo colour */
+.tile.focus { box-shadow: 0 0 0 3px rgba(255,255,255,.6), 0 10px 22px rgba(0,0,0,.5); }
+.sys.focus { box-shadow: 0 0 0 3px rgba(255,255,255,.35), 0 8px 18px rgba(0,0,0,.45); }
+#glint { background: radial-gradient(ellipse 50% 60% at 50% 55%, var(--glint, rgba(255,255,255,.18)), transparent 70%); }
+/* the map is drawn once into its own texture; targets/trails/badges live in a separate layer above it,
+   so their updates never re-rasterise the (expensive) map SVG */
+.map { will-change: transform; }
+.fly { will-change: transform; }
+/* dock in its own layer: focus changes repaint only the dock, not the whole screen */
+.dock { will-change: transform; }
+#glint { will-change: transform; }
