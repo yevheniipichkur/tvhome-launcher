@@ -170,7 +170,7 @@ body.danger .sky-bg .danger { opacity: 1; }
 .sky-count { font-size: 20px; color: var(--ivory); }
 .sky-count b { font-family: 'Fixel Display', sans-serif; font-weight: 500; font-size: 40px; color: var(--amber); }
 .map-clip { position: relative; flex: 1; min-height: 0; overflow: hidden; border-radius: 16px; margin-top: 6px; }
-.map-wrap { position: relative; height: 100%; transition: transform 1.4s var(--ease-out); }
+.map-wrap { position: relative; height: 100%; }
 .map { display: block; width: 100%; height: 100%; }
 .map .raion { fill: #232d3b; stroke: #18202b; stroke-width: .7; stroke-linejoin: round; transition: fill .6s ease; }
 .map .raions.base .raion { stroke: none; }
@@ -222,9 +222,7 @@ body.danger .sky-bg .danger { opacity: 1; }
 /* alarm mode: Lviv under alert */
 body.alarm { --amber: #ff7a6b; --amber-soft: #ffb3a8; }
 body.alarm .sky { border-color: rgba(255,90,78,.55); box-shadow: 0 0 60px rgba(255,90,78,.25), 0 30px 80px rgba(0,0,0,.45); }
-body.alarm .map-wrap { transform: scale(1.75); }
-body.alarm .fly .t svg { transform: scale(.7); }
-body.alarm .map .labels text { font-size: 7px; }
+body.map-zoomed .map .labels text { font-size: 7px; }
 
 /* compact: small map, big player under it */
 body.compact .sky { height: 440px; flex: none; align-self: start; }
@@ -386,3 +384,8 @@ body.bg-streets .sky-bg { background: radial-gradient(120% 90% at 50% 45%, #0c17
     linear-gradient(0deg, rgba(255,45,35,.34) 0, rgba(255,45,35,.08) 4%, transparent 9%); }
 body.alarm .alarm-edge { animation: edge-pulse 3.6s ease-in-out infinite; }
 @keyframes edge-pulse { 0%, 100% { opacity: .3; } 50% { opacity: .85; } }
+
+/* zoom swap: the vector map can't be scaled smoothly on the box GPU (2–5 fps), so it fades out,
+   jumps to the new zoom while invisible, and fades back in — opacity is the only thing animated */
+.map-clip { transition: opacity .28s ease; will-change: opacity; }
+.map-clip.fading { opacity: 0; }

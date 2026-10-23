@@ -137,7 +137,7 @@
   }
   var LABEL_OFF = { 'м. Київ': [0, -8], 'Львівська область': [-4, 20], 'Тернопільська область': [4, 14], 'Хмельницька область': [12, -6], 'Київська область': [0, 8], 'Івано-Франківська область': [0, 4] };
   function drawMap() {
-    map.setAttribute('viewBox', '-1 -1 ' + (geo.width + 2) + ' ' + (geo.height + 2));
+    setViewBox(document.body.classList.contains('map-zoomed'));
     map.setAttribute('preserveAspectRatio', 'xMidYMid meet');
     // ukrainealarm geometry: districts filled, oblasts outlined; oblasts without districts
     // (м. Київ, Крим) are filled as a whole; alerted communities are drawn on top.
@@ -180,8 +180,6 @@
   function drawHome() {
     var ci = cityInfo();
     var p = toScreen(ci.lon, ci.lat);
-    // alarm zoom centres on Lviv
-    document.querySelector('.map-wrap').style.transformOrigin = p[0].toFixed(0) + 'px ' + p[1].toFixed(0) + 'px';
     var home = document.createElement('div');
     home.className = 'home';
     home.innerHTML = '<i class="ping"></i><i class="ping late"></i><i class="ring"></i><i class="core"></i>';
@@ -228,12 +226,33 @@
   }
 
   // map units → px inside the map box (matches viewBox + preserveAspectRatio meet)
-  var box = null;
+  var box = null, vb = null;
+  // Zoom = a smaller viewBox around the home city, not a CSS scale: the SVG is rasterised at screen
+  // size either way, so zooming costs one normal repaint instead of a 3× bigger raster.
+  var kNormal = 0;
+  function setViewBox(zoomed) {
+    var x = -1, y = -1, W = geo.width + 2, H = geo.height + 2;
+    var cw = map.clientWidth || 1, ch = map.clientHeight || 1;
+    if (zoomed) {
+      // 1.75× the normal scale; the box matches the map area's own aspect, so nothing is letterboxed.
+      // In «Кіно» the map area grows to the whole screen while zoomed (CSS), like the old full-bleed zoom.
+      var k = (kNormal || Math.min(cw / W, ch / H)) * 1.75;
+      var ci = cityInfo(), c = proj(ci.lon, ci.lat);
+      var cinema = document.body.classList.contains('layout-cinema');
+      var w = cw / k, h = ch / k;
+      x = c[0] - w * (cinema ? 0.48 : 0.42); y = c[1] - h * (cinema ? 0.33 : 0.5);
+      W = w; H = h;
+    }
+    vb = { x: x, y: y, w: W, h: H, zoomed: zoomed };
+    map.setAttribute('viewBox', x.toFixed(1) + ' ' + y.toFixed(1) + ' ' + W.toFixed(1) + ' ' + H.toFixed(1));
+    box = null;
+  }
   function toScreen(lon, lat) {
     if (!box) {
-      var W = geo.width + 2, H = geo.height + 2, w = map.clientWidth, h = map.clientHeight;
-      var k = Math.min(w / W, h / H);
-      box = { k: k, ox: (w - W * k) / 2 + 1 * k, oy: (h - H * k) / 2 + 1 * k };
+      var w = map.clientWidth, h = map.clientHeight;
+      var k = Math.min(w / vb.w, h / vb.h);
+      box = { k: k, ox: (w - vb.w * k) / 2 - vb.x * k, oy: (h - vb.h * k) / 2 - vb.y * k };
+      if (!vb.zoomed) kNormal = k;
     }
     var q = proj(lon, lat);
     return [box.ox + q[0] * box.k, box.oy + q[1] * box.k];
@@ -488,6 +507,15 @@
     var alarm = !!(data.alerts && data.alerts.city && data.alerts.city.active) || /[?&]alarm/.test(location.search);
     if (alarm !== document.body.classList.contains('alarm')) {
       document.body.classList.toggle('alarm', alarm);
+      var clip = document.querySelector('.map-clip');
+      if (clip) {
+        clip.classList.add('fading');
+        setTimeout(function () {
+          document.body.classList.toggle('map-zoomed', alarm);
+          if (geo) { setViewBox(alarm); relayoutMap(); }
+          requestAnimationFrame(function () { requestAnimationFrame(function () { clip.classList.remove('fading'); }); });
+        }, 300);
+      } else { document.body.classList.toggle('map-zoomed', alarm); if (geo) { setViewBox(alarm); relayoutMap(); } }
       greet();
     }
     var a = data.alerts && data.alerts.city;
@@ -531,7 +559,7 @@
       if (d.webVersion) pageVersion = d.webVersion;
       data = d;
       var hk = cityInfo().name;
-      if (hk !== homeKey) { homeKey = hk; paintHomeOblast(); if (geo && threatLayer) relayoutMap(); greet(); }
+      if (hk !== homeKey) { homeKey = hk; paintHomeOblast(); if (geo && threatLayer) { setViewBox(document.body.classList.contains('map-zoomed')); relayoutMap(); } greet(); }
       paint(); paintBackground();
     });
   }

@@ -82,3 +82,6 @@ body.bg-streets .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill
 body.bg-streets .map .oblast { stroke: rgba(255,255,255,.34); stroke-width: 1.4; }
 body.theme-paper .map .halo path { fill: #e6dfd2; stroke: rgba(31,29,26,.7); }
 body.theme-terminal .map .halo path { fill: #071209; stroke: rgba(61,255,138,.7); }
+
+/* «Кіно» alarm zoom: the map area becomes the whole screen (one repaint at screen size) */
+body.layout-cinema.map-zoomed .map-clip { left: 0; right: 0; top: 0; bottom: 0; }
