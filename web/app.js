@@ -619,7 +619,7 @@
   var SYS = [
     { action: 'apps', label: 'Усі програми', icon: '<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>' },
     { action: 'wifi', label: 'Мережа', icon: '<path class="w3" d="M2 8.8a15 15 0 0 1 20 0"/><path class="w2" d="M5 12.9a10 10 0 0 1 14 0"/><path class="w1" d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M12 20h.01" stroke-width="2.6"/>' },
-    { action: 'layout', label: 'Розмір карти', icon: '<rect x="3" y="3.5" width="18" height="17" rx="3"/><path d="M14.5 3.5v17M14.5 12H21"/>' },
+    { action: 'layout', label: 'Макет', icon: '<rect x="3" y="3.5" width="18" height="17" rx="3"/><path d="M14.5 3.5v17M14.5 12H21"/>' },
     { action: 'settings', label: 'Налаштування', icon: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>' },
   ];
   // «Продовжити»: the newest Android TV "Play Next" item, Lampa first.
@@ -794,7 +794,7 @@
   }
   function renderSettings() {
     $('set-city').textContent = cityName();
-    $('set-layout').textContent = document.body.classList.contains('compact') ? 'компактна' : 'велика';
+    $('set-layout').textContent = layoutName();
     var list = dockList(), byPkg = {};
     apps.forEach(function (a) { byPkg[a.pkg] = a; });
     var on = list.filter(function (p) { return byPkg[p]; });
@@ -829,8 +829,7 @@
       homeKey = ''; $('set-city').textContent = c.name;
       setTimeout(poll, 600); setTimeout(poll, 3000);
     } else if (kind === 'layout') {
-      setLayout(!document.body.classList.contains('compact'));
-      $('set-layout').textContent = document.body.classList.contains('compact') ? 'компактна' : 'велика';
+      stepLayout(dir || 1);
     } else if (kind === 'android') {
       if (TV && TV.openSettings) TV.openSettings('android');
     } else if (kind === 'app') {
@@ -1012,17 +1011,39 @@
   setInterval(pollMedia, 2000);
 
   // ---------- big map <-> compact map with a big player ----------
-  function setLayout(compact) {
-    document.body.classList.toggle('compact', compact);
-    try { localStorage.setItem('tv-layout', compact ? 'compact' : 'big'); } catch (e) {}
-    setTimeout(relayoutMap, 60);
+  // ---------- layouts (arrangement of the screen; independent of the colour theme) ----------
+  var LAYOUTS = [
+    { id: 'classic', name: 'Класика' },
+    { id: 'compact', name: 'Плеєр' },
+    { id: 'cinema', name: 'Кіно' },
+    { id: 'mirror', name: 'Дзеркало' },
+    { id: 'cards', name: 'Картки' },
+    { id: 'minimal', name: 'Мінімал' },
+  ];
+  function layoutId() {
+    try { var v = localStorage.getItem('tv-layout') || 'classic'; return v === 'big' ? 'classic' : v; } catch (e) { return 'classic'; }
   }
-  function toggleLayout() {
-    var sky = document.querySelector('.sky');
-    sky.classList.add('swap');
-    setTimeout(function () { setLayout(!document.body.classList.contains('compact')); sky.classList.remove('swap'); }, 220);
+  function layoutName() { var l = LAYOUTS.filter(function (x) { return x.id === layoutId(); })[0]; return l ? l.name : 'Класика'; }
+  function applyLayout(id) {
+    document.body.classList.remove('compact');
+    LAYOUTS.forEach(function (l) { document.body.classList.remove('layout-' + l.id); });
+    if (id === 'compact') document.body.classList.add('compact');
+    else if (id !== 'classic') document.body.classList.add('layout-' + id);
+    try { localStorage.setItem('tv-layout', id); } catch (e) {}
+    if ($('set-layout')) $('set-layout').textContent = layoutName();
+    setTimeout(relayoutMap, 80);
   }
-  try { if (localStorage.getItem('tv-layout') === 'compact') document.body.classList.add('compact'); } catch (e) {}
+  function setLayout(compact) { applyLayout(compact ? 'compact' : 'classic'); }
+  function stepLayout(dir) {
+    var i = 0;
+    LAYOUTS.forEach(function (l, j) { if (l.id === layoutId()) i = j; });
+    var next = LAYOUTS[(i + dir + LAYOUTS.length) % LAYOUTS.length].id;
+    var st = $('stage');
+    st.classList.add('relayout');
+    setTimeout(function () { applyLayout(next); st.classList.remove('relayout'); }, 200);
+  }
+  function toggleLayout() { stepLayout(1); }
+  applyLayout(layoutId());
 
   // Called by the launcher when the home screen comes back to the front.
   window.tvResume = function () {

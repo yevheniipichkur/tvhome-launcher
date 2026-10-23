@@ -1,0 +1,66 @@
+/* Screen layouts (body.layout-*). Same DOM, different arrangement; works with every colour theme.
+   «Класика» and «Плеєр» (body.compact) live in style.css. */
+
+#stage { transition: opacity .2s ease; }
+#stage.relayout { opacity: 0; }
+
+/* ======================= «Кіно» — the map is the backdrop ======================= */
+/* No panels: the map fills the screen behind everything; the left column floats over a soft scrim. */
+body.layout-cinema .layout { display: block; position: relative; }
+body.layout-cinema .sky { position: absolute; left: -64px; top: -52px; width: 1920px; height: 1080px; border-radius: 0; border: 0; padding: 0; background: none; box-shadow: none; z-index: 0; }
+body.layout-cinema .map-clip { position: absolute; left: 780px; right: 40px; top: 120px; bottom: 250px; border-radius: 0; margin: 0; overflow: visible; }
+body.layout-cinema .sky-head { position: absolute; right: 64px; top: 52px; z-index: 2; display: block; text-align: right; }
+body.layout-cinema .sky-title { display: none; }
+body.layout-cinema .legend { left: auto; right: 64px; bottom: 262px; text-align: right; }
+body.layout-cinema .credit { position: absolute; right: 64px; bottom: 236px; margin: 0; }
+body.layout-cinema .left { position: relative; z-index: 2; width: 720px; height: 100%; }
+body.layout-cinema .left::before { content: ''; position: absolute; left: -64px; top: -52px; bottom: -40px; width: 900px; z-index: -1; pointer-events: none;
+  background: linear-gradient(90deg, var(--bg) 0%, var(--bg) 70%, transparent 100%); opacity: .9; }
+body.layout-cinema .arc { width: 720px; }
+body.layout-cinema .status { background: rgba(0,0,0,.25); }
+body.layout-cinema .dock { background: rgba(0,0,0,.35); }
+body.theme-paper.layout-cinema .status, body.theme-paper.layout-cinema .dock { background: rgba(255,255,255,.55); }
+
+/* ======================= «Дзеркало» — map left, life right ======================= */
+body.layout-mirror .layout { grid-template-columns: 1fr 790px; }
+body.layout-mirror .left { order: 2; text-align: right; }
+body.layout-mirror .sky { order: 1; }
+body.layout-mirror .kicker { flex-direction: row-reverse; }
+body.layout-mirror .clock { justify-content: flex-end; }
+body.layout-mirror .arc { transform: scaleX(-1); }
+body.layout-mirror .arc text { transform: scaleX(-1); transform-box: fill-box; transform-origin: center; }
+body.layout-mirror .weather { flex-direction: row-reverse; }
+body.layout-mirror .wx-next { margin-left: 0; margin-right: auto; text-align: left; }
+body.layout-mirror .status { flex-direction: row-reverse; }
+body.layout-mirror .st-sky { margin-left: 0; margin-right: auto; }
+body.layout-mirror .headline { flex-direction: row-reverse; }
+
+/* ======================= «Картки» — everything in its own glass card ======================= */
+body.layout-cards .left { gap: 14px; }
+body.layout-cards .left > * { margin-top: 0 !important; }
+body.layout-cards .kicker, body.layout-cards .hero, body.layout-cards .arc, body.layout-cards .weather, body.layout-cards .info {
+  background: linear-gradient(180deg, rgba(255,255,255,.065), rgba(255,255,255,.025)); border: 1px solid var(--line); }
+body.layout-cards .kicker { border-radius: 22px 22px 0 0; border-bottom: 0; padding: 18px 26px 0; margin-bottom: -14px; }
+body.layout-cards .hero { border-radius: 0 0 22px 22px; border-top: 0; padding: 0 26px 18px; }
+body.layout-cards .clock { font-size: 150px; }
+body.layout-cards .date { font-size: 26px; }
+body.layout-cards .arc { width: 100%; height: 100px; border-radius: 22px 22px 0 0; border-bottom: 0; padding: 6px 10px 0; margin-bottom: -14px; }
+body.layout-cards .weather { border-radius: 0 0 22px 22px; border-top: 0; padding: 4px 26px 14px; }
+body.layout-cards .status { height: 64px; }
+body.layout-cards .info { border-radius: 22px; padding: 14px 22px; }
+body.layout-cards .sky { border-radius: 26px; }
+body.theme-paper.layout-cards .kicker, body.theme-paper.layout-cards .hero, body.theme-paper.layout-cards .arc,
+body.theme-paper.layout-cards .weather, body.theme-paper.layout-cards .info { background: #f6f2ea; }
+
+/* ======================= «Мінімал» — a calm clock, no map ======================= */
+body.layout-minimal .layout { grid-template-columns: 1fr; }
+body.layout-minimal .sky { display: none; }
+body.layout-minimal .left { width: 1000px; margin: 0 auto; align-items: center; text-align: center; }
+body.layout-minimal .kicker { width: 100%; justify-content: center; gap: 30px; }
+body.layout-minimal .clock { font-size: 300px; justify-content: center; }
+body.layout-minimal .date { font-size: 38px; }
+body.layout-minimal .arc { width: 900px; margin-top: 18px; }
+body.layout-minimal .weather { width: 900px; }
+body.layout-minimal .status { width: 900px; }
+body.layout-minimal .info { display: none; }
+body.layout-minimal .player { width: 900px; }
