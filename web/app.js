@@ -505,17 +505,22 @@
     }
     paintInfo();
     var alarm = !!(data.alerts && data.alerts.city && data.alerts.city.active) || /[?&]alarm/.test(location.search);
-    if (alarm !== document.body.classList.contains('alarm')) {
-      document.body.classList.toggle('alarm', alarm);
+    var cur = alarmTarget === null ? document.body.classList.contains('alarm') : alarmTarget;
+    if (alarm !== cur) {
+      alarmTarget = alarm;
+      // One repaint, hidden: fade the map out, switch the alarm look and the zoom together, fade back in.
       var clip = document.querySelector('.map-clip');
+      var swap = function () {
+        document.body.classList.toggle('alarm', alarm);
+        document.body.classList.toggle('map-zoomed', alarm);
+        if (geo) { setViewBox(alarm); relayoutMap(); }
+        greet();
+        alarmTarget = null;
+      };
       if (clip) {
         clip.classList.add('fading');
-        setTimeout(function () {
-          document.body.classList.toggle('map-zoomed', alarm);
-          if (geo) { setViewBox(alarm); relayoutMap(); }
-          requestAnimationFrame(function () { requestAnimationFrame(function () { clip.classList.remove('fading'); }); });
-        }, 300);
-      } else { document.body.classList.toggle('map-zoomed', alarm); if (geo) { setViewBox(alarm); relayoutMap(); } }
+        setTimeout(function () { swap(); requestAnimationFrame(function () { requestAnimationFrame(function () { clip.classList.remove('fading'); }); }); }, 300);
+      } else swap();
       greet();
     }
     var a = data.alerts && data.alerts.city;
@@ -551,6 +556,7 @@
     x.send();
   }
   var pageVersion = null;
+  var alarmTarget = null;
   function poll() {
     getJSON('api/state', function (err, d) {
       if (err) return;
