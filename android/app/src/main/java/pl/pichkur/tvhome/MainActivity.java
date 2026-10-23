@@ -658,6 +658,12 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void setNotchMap(boolean on) { prefs().edit().putBoolean("notch_map", on).apply(); }
+
+        @JavascriptInterface
+        public boolean notchMap() { return prefs().getBoolean("notch_map", false); }
+
+        @JavascriptInterface
         public void setCity(String json) { DataService.get(MainActivity.this).setCity(json); }
 
         @JavascriptInterface

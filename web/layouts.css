@@ -85,3 +85,7 @@ body.theme-terminal .map .halo path { fill: #071209; stroke: rgba(61,255,138,.7)
 
 /* «Кіно» alarm zoom: the map area becomes the whole screen (one repaint at screen size) */
 body.layout-cinema.map-zoomed .map-clip { left: 0; right: 0; top: 0; bottom: 0; }
+
+/* «Кіно» zoom: the map plane is larger than the screen, so its edges (tilted in 3D) stay off-screen
+   instead of showing a cut-off border */
+body.layout-cinema.map-zoomed .map-clip { left: -22%; right: -22%; top: -18%; bottom: -30%; overflow: visible; }

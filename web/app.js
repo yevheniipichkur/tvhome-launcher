@@ -925,6 +925,7 @@
     $('set-layout').textContent = layoutName();
     $('set-bg').textContent = bgName();
     $('set-map3d').textContent = map3d() ? '3D' : '2D';
+    $('set-notchmap').textContent = TV && TV.notchMap && TV.notchMap() ? 'увімк.' : 'вимк.';
     paintUpdate();
     var list = dockList(), byPkg = {};
     apps.forEach(function (a) { byPkg[a.pkg] = a; });
@@ -944,6 +945,11 @@
   }
   function settingsAct(row, dir) {
     var kind = row.getAttribute('data-set');
+    if (kind === 'notchmap') {
+      if (TV && TV.setNotchMap) TV.setNotchMap(!TV.notchMap());
+      $('set-notchmap').textContent = TV && TV.notchMap && TV.notchMap() ? 'увімк.' : 'вимк.';
+      return;
+    }
     if (kind === 'map3d') {
       try { localStorage.setItem('tv-map3d', map3d() ? '0' : '1'); } catch (e) {}
       document.body.classList.toggle('map-3d', map3d());

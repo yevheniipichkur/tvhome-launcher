@@ -82,8 +82,8 @@ final class NotchBanner extends View {
     /** Alert notch with a live mini map of the region around the home city. */
     NotchBanner withMap(MiniMap m) {
         mini = m;
-        fullW = 700 * d;
-        fullH = 170 * d;
+        fullW = 620 * d;
+        fullH = 104 * d;
         return this;
     }
 
@@ -162,11 +162,11 @@ final class NotchBanner extends View {
         float right = cx + w / 2 - 28 * d;
         if (mini != null) {
             // map on the right: rounded window that fades in with the content
-            float mh = h - 28 * d, mw = mh * 1.6f;
-            mapRect.set(right - mw + 8 * d, top + 14 * d, right + 8 * d, top + 14 * d + mh);
+            float mh = h - 20 * d, mw = mh * 1.5f;
+            mapRect.set(right - mw + 10 * d, top + 10 * d, right + 10 * d, top + 10 * d + mh);
             c.save();
             clip.reset();
-            clip.addRoundRect(mapRect, 14 * d, 14 * d, Path.Direction.CW);
+            clip.addRoundRect(mapRect, 10 * d, 10 * d, Path.Direction.CW);
             c.clipPath(clip);
             c.drawColor(0xFF0B1017);
             mini.draw(c, mapRect, alpha);

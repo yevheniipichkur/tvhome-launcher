@@ -146,7 +146,9 @@ public class HomeGuardService extends AccessibilityService {
         String city = a.optString("city", "Львів");
         String sub = city + (since > 0 ? " · з " + hhmm(since) : "") + " · пройдіть в укриття";
         DataService ds = DataService.get(this);
-        mapForNext = new MiniMap(this, ds.alertsNow(), ds.threatsNow(), ds.cityLon(), ds.cityLat());
+        // the mini map is optional (settings → «Карта в сповіщенні», off by default)
+        if (getSharedPreferences("tvhome", MODE_PRIVATE).getBoolean("notch_map", false))
+            mapForNext = new MiniMap(this, ds.alertsNow(), ds.threatsNow(), ds.cityLon(), ds.cityLat());
         present("Повітряна тривога", sub, "ТРИВОГА", 0xFFFF453A, R.raw.alert_chime, 14_000);
     }
 
