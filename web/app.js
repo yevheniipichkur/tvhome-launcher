@@ -275,27 +275,56 @@
     var c = document.querySelector('.credit');
     if (c) c.textContent = front ? 'лінія фронту: DeepStateMAP · цілі: NEPTUN · neptun.in.ua' : 'тривоги: ukrainealarm.com · цілі: NEPTUN · neptun.in.ua';
     if (front && !frontData) loadFront();
+    else if (front) setTimeout(replayFront, 900);
   }
   function loadFront() {
-    getJSON('https://tvhome.pichkur.com/api/public/frontline?v=2', function (err, d) { if (!err && d && d.occupied) { frontData = d; paintFront(); } });
+    getJSON('https://tvhome.pichkur.com/api/public/frontline?v=3', function (err, d) { if (!err && d && d.occupied) { var first = !frontData; frontData = d; paintFront(); if (first) setTimeout(replayFront, 900); } });
   }
   function paintFront() {
     if (!frontLayer || !frontData) return;
     var h = '<path class="gray" d="' + frontData.gray + '"/><path class="occ" d="' + frontData.occupied + '"/>';
     // changes of the last 24 h: a ring per place (red = enemy advance, green = our gains, amber = correction)
-    var seen = {};
-    (frontData.changes || []).forEach(function (c) {
+    // newest first, so a place that changed twice keeps its latest ring
+    var seen = {}, latest = recentChanges();
+    (frontData.changes || []).slice().sort(function (a, b) { return b.t - a.t; }).forEach(function (c) {
       var k = Math.round(c.x / 4) + ':' + Math.round(c.y / 4);
       if (seen[k]) return; seen[k] = 1;
-      h += '<g class="chg ' + c.kind + '" transform="translate(' + c.x + ',' + c.y + ')"><circle class="halo" r="9"/><circle class="dot" r="2.6"/></g>';
+      var day = Math.max(0, Math.min(7, Math.floor((Date.now() - c.t) / 864e5)));
+      var recent = latest.indexOf(c) >= 0;
+      h += '<g class="chg ' + c.kind + (recent ? ' recent' : ' old') + '" data-day="' + day + '" transform="translate(' + c.x + ',' + c.y + ')"><circle class="halo" r="' + (recent ? 9 : 6) + '"/><circle class="dot" r="' + (recent ? 2.6 : 1.8) + '"/></g>';
     });
     frontLayer.innerHTML = h;
     paintFrontList();
   }
+  // "the day's changes": the last 24 h, or DeepState's latest update when it skipped a day
+  function recentChanges() {
+    var ch = (frontData && frontData.changes) || [];
+    var day = ch.filter(function (c) { return c.t > Date.now() - 864e5; });
+    if (day.length || !ch.length) return day;
+    var last = Math.max.apply(null, ch.map(function (c) { return c.t; }));
+    return ch.filter(function (c) { return c.t === last; });
+  }
+  function ddmm(t) { var d = new Date(t); return d.getDate() + '.' + ('0' + (d.getMonth() + 1)).slice(-2); }
+  // Week replay: rings appear day by day (oldest first) while the corner shows the date. Seven single
+  // repaints 700 ms apart, no transitions (SVG transitions on the big map cost frames on the box).
+  var replayTimer = null;
+  function replayFront() {
+    if (!frontLayer || !frontData || mapLayer() !== 'front' || document.body.classList.contains('bg-paused')) return;
+    clearTimeout(replayTimer);
+    var step = 7, rings = frontLayer.querySelectorAll('.chg'), box = $('front-changes');
+    (function next() {
+      // show what had happened by that day: rings at least `step` days old
+      for (var k = 0; k < rings.length; k++) rings[k].style.display = step < 0 || +rings[k].getAttribute('data-day') >= step ? '' : 'none';
+      if (box) { box.classList.toggle('replay', step >= 0); box.setAttribute('data-date', step >= 0 ? 'Тиждень на фронті · ' + ddmm(Date.now() - step * 864e5) : ''); }
+      if (step-- < 0) return;
+      replayTimer = setTimeout(next, 700);
+    })();
+  }
+  setInterval(replayFront, 10 * 60000);
   function paintFrontList() {
     var box = $('front-changes');
     if (!box || !frontData) return;
-    var ch = frontData.changes || [], html = '';
+    var ch = recentChanges(), all = frontData.changes || [], html = '';
     if (!ch.length) {
       var d = frontData.lastChange ? new Date(frontData.lastChange) : null;
       html = '<div class="fc-h">За добу без змін</div>' + (d ? '<div class="fc-r info">останнє оновлення ' + d.getDate() + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + '</div>' : '');
@@ -304,14 +333,79 @@
       var ou = ch.filter(function (c) { return c.kind === 'ours'; }).map(function (c) { return c.name; });
       var inf = ch.filter(function (c) { return c.kind === 'info'; }).map(function (c) { return c.name; });
       var ld = new Date(frontData.lastChange || ch[0].t);
-      html = '<div class="fc-h">' + (frontData.fresh === false ? 'Останні зміни · ' + ld.getDate() + '.' + ('0' + (ld.getMonth() + 1)).slice(-2) : 'Зміни за добу') + '</div>';
+      html = '<div class="fc-h">' + (ch[0].t < Date.now() - 864e5 ? 'Останні зміни · ' + ddmm(ld) : 'Зміни за добу') + '</div>';
       if (en.length) html += '<div class="fc-r enemy"><i></i>ворог просунувся біля ' + en.join(', ') + '</div>';
       if (ou.length) html += '<div class="fc-r ours"><i></i>ЗСУ: ' + ou.join(', ') + '</div>';
       if (inf.length) html += '<div class="fc-r info"><i></i>уточнено: ' + inf.join(', ') + '</div>';
     }
+    var wEn = {}, wOu = {};
+    all.forEach(function (c) { if (c.t > Date.now() - 7 * 864e5) (c.kind === 'enemy' ? wEn : c.kind === 'ours' ? wOu : {})[c.name] = 1; });
+    var nEn = Object.keys(wEn).length, nOu = Object.keys(wOu).length;
+    if (nEn || nOu) html += '<div class="fc-w">за тиждень: ворог просунувся біля ' + nEn + ' н. п.' + (nOu ? ' · ЗСУ — ' + nOu : '') + '</div>';
     box.innerHTML = html;
   }
   setInterval(function () { if (mapLayer() === 'front') loadFront(); }, 30 * 60000);
+
+  // ---------- power outages (svitlo aggregator: oblenergo / DTEK / YASNO schedules) ----------
+  var POWER_REGION = { 'м. Київ': 'kyiv', 'Київська область': 'kyiv-region', 'Одеська область': 'odesa', 'Дніпропетровська область': 'dnipro-region',
+    'Харківська область': 'kharkiv', 'Львівська область': 'lviv', 'Запорізька область': 'zaporizhzhia', 'Полтавська область': 'poltava',
+    'Черкаська область': 'cherkasy', 'Чернігівська область': 'chernihiv', 'Житомирська область': 'zhytomyr', 'Хмельницька область': 'khmelnytskyi',
+    'Івано-Франківська область': 'ivano-frankivsk', 'Рівненська область': 'rivne', 'Тернопільська область': 'ternopil', 'Закарпатська область': 'zakarpattia' };
+  var powerData = null;
+  function powerRegion() { var c = cityInfo(); return c.name === 'Дніпро' ? 'dnipro' : POWER_REGION[c.oblast] || null; }
+  function powerQueue() {
+    try { var v = (localStorage.getItem('tv-powerq') || '').split('|'); return v[0] === powerRegion() ? v[1] || null : null; } catch (e) { return null; }
+  }
+  function loadPower() {
+    var r = powerRegion();
+    if (!r) { powerData = null; paintPower(); return; }
+    getJSON('https://tvhome.pichkur.com/api/public/power?region=' + r, function (err, d) {
+      if (!err && d && d.queues) { powerData = d; paintPower(); }
+    });
+  }
+  function paintPowerSetting() {
+    var el = $('set-powerq'); if (!el) return;
+    el.textContent = !powerRegion() ? 'немає даних для області' : powerQueue() ? 'черга ' + powerQueue() : 'не показувати';
+  }
+  function hhmm(slot) { var m = (slot % 48) * 30; return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + m % 60).slice(-2); }
+  function inText(min) { var h = Math.floor(min / 60), m = min % 60; return h ? h + ' год' + (m ? ' ' + m + ' хв' : '') : m + ' хв'; }
+  function paintPower() {
+    var row = $('power'), q = powerQueue();
+    var qd = null;
+    if (powerData && q) powerData.queues.forEach(function (x) { if (x.id === q) qd = x; });
+    row.hidden = !qd;
+    if (!qd) return;
+    // the schedule as 96 half-hours from today's midnight: 0 light, 1 off, 2 possible, ? not published
+    var today = new Date(), iso = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2) + '-' + ('0' + today.getDate()).slice(-2);
+    var t1 = powerData.today === iso ? qd.today : powerData.tomorrow === iso ? qd.tomorrow : null;
+    var t2 = powerData.today === iso ? qd.tomorrow : null;
+    var s = (t1 || new Array(49).join('?')) + (t2 || new Array(49).join('?'));
+    var nowMin = today.getHours() * 60 + today.getMinutes(), i = Math.floor(nowMin / 30);
+    var bar = '';
+    for (var k = i; k < i + 48; k++) bar += '<i class="p' + (s[k] === '?' ? 'u' : s[k]) + '"></i>';
+    var text, state = 'ok';
+    var day = function (slot) { return slot >= 48 ? 'завтра ' : ''; };
+    if (s[i] === '1' || s[i] === '2') {
+      var j = i; while (j < 96 && s[j] === s[i]) j++;
+      state = s[i] === '1' ? 'off' : 'maybe';
+      text = (s[i] === '1' ? 'Світла немає' : 'Можливе відключення') + (j < 96 && s[j] !== '?' ? ' · до ' + day(j) + hhmm(j) : '');
+    } else {
+      var n = i; while (n < i + 48 && s[n] !== '1' && s[n] !== '2') n++;
+      if (n < i + 48) {
+        var e = n; while (e < 96 && s[e] === s[n]) e++;
+        state = 'soon';
+        text = (s[n] === '1' ? 'Відключення ' : 'Можливе відключення ') + day(n) + hhmm(n) + '–' + hhmm(e) + ' · через ' + inText(n * 30 - nowMin);
+      } else if (!t1 && !t2) text = 'Графіків відключень немає';
+      else text = 'Світло є · відключень не заплановано';
+    }
+    row.className = 'power ' + state;
+    $('power-text').textContent = text;
+    $('power-q').textContent = 'черга ' + q;
+    if ($('power-bar').getAttribute('data-k') !== bar) { $('power-bar').innerHTML = bar; $('power-bar').setAttribute('data-k', bar); }
+  }
+  setInterval(paintPower, 60000);
+  setInterval(loadPower, 10 * 60000);
+  setTimeout(loadPower, 1500);
   function paintAlerts() {
     var al = data.alerts || {};
     var st = al.states || {}, ds = al.districts || {}, cm = al.communities || {};
@@ -977,6 +1071,7 @@
     $('set-layout').textContent = layoutName();
     $('set-bg').textContent = bgName();
     $('set-map3d').textContent = map3d() ? '3D' : '2D';
+    paintPowerSetting();
     $('set-maplayer').textContent = mapLayer() === 'front' ? 'лінія фронту (DeepState)' : 'тривоги';
     $('set-notchmap').textContent = TV && TV.notchMap && TV.notchMap() ? 'увімк.' : 'вимк.';
     paintUpdate();
@@ -1003,6 +1098,14 @@
       $('set-notchmap').textContent = TV && TV.notchMap && TV.notchMap() ? 'увімк.' : 'вимк.';
       return;
     }
+    if (kind === 'powerq') {
+      var ids = [''].concat(powerData && powerData.id === powerRegion() ? powerData.queues.map(function (x) { return x.id; }) : []);
+      var at = Math.max(0, ids.indexOf(powerQueue() || ''));
+      var nq = ids[(at + (dir || 1) + ids.length) % ids.length];
+      try { localStorage.setItem('tv-powerq', nq ? powerRegion() + '|' + nq : ''); } catch (e) {}
+      paintPowerSetting(); paintPower();
+      return;
+    }
     if (kind === 'maplayer') {
       try { localStorage.setItem('tv-maplayer', mapLayer() === 'front' ? 'alerts' : 'front'); } catch (e) {}
       applyMapLayer();
@@ -1013,6 +1116,7 @@
       try { localStorage.setItem('tv-map3d', map3d() ? '0' : '1'); } catch (e) {}
       document.body.classList.toggle('map-3d', map3d());
       $('set-map3d').textContent = map3d() ? '3D' : '2D';
+    paintPowerSetting();
     $('set-maplayer').textContent = mapLayer() === 'front' ? 'лінія фронту (DeepState)' : 'тривоги';
       return;
     }
@@ -1023,6 +1127,7 @@
       bgPhase = null; paintBackground();
       $('set-bg').textContent = bgName();
     $('set-map3d').textContent = map3d() ? '3D' : '2D';
+    paintPowerSetting();
     $('set-maplayer').textContent = mapLayer() === 'front' ? 'лінія фронту (DeepState)' : 'тривоги';
     paintUpdate();
       return;
@@ -1041,6 +1146,7 @@
       if (TV && TV.setCity) TV.setCity(JSON.stringify(c));
       data = data || {}; data.cityInfo = c; data.city = c.name;
       homeKey = ''; $('set-city').textContent = c.name;
+      powerData = null; loadPower(); paintPowerSetting();
       setTimeout(poll, 600); setTimeout(poll, 3000);
     } else if (kind === 'layout') {
       stepLayout(dir || 1);
@@ -1148,6 +1254,19 @@
     if (now < set) return 'golden';
     return 'dusk';
   }
+  // Rain / snow / fog from the real current weather, over any background. Each layer is a tiled
+  // image moved by a compositor-only transform loop (no per-frame JS, no repaint).
+  function paintWeatherFx() {
+    var m = /[?&]wx=(\d+)/.exec(location.search);
+    var code = m ? +m[1] : data && data.weather ? data.weather.code : -1;
+    var kind = code >= 95 ? 'storm' : (code >= 61 && code <= 67) || (code >= 80 && code <= 82) ? 'rain' : code >= 51 && code <= 57 ? 'drizzle'
+      : (code >= 71 && code <= 77) || code === 85 || code === 86 ? 'snow' : code === 45 || code === 48 ? 'fog' : '';
+    var fx = $('wx-fx');
+    if (fx.getAttribute('data-k') === kind) return;
+    fx.setAttribute('data-k', kind);
+    fx.className = 'wx-fx' + (kind ? ' ' + kind : '');
+    fx.innerHTML = kind ? '<i class="far"></i><i class="near"></i>' : '';
+  }
   var bgPhase = null, bgFront = 'bg-a';
   function paintBackground() {
     var choice = bgChoice();
@@ -1160,6 +1279,7 @@
       else Scene.clear(sc);
     }
     document.body.classList.toggle('bg-streets', choice === 'streets');
+    paintWeatherFx();
     if (ph === bgPhase) return;
     var P2 = PHASES[ph];
     var back = bgFront === 'bg-a' ? 'bg-b' : 'bg-a';
@@ -1177,6 +1297,10 @@
       var x = (i * 137.5) % 100, y = (i * 61.8 * 1.7) % 100, sz = i % 7 === 0 ? 3 : 2;
       html += '<b style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;width:' + sz + 'px;height:' + sz + 'px;animation-delay:' + (i % 9 * 0.45).toFixed(2) + 's"></b>';
     }
+    var wEn = {}, wOu = {};
+    all.forEach(function (c) { if (c.t > Date.now() - 7 * 864e5) (c.kind === 'enemy' ? wEn : c.kind === 'ours' ? wOu : {})[c.name] = 1; });
+    var nEn = Object.keys(wEn).length, nOu = Object.keys(wOu).length;
+    if (nEn || nOu) html += '<div class="fc-w">за тиждень: ворог просунувся біля ' + nEn + ' н. п.' + (nOu ? ' · ЗСУ — ' + nOu : '') + '</div>';
     box.innerHTML = html;
   })();
   paintBackground();

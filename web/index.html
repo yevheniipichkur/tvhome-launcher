@@ -11,7 +11,7 @@
 <script>try{var t=localStorage.getItem("tv-theme");if(t&&t!=="lviv")document.documentElement.className="pre-"+t}catch(e){}</script>
 </head>
 <body class="intro">
-<div class="sky-bg" aria-hidden="true"><div class="layer" id="bg-a"></div><div class="layer" id="bg-b"></div><div class="stars" id="stars"></div><div class="scene" id="scene"></div><div class="danger"></div></div>
+<div class="sky-bg" aria-hidden="true"><div class="layer" id="bg-a"></div><div class="layer" id="bg-b"></div><div class="stars" id="stars"></div><div class="scene" id="scene"></div><div class="wx-fx" id="wx-fx"></div><div class="danger"></div></div>
 <div class="aurora" aria-hidden="true"><i></i><i></i></div>
 <div class="alarm-edge" aria-hidden="true"></div>
 <div id="stage">
@@ -53,6 +53,11 @@
         <span class="st-dot"></span>
         <span class="st-text" id="alert-text">перевіряю тривоги…</span>
         <span class="st-sky"><b><span id="sky-n">0</span></b> <span id="sky-word">цілей</span> у небі · <span id="sky-t">0</span> за добу</span>
+      </div>
+      <div class="power" id="power" hidden>
+        <svg viewBox="0 0 24 24" class="pw-ic" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>
+        <span class="pw-text" id="power-text">—</span><span class="pw-q" id="power-q"></span>
+        <div class="pw-bar" id="power-bar"></div>
       </div>
       <div class="pi-warn" id="pi-line" hidden><span id="pi-text">—</span></div>
 
@@ -112,6 +117,7 @@
         <button class="set-row" data-set="city"><span class="nm">Місто</span><b id="set-city">Львів</b><i>◀ ▶</i></button>
         <button class="set-row" data-set="theme"><span class="nm">Тема</span><b id="set-theme">Вечірній Львів</b><i>◀ ▶</i></button>
         <button class="set-row" data-set="bg"><span class="nm">Фон</span><b id="set-bg">Авто · за сонцем</b><i>◀ ▶</i></button>
+        <button class="set-row" data-set="powerq"><span class="nm">Відключення світла</span><b id="set-powerq">не показувати</b><i>◀ ▶</i></button>
         <button class="set-row" data-set="maplayer"><span class="nm">Шар карти</span><b id="set-maplayer">тривоги</b><i>ОК</i></button>
         <button class="set-row" data-set="map3d"><span class="nm">Карта</span><b id="set-map3d">3D</b><i>ОК</i></button>
         <button class="set-row full-only" data-set="notchmap"><span class="nm">Карта в сповіщенні про тривогу</span><b id="set-notchmap">вимк.</b><i>ОК</i></button>

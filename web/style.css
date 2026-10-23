@@ -461,3 +461,45 @@ body.map-front .front-changes { display: block; }
 body.layout-cinema .front-changes { right: 64px; top: 120px; }
 body.theme-paper .front-changes { color: #1f1d1a; }
 body.layout-cinema .front-changes { top: 150px; }
+
+/* front line: older changes of the week dimmer; replay shows days one by one */
+.map .front .chg.old { opacity: .5; }
+.front-changes .fc-w { margin-top: 6px; font-size: 15px; opacity: .6; }
+.front-changes.replay > * { visibility: hidden; }
+.front-changes.replay::before { content: attr(data-date); display: block; font-size: 13px; letter-spacing: .22em; text-transform: uppercase; color: #ffb59f; }
+
+/* power outages: one slim line under the alert status, with the next 24 h as a bar */
+.power { margin-top: 12px; display: grid; grid-template-columns: 26px 1fr auto; align-items: center; column-gap: 12px; row-gap: 8px; padding: 10px 22px 12px; border-radius: 18px;
+  background: rgba(255,255,255,.04); border: 1px solid var(--line); font-size: 21px; color: var(--ivory); }
+.power[hidden] { display: none; }
+.power .pw-ic { width: 22px; height: 22px; fill: #f3c66b; }
+.power.ok .pw-ic { fill: #5fd38d; }
+.power.off { background: rgba(243,198,107,.1); border-color: rgba(243,198,107,.35); }
+.power .pw-q { font-size: 15px; opacity: .55; }
+.power .pw-bar { grid-column: 1 / -1; display: flex; gap: 2px; height: 7px; }
+.power .pw-bar i { flex: 1; border-radius: 2px; background: rgba(95,211,141,.55); }
+.power .pw-bar i.p1 { background: #f3a64b; }
+.power .pw-bar i.p2 { background: repeating-linear-gradient(90deg, #f3c66b 0 3px, transparent 3px 5px); }
+.power .pw-bar i.pu { background: rgba(255,255,255,.1); }
+.power .pw-bar i:first-child { box-shadow: 0 0 0 2px var(--ivory); }
+body.theme-paper .power { color: #1f1d1a; }
+
+/* live weather over the background */
+.wx-fx { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.wx-fx i { position: absolute; left: -12%; width: 124%; will-change: transform; animation: wx-fall linear infinite; }
+.wx-fx.rain i, .wx-fx.storm i, .wx-fx.drizzle i { top: -180px; bottom: 0; transform-origin: 50% 0; }
+.wx-fx.rain i, .wx-fx.storm i, .wx-fx.drizzle i { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='180'%3E%3Cg stroke='%23cfe2f7' stroke-linecap='round'%3E%3Cpath d='M14 8v26' stroke-opacity='.32' stroke-width='1.4'/%3E%3Cpath d='M70 70v30' stroke-opacity='.26' stroke-width='1.2'/%3E%3Cpath d='M104 128v22' stroke-opacity='.3' stroke-width='1.3'/%3E%3Cpath d='M40 132v18' stroke-opacity='.2' stroke-width='1'/%3E%3C/g%3E%3C/svg%3E"); }
+.wx-fx.rain .near, .wx-fx.storm .near { animation-duration: .55s; --dy: 180px; }
+.wx-fx.rain .far, .wx-fx.storm .far, .wx-fx.drizzle .far { animation-duration: .9s; --dy: 180px; opacity: .55; background-size: 80px 120px; top: -120px; --dy: 120px; }
+.wx-fx.drizzle .near { display: none; }
+.wx-fx.storm .near { opacity: 1.0; filter: brightness(1.2); }
+.wx-fx.snow i { top: -240px; bottom: 0; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cg fill='%23fff'%3E%3Ccircle cx='30' cy='40' r='2.6' fill-opacity='.6'/%3E%3Ccircle cx='150' cy='20' r='1.8' fill-opacity='.45'/%3E%3Ccircle cx='200' cy='130' r='2.2' fill-opacity='.55'/%3E%3Ccircle cx='90' cy='170' r='1.5' fill-opacity='.4'/%3E%3Ccircle cx='60' cy='220' r='2' fill-opacity='.5'/%3E%3C/g%3E%3C/svg%3E"); --dy: 240px; }
+.wx-fx.snow .near { animation-duration: 3.2s; }
+.wx-fx.snow .far { animation-duration: 5.5s; opacity: .6; background-size: 150px 150px; top: -150px; --dy: 150px; }
+.wx-fx.fog i { top: 40%; bottom: -10%; animation: wx-drift 70s ease-in-out infinite alternate; background: radial-gradient(ellipse 40% 50% at 30% 60%, rgba(200,210,222,.16), transparent 70%), radial-gradient(ellipse 35% 45% at 75% 50%, rgba(200,210,222,.12), transparent 70%); }
+.wx-fx.fog .far { animation-duration: 95s; animation-direction: alternate-reverse; top: 25%; }
+@keyframes wx-fall { from { transform: rotate(10deg) translateY(0); } to { transform: rotate(10deg) translateY(var(--dy, 180px)); } }
+.wx-fx.snow i { animation-name: wx-snow; }
+@keyframes wx-snow { from { transform: translateY(0); } to { transform: translateY(var(--dy, 240px)); } }
+@keyframes wx-drift { from { transform: translateX(-6%); } to { transform: translateX(6%); } }
+body.bg-paused .wx-fx i { animation-play-state: paused; }

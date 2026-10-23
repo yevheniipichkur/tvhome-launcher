@@ -145,7 +145,7 @@
       for (var i = 0; i < wins.length; i++) if (lr() < share) lights += 'M' + wins[i][0] + ',' + wins[i][1] + 'h5v8h-5Z';
     }
     var html =
-      '<svg class="sc-sky" viewBox="0 0 1920 1080" preserveAspectRatio="none">' + cloudsSvg(code, rng(c.name + code), cloudColour, cloudOpacity) + precipSvg(code) + '</svg>' +
+      '<svg class="sc-sky" viewBox="0 0 1920 1080" preserveAspectRatio="none">' + cloudsSvg(code, rng(c.name + code), cloudColour, cloudOpacity) + (code === 45 || code === 48 ? precipSvg(code) : '') + '</svg>' +
       '<svg class="sc-line" viewBox="0 0 ' + W + ' ' + SH + '" preserveAspectRatio="xMidYMax slice">' +
       '<path d="' + sky.far + '" fill="' + pal[1] + '" opacity=".9"/>' +
       '<path d="' + sky.near + '" fill="' + pal[0] + '"/>' +

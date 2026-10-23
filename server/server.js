@@ -26,6 +26,7 @@ const state = {
   errors: {},
 };
 
+const powerCache = new Map();
 async function getJson(url, timeout = 12_000) {
   const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' }, signal: AbortSignal.timeout(timeout) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -267,8 +268,9 @@ every('frontline', 30 * 60_000, async () => {
     let lastChange = 0;
     for (const h of hist) lastChange = Math.max(lastChange, Date.parse(h.createdAt) || 0);
     // the last 24 h; when DeepState posted nothing in that time, the latest update (marked not fresh)
+    // a week of changes (the page replays them day by day); fresh = anything in the last 24 h
     const fresh = lastChange > Date.now() - 24 * 3600_000;
-    const since = fresh ? Date.now() - 24 * 3600_000 : lastChange, changes = [];
+    const since = Math.min(lastChange, Date.now() - 7 * 24 * 3600_000), changes = [];
     for (const h of hist) {
       const t = Date.parse(h.createdAt);
       if (!(t >= since)) continue;
@@ -471,6 +473,20 @@ http
       testAlert = st === 'on' ? { until: Date.now() + 120_000, city: { active: true, since: new Date().toISOString(), level: 'red', reasons: ['Тест сповіщення'] } }
         : st === 'off' ? { until: Date.now() + 120_000, city: { active: false } } : null;
       return res.end('ok ' + (st ?? 'auto'));
+    }
+    if (url.pathname === '/api/public/power') {
+      // outage schedules by region (svitlo aggregator of oblenergo/DTEK/YASNO data), cached 10 min
+      const region = String(url.searchParams.get('region') ?? '');
+      if (!/^[a-z-]{2,30}$/.test(region)) { res.writeHead(400); return res.end('bad region'); }
+      const hit = powerCache.get(region);
+      const send = (body) => {
+        res.writeHead(body ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=300', 'Access-Control-Allow-Origin': '*' });
+        res.end(body ?? '{"error":"no data"}');
+      };
+      if (hit && Date.now() - hit.at < 10 * 60_000) return send(hit.body);
+      return getJson('https://menstryo.github.io/svitlo/schedule/' + region + '.json', 15_000)
+        .then((d) => { const body = JSON.stringify(d); powerCache.set(region, { at: Date.now(), body }); send(body); })
+        .catch(() => send(hit?.body ?? null));
     }
     if (url.pathname === '/api/public/frontline') {
       res.writeHead(state.frontline ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=600', 'Access-Control-Allow-Origin': '*' });
