@@ -215,6 +215,28 @@ public class MainActivity extends Activity {
         return b;
     }
 
+    // Video apps that keep decoding in the background after Home (YouTube, Lampa…) make the next app stutter
+    // on this box: before launching one, pause other playing sessions and drop their background processes.
+    private static final String[] PLAYERS = {"com.google.android.youtube.tv", "top.rootu.lamps", "top.rootu.lampa", "com.netflix.ninja",
+            "com.megogo.application", "dkc.video.hdbox", "studio.scillarium.ottnavigator", "org.videolan.vlc", "com.brouken.player",
+            "com.google.android.youtube.tvmusic", "ru.yourok.torrserve"};
+
+    private void stopOtherPlayers(String keep) {
+        try {
+            MediaSessionManager msm = (MediaSessionManager) getSystemService(MEDIA_SESSION_SERVICE);
+            for (MediaController c : msm.getActiveSessions(new ComponentName(this, MediaListener.class))) {
+                PlaybackState ps = c.getPlaybackState();
+                if (!c.getPackageName().equals(keep) && ps != null && ps.getState() == PlaybackState.STATE_PLAYING) c.getTransportControls().pause();
+            }
+        } catch (Exception ignored) {
+        }
+        android.app.ActivityManager am = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+        for (String p : PLAYERS) {
+            if (p.equals(keep) || p.equals("ru.yourok.torrserve") && keep.startsWith("top.rootu")) continue; // Lampa streams through TorrServe
+            try { am.killBackgroundProcesses(p); } catch (Exception ignored) { }
+        }
+    }
+
     private volatile MediaController lastController;
     private volatile String appsCache;
     private volatile int appsVersion = 1;
@@ -349,6 +371,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void launch(String pkg) {
+            stopOtherPlayers(pkg);
             ui.post(() -> {
                 PackageManager pm = getPackageManager();
                 Intent i = pm.getLeanbackLaunchIntentForPackage(pkg);

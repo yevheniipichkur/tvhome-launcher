@@ -924,7 +924,7 @@
     black:  { name: 'Чорний', bg: '#000' },
   };
   var BG_CHOICES = ['city', 'streets', 'auto', 'night', 'dawn', 'day', 'golden', 'dusk', 'aurora', 'ocean', 'wine', 'black'];
-  function bgChoice() { try { return localStorage.getItem('tv-bg') || 'city'; } catch (e) { return 'city'; } }
+  function bgChoice() { try { return localStorage.getItem('tv-bg') || 'streets'; } catch (e) { return 'streets'; } }
   function bgName() { var c = bgChoice(); return c === 'city' ? 'Місто · живе небо' : c === 'streets' ? 'Мапа міста' : c === 'auto' ? 'Градієнт · за сонцем' : PHASES[c].name; }
   function phaseNow() {
     var w = data && data.weather;
@@ -1048,7 +1048,7 @@
     { id: 'minimal', name: 'Мінімал' },
   ];
   function layoutId() {
-    try { var v = localStorage.getItem('tv-layout') || 'classic'; return v === 'big' ? 'classic' : v; } catch (e) { return 'classic'; }
+    try { var v = localStorage.getItem('tv-layout') || 'cinema'; return v === 'big' ? 'classic' : v; } catch (e) { return 'classic'; }
   }
   function layoutName() { var l = LAYOUTS.filter(function (x) { return x.id === layoutId(); })[0]; return l ? l.name : 'Класика'; }
   function applyLayout(id) {
