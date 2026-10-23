@@ -330,6 +330,20 @@ every('wxmap', 60 * 60_000, async () => {
   };
 });
 
+// ---------- photo of the day: Wikipedia (uk) featured image, with its caption, author and licence ----------
+every('potd', 3 * 3600_000, async () => {
+  const d = new Date(Date.now() + 3 * 3600_000); // Kyiv date
+  const ymd = d.getUTCFullYear() + '/' + String(d.getUTCMonth() + 1).padStart(2, '0') + '/' + String(d.getUTCDate()).padStart(2, '0');
+  const f = await getJson('https://api.wikimedia.org/feed/v1/wikipedia/uk/featured/' + ymd, 30_000);
+  const i = f.image;
+  if (!i?.thumbnail?.source) return;
+  // a TV-sized rendition: Commons serves only its standard thumbnail widths (…960, 1280, 1920)
+  const src = i.thumbnail.source.replace(/\/\d+px-/, '/1280px-');
+  state.potd = { date: ymd, src, small: i.thumbnail.source, w: i.thumbnail.width, h: i.thumbnail.height,
+    caption: (i.description?.text ?? '').replace(/\s+/g, ' ').trim(), artist: (i.artist?.text ?? '').replace(/\s+/g, ' ').trim(),
+    license: i.license?.type ?? '', page: i.file_page ?? '' };
+});
+
 // ---------- football: next / last / live match of a team (TheSportsDB, free test key) ----------
 const footballCache = new Map();
 async function football(id) {
@@ -339,7 +353,7 @@ async function football(id) {
   const base = 'https://www.thesportsdb.com/api/v1/json/123/';
   const ev = (e) => e && { id: e.idEvent, league: e.strLeague, home: e.strHomeTeam, away: e.strAwayTeam, homeId: e.idHomeTeam, awayId: e.idAwayTeam,
     at: Date.parse(e.strTimestamp + (/[zZ+]/.test(e.strTimestamp.slice(10)) ? '' : 'Z')), hs: e.intHomeScore == null ? null : +e.intHomeScore, as: e.intAwayScore == null ? null : +e.intAwayScore,
-    status: e.strStatus ?? null, progress: e.strProgress ?? null };
+    status: e.strStatus ?? null, progress: e.strProgress ?? null, homeBadge: e.strHomeTeamBadge ?? null, awayBadge: e.strAwayTeamBadge ?? null };
   const [n, l] = await Promise.all([getJson(base + 'eventsnext.php?id=' + id, 15_000).catch(() => null), getJson(base + 'eventslast.php?id=' + id, 15_000).catch(() => null)]);
   const body = { next: ev(n?.events?.[0]), last: ev(l?.results?.[0]), live: null };
   // a match that has kicked off: look it up for the running score
@@ -574,6 +588,10 @@ http
       testAlert = st === 'on' ? { until: Date.now() + 120_000, city: { active: true, since: new Date().toISOString(), level: 'red', reasons: ['Тест сповіщення'] } }
         : st === 'off' ? { until: Date.now() + 120_000, city: { active: false } } : null;
       return res.end('ok ' + (st ?? 'auto'));
+    }
+    if (url.pathname === '/api/public/potd') {
+      res.writeHead(state.potd ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=1800', 'Access-Control-Allow-Origin': '*' });
+      return res.end(JSON.stringify(state.potd ?? { error: 'no data yet' }));
     }
     if (url.pathname === '/api/public/wxmap') {
       res.writeHead(state.wxmap ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=600', 'Access-Control-Allow-Origin': '*' });

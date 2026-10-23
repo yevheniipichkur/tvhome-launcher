@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="style.css?v=2">
 <link rel="stylesheet" href="themes.css">
 <link rel="stylesheet" href="layouts.css">
+<link rel="stylesheet" href="custom.css">
 <script>try{var t=localStorage.getItem("tv-theme");if(t&&t!=="lviv")document.documentElement.className="pre-"+t}catch(e){}</script>
 </head>
 <body class="intro">
@@ -61,13 +62,15 @@
       </div>
       <div class="pi-warn" id="pi-line" hidden><span id="pi-text">—</span></div>
 
-      <div class="info">
+      <div class="info info-rates">
         <div class="rates">
           <span class="rate"><span class="cur">$</span><b id="r-USD">—</b><i id="d-USD"></i></span>
           <span class="rate"><span class="cur">€</span><b id="r-EUR">—</b><i id="d-EUR"></i></span>
           <span class="rate"><span class="cur">zł</span><b id="r-PLN">—</b><i id="d-PLN"></i></span>
           <span class="rate-src">НБУ</span>
         </div>
+      </div>
+      <div class="info info-news">
         <div class="headline"><span class="news" id="news"></span><span class="src" id="news-args"></span></div>
       </div>
 
@@ -117,6 +120,7 @@
     <div class="set-head">Налаштування <span class="muted">· ▲▼ вибір · ◀▶ змінити · ОК · Назад — закрити</span></div>
     <div class="set-body">
       <div class="set-col">
+        <button class="set-row" data-set="editor"><span class="nm">Конструктор екрана</span><b>блоки, кольори, годинник, полиця</b><i>ОК</i></button>
         <button class="set-row" data-set="city"><span class="nm">Місто</span><b id="set-city">Львів</b><i>◀ ▶</i></button>
         <button class="set-row" data-set="theme"><span class="nm">Тема</span><b id="set-theme">Вечірній Львів</b><i>◀ ▶</i></button>
         <button class="set-row" data-set="bg"><span class="nm">Фон</span><b id="set-bg">Авто · за сонцем</b><i>◀ ▶</i></button>
@@ -148,5 +152,6 @@
 <script src="config.js"></script>
 <script src="scene.js"></script>
 <script src="app.js"></script>
+<script src="custom.js"></script>
 </body>
 </html>

@@ -50,6 +50,9 @@
   var clockShown = '';
   function setClock(text) {
     var box = $('clock');
+    // analog / words styles from the screen builder draw their own markup
+    if (window.TVC && TVC.clock(text)) { clockShown = ''; return; }
+    if (box.getAttribute('data-k')) { box.removeAttribute('data-k'); box.innerHTML = ''; }
     if (box.children.length !== text.length) {
       box.innerHTML = '';
       for (var i = 0; i < text.length; i++) {
@@ -940,7 +943,7 @@
     var cont = continueTile(byPkg);
     if (cont) dock.appendChild(cont);
     fav.forEach(function (p) { if (byPkg[p]) dock.appendChild(tile(byPkg[p])); });
-    SYS.forEach(function (b, i) {
+    SYS.filter(function (b) { return !(window.TVC && TVC.sysHidden(b.action)); }).forEach(function (b, i) {
       var el2 = document.createElement('button');
       el2.className = 'sys' + (i === 0 ? ' first' : '');
       el2.setAttribute('data-action', b.action);
@@ -1263,6 +1266,7 @@
       return;
     }
     if (kind === 'speed') { speedTest(); return; }
+    if (kind === 'editor') { closeSettings(); if (window.TVC) TVC.open(); return; }
     if (kind === 'season') {
       try { localStorage.setItem('tv-season', seasonOn() ? '0' : '1'); } catch (e) {}
       $('set-season').textContent = seasonOn() ? 'авто' : 'вимк.';
@@ -1461,7 +1465,15 @@
       SOUND[r === 'move' ? 'move' : r]();
       return;
     }
-    if (k === 'ArrowRight' || code === 22) idx[zone]++;
+    // two-row shelf: tiles flow column by column (the «Продовжити» card spans both rows)
+    var two = zone === 'dock' && window.TVC && TVC.cfg().shelfRows === 2;
+    var off2 = two && list[0] && list[0].classList.contains('cont') ? 1 : 0;
+    var row2 = function (i) { return i < off2 ? -1 : (i - off2) % 2; };
+    if (two && (k === 'ArrowRight' || code === 22)) idx.dock = idx.dock < off2 ? off2 : Math.min(list.length - 1, idx.dock + 2);
+    else if (two && (k === 'ArrowLeft' || code === 21)) idx.dock = idx.dock < off2 ? idx.dock : idx.dock - off2 < 2 ? (off2 ? 0 : idx.dock) : idx.dock - 2;
+    else if (two && (k === 'ArrowDown' || code === 20) && row2(idx.dock) === 0 && idx.dock + 1 < list.length) idx.dock++;
+    else if (two && (k === 'ArrowUp' || code === 19) && row2(idx.dock) === 1) idx.dock--;
+    else if (k === 'ArrowRight' || code === 22) idx[zone]++;
     else if (k === 'ArrowLeft' || code === 21) idx[zone]--;
     else if (k === 'ArrowUp' || code === 19) {
       if (zone === 'dock') { zone = 'player'; idx.player = $('player').classList.contains('last') ? 0 : 1; }
@@ -1755,6 +1767,16 @@
     return false;
   };
 
+  // hooks for the screen builder (custom.js)
+  window.TVH = {
+    holiday: holiday, getJSON: getJSON, SOUND: SOUND, ddmm: ddmm,
+    front: function () { return frontData; }, loadFront: loadFront, recentChanges: recentChanges,
+    ball: function () { return ballData; }, teamId: teamId, teamName: teamName, teamUA: ua,
+    leagueUA: function (l) { return LEAGUE_UA[l] || l; },
+    stepTeam: function (dir) { settingsAct({ getAttribute: function () { return 'team'; } }, dir); },
+    buildDock: function () { buildDock(); render(); },
+    resetClock: function () { clockShown = ''; $('clock').innerHTML = ''; $('clock').removeAttribute('data-k'); tickClock(); },
+  };
   dockVersion = appsVer(); loadApps(); buildDock(); render();
   if (TV && wizardNeeded()) setTimeout(openWizard, 600);
   setTimeout(paintUpdate, 5000);
