@@ -50,7 +50,11 @@ final class NotchBanner extends View {
     private float content;   // 0..1 text/icon alpha
     private float pulse;     // 0..1 ring phase
 
-    private final float notchW, notchH, fullW, fullH;
+    private final float notchW, notchH;
+    private float fullW, fullH;
+    private MiniMap mini;
+    private final RectF mapRect = new RectF();
+    private final Path clip = new Path();
 
     NotchBanner(Context ctx, String title, String subtitle, String chip, int color) {
         super(ctx);
@@ -75,10 +79,18 @@ final class NotchBanner extends View {
         fullW = 560 * d; fullH = 78 * d;
     }
 
+    /** Alert notch with a live mini map of the region around the home city. */
+    NotchBanner withMap(MiniMap m) {
+        mini = m;
+        fullW = 700 * d;
+        fullH = 170 * d;
+        return this;
+    }
+
     static WindowManager.LayoutParams windowParams(Context ctx) {
         float d = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, ctx.getResources().getDisplayMetrics());
         WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
-                (int) (600 * d), (int) (110 * d),
+                (int) (740 * d), (int) (200 * d),
                 WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
                         | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
@@ -147,9 +159,22 @@ final class NotchBanner extends View {
         c.drawCircle(left + dotR, midY, dotR, accent);
         ring.setAlpha((int) (alpha * (1 - pulse)));
         c.drawCircle(left + dotR, midY, dotR + 12 * d * pulse, ring);
+        float right = cx + w / 2 - 28 * d;
+        if (mini != null) {
+            // map on the right: rounded window that fades in with the content
+            float mh = h - 28 * d, mw = mh * 1.6f;
+            mapRect.set(right - mw + 8 * d, top + 14 * d, right + 8 * d, top + 14 * d + mh);
+            c.save();
+            clip.reset();
+            clip.addRoundRect(mapRect, 14 * d, 14 * d, Path.Direction.CW);
+            c.clipPath(clip);
+            c.drawColor(0xFF0B1017);
+            mini.draw(c, mapRect, alpha);
+            c.restore();
+            right = mapRect.left - 18 * d;
+        }
         // chip on the right
         float chipW = chip.measureText(chipText);
-        float right = cx + w / 2 - 28 * d;
         chip.setAlpha(alpha);
         c.drawText(chipText, right - chipW, midY + 4 * d, chip);
         // texts

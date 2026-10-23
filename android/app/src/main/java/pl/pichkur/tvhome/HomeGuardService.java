@@ -145,6 +145,8 @@ public class HomeGuardService extends AccessibilityService {
     private void showAlert(JSONObject a, long since) {
         String city = a.optString("city", "Львів");
         String sub = city + (since > 0 ? " · з " + hhmm(since) : "") + " · пройдіть в укриття";
+        DataService ds = DataService.get(this);
+        mapForNext = new MiniMap(this, ds.alertsNow(), ds.threatsNow(), ds.cityLon(), ds.cityLat());
         present("Повітряна тривога", sub, "ТРИВОГА", 0xFFFF453A, R.raw.alert_chime, 14_000);
     }
 
@@ -153,13 +155,15 @@ public class HomeGuardService extends AccessibilityService {
     }
 
     // ---------- notch ----------
+    private MiniMap mapForNext;
     private View banner;
 
     private void present(String title, String subtitle, String chip, int color, int sound, long holdMs) {
         playChime(sound);
-        if (homeInFront) return;
+        if (homeInFront) { mapForNext = null; return; }
         hideBanner(false);
         NotchBanner notch = new NotchBanner(this, title, subtitle, chip, color);
+        if (mapForNext != null) { notch.withMap(mapForNext); mapForNext = null; }
         WindowManager wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         try {
             wm.addView(notch, NotchBanner.windowParams(this));

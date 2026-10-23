@@ -307,6 +307,12 @@ final class DataService {
         return alerts;
     }
 
+    /** For the notch mini map. */
+    JSONObject alertsNow() { try { return currentAlerts(); } catch (Exception e) { return null; } }
+    JSONArray threatsNow() { return threats; }
+    double cityLon() { return city.optDouble("lon", 24.0297); }
+    double cityLat() { return city.optDouble("lat", 49.8397); }
+
     /** For the alert overlay: {city, active, since, level, reasons, known}. */
     JSONObject cityAlert() {
         JSONObject o = new JSONObject();

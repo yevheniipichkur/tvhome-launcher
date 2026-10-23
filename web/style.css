@@ -417,3 +417,18 @@ body.has-update .set-row[data-set=update] b { color: var(--green); }
 
 /* home screen hidden behind another app: freeze every CSS animation (compositor work too) */
 body.bg-paused *, body.bg-paused *::before, body.bg-paused *::after { animation-play-state: paused !important; }
+
+/* ---------- 3D map: tilted plane like a flight sim (compositor transform, rastered once) ---------- */
+body.map-3d .map-clip { perspective: 1500px; perspective-origin: 50% 30%; }
+body.map-3d .map-wrap { transform: rotateX(34deg) scale(1.06); transform-origin: 50% 62%; will-change: transform; }
+/* the glow under each target makes it read as flying above the plane */
+body.map-3d .fly .t .rot::before { content: ''; position: absolute; left: 4px; top: 22px; width: 24px; height: 10px; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(0,0,0,.55), transparent); }
+body.map-3d .fly .trail { box-shadow: 0 0 6px rgba(255,255,255,.6); }
+/* alarm: slow orbiting camera over the zoomed region (transform only, ~55 fps on the box) */
+body.map-3d.map-zoomed .map-wrap { animation: orbit 16s ease-in-out infinite; }
+@keyframes orbit {
+  0%, 100% { transform: rotateX(34deg) rotateZ(0deg) scale(1.06); }
+  50% { transform: rotateX(40deg) rotateZ(-7deg) scale(1.14); }
+}
+body.night.map-3d.map-zoomed .map-wrap { animation: none; }

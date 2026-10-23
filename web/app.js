@@ -827,6 +827,9 @@
     clockShown = ''; $('clock').innerHTML = ''; tickClock(); // re-measure digit slots for the new font
   }
   applyTheme(themeId());
+  // 3D map on by default; "2D" in settings
+  function map3d() { try { return localStorage.getItem('tv-map3d') !== '0'; } catch (e) { return true; } }
+  document.body.classList.toggle('map-3d', map3d());
   var cities = [];
   getJSON('cities.json', function (err, c) { if (!err) cities = c; });
   // ---------- first-run wizard (shown once; the owner's box is marked done) ----------
@@ -921,6 +924,7 @@
     $('set-city').textContent = cityName();
     $('set-layout').textContent = layoutName();
     $('set-bg').textContent = bgName();
+    $('set-map3d').textContent = map3d() ? '3D' : '2D';
     paintUpdate();
     var list = dockList(), byPkg = {};
     apps.forEach(function (a) { byPkg[a.pkg] = a; });
@@ -940,12 +944,19 @@
   }
   function settingsAct(row, dir) {
     var kind = row.getAttribute('data-set');
+    if (kind === 'map3d') {
+      try { localStorage.setItem('tv-map3d', map3d() ? '0' : '1'); } catch (e) {}
+      document.body.classList.toggle('map-3d', map3d());
+      $('set-map3d').textContent = map3d() ? '3D' : '2D';
+      return;
+    }
     if (kind === 'bg') {
       var bi = BG_CHOICES.indexOf(bgChoice());
       var nb = BG_CHOICES[(bi + (dir || 1) + BG_CHOICES.length) % BG_CHOICES.length];
       try { localStorage.setItem('tv-bg', nb); } catch (e) {}
       bgPhase = null; paintBackground();
       $('set-bg').textContent = bgName();
+    $('set-map3d').textContent = map3d() ? '3D' : '2D';
     paintUpdate();
       return;
     }
