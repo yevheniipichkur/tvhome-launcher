@@ -249,7 +249,7 @@ public class MainActivity extends Activity {
     private void checkUpdate() {
         new Thread(() -> {
             try {
-                HttpURLConnection c = (HttpURLConnection) new URL(BuildConfig.UPDATE_URL + "version").openConnection();
+                HttpURLConnection c = (HttpURLConnection) new URL(BuildConfig.UPDATE_URL + "version" + BuildConfig.UPDATE_FILE).openConnection();
                 c.setConnectTimeout(8000);
                 c.setReadTimeout(8000);
                 if (c.getResponseCode() == 200) {
@@ -278,7 +278,7 @@ public class MainActivity extends Activity {
                         android.content.pm.PackageInstaller.SessionParams.MODE_FULL_INSTALL);
                 int id = pi.createSession(sp);
                 android.content.pm.PackageInstaller.Session session = pi.openSession(id);
-                HttpURLConnection c = (HttpURLConnection) new URL(BuildConfig.UPDATE_URL + "download/tvhome.apk").openConnection();
+                HttpURLConnection c = (HttpURLConnection) new URL(BuildConfig.UPDATE_URL + "download/tvhome" + BuildConfig.UPDATE_FILE + ".apk").openConnection();
                 c.setConnectTimeout(10000);
                 c.setReadTimeout(60000);
                 try (java.io.InputStream in = c.getInputStream(); java.io.OutputStream out = session.openWrite("tvhome.apk", 0, -1)) {
@@ -464,6 +464,9 @@ public class MainActivity extends Activity {
         }
 
         /** First-run wizard: is the Home/alert service enabled in Accessibility? */
+        @JavascriptInterface
+        public boolean isLite() { return BuildConfig.LITE; }
+
         @JavascriptInterface
         public boolean a11yEnabled() {
             String on = Settings.Secure.getString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);

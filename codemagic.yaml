@@ -21,6 +21,6 @@ workflows:
         working_directory: android
         script: |
           chmod +x gradlew
-          ./gradlew :app:assembleRelease
+          ./gradlew :app:assembleFullRelease :app:assembleLiteRelease
     artifacts:
-      - android/app/build/outputs/apk/release/*.apk
+      - android/app/build/outputs/apk/*/release/*.apk

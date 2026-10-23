@@ -31,6 +31,23 @@ android {
     }
     buildFeatures { buildConfig = true }
     defaultConfig { buildConfigField("String", "UPDATE_URL", "\"https://tvhome.pichkur.com/api/public/\"") }
+    // full: everything (accessibility Home guard + alert notch, media listener) — for own boxes.
+    // lite: without the accessibility service and the notification listener, which Google Play Protect
+    // blocks in sideloaded apps; installs next to the full one.
+    flavorDimensions += "edition"
+    productFlavors {
+        create("full") {
+            dimension = "edition"
+            buildConfigField("boolean", "LITE", "false")
+            buildConfigField("String", "UPDATE_FILE", "\"\"")
+        }
+        create("lite") {
+            dimension = "edition"
+            applicationIdSuffix = ".lite"
+            buildConfigField("boolean", "LITE", "true")
+            buildConfigField("String", "UPDATE_FILE", "\"-lite\"")
+        }
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

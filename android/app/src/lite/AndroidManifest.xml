@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lite edition: no accessibility service and no notification listener (Play Protect blocks those when sideloaded). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application android:label="Вітальня Lite" tools:replace="android:label">
+        <service android:name="pl.pichkur.tvhome.HomeGuardService" tools:node="remove" />
+        <service android:name="pl.pichkur.tvhome.MediaListener" tools:node="remove" />
+    </application>
+</manifest>

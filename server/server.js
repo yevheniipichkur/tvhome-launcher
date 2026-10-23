@@ -428,18 +428,19 @@ http
       log('[diag]', url.search.slice(0, 300));
       return res.end('ok');
     }
-    if (url.pathname === '/api/public/version') {
+    if (url.pathname === '/api/public/version' || url.pathname === '/api/public/version-lite') {
       // latest launcher build ({versionCode, versionName}), written next to the APK when it is published
-      const f = path.join(process.env.DIST_DIR ?? '/dist', 'version.json');
+      const f = path.join(process.env.DIST_DIR ?? '/dist', url.pathname.endsWith('-lite') ? 'version-lite.json' : 'version.json');
       if (!fs.existsSync(f)) { res.writeHead(404); return res.end('{}'); }
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
       return res.end(fs.readFileSync(f));
     }
-    if (url.pathname === '/api/public/download/tvhome.apk') {
+    if (url.pathname === '/api/public/download/tvhome.apk' || url.pathname === '/api/public/download/tvhome-lite.apk') {
       // the current launcher build, for sharing (dist/ is mounted read-only)
-      const apk = path.join(process.env.DIST_DIR ?? '/dist', 'tvhome.apk');
+      const name = path.basename(url.pathname);
+      const apk = path.join(process.env.DIST_DIR ?? '/dist', name);
       if (!fs.existsSync(apk)) { res.writeHead(404); return res.end('no build'); }
-      res.writeHead(200, { 'Content-Type': 'application/vnd.android.package-archive', 'Content-Disposition': 'attachment; filename="tvhome.apk"', 'Content-Length': fs.statSync(apk).size });
+      res.writeHead(200, { 'Content-Type': 'application/vnd.android.package-archive', 'Content-Disposition': `attachment; filename="${name}"`, 'Content-Length': fs.statSync(apk).size });
       return fs.createReadStream(apk).pipe(res);
     }
     if (url.pathname === '/healthz') return res.end('ok');

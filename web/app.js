@@ -830,6 +830,7 @@
   // 3D map on by default; "2D" in settings
   function map3d() { try { return localStorage.getItem('tv-map3d') !== '0'; } catch (e) { return true; } }
   document.body.classList.toggle('map-3d', map3d());
+  if (TV && TV.isLite && TV.isLite()) document.body.classList.add('lite');
   var cities = [];
   getJSON('cities.json', function (err, c) { if (!err) cities = c; });
   // ---------- first-run wizard (shown once; the owner's box is marked done) ----------
@@ -855,6 +856,8 @@
       { t: 'Тривоги поверх фільмів', b: 'Щоб під час тривоги поверх YouTube чи фільму з’являлося повідомлення, а кнопка «Додому» поверталася сюди, увімкніть «Вітальня» у Спеціальних можливостях.', a11y: true, btn: 'Відкрити налаштування' },
       { t: 'Готово', b: 'Полиця з програмами внизу. Шестерня — налаштування: тема, фон, макет, місто й порядок програм.', btn: 'Почати користуватися' },
     ];
+    if (TV && TV.isLite && TV.isLite()) steps = steps.filter(function (x) { return !x.a11y; });
+    wiz.max = steps.length - 1;
     var st = steps[wiz.step];
     var html = '<div class="wz-dots">' + steps.map(function (x, i) { return '<i class="' + (i === wiz.step ? 'on' : '') + '"></i>'; }).join('') + '</div>' +
       '<h1></h1><p></p>';
@@ -880,8 +883,9 @@
     if (kind === 'city') { settingsAct(document.querySelector('[data-set=city]'), dir || 1); setTimeout(renderWizard, 50); return; }
     if (kind === 'skip') { wiz.step++; renderWizard(); return; }
     if (kind === 'next') {
-      if (wiz.step === 2 && !(TV && TV.a11yEnabled && TV.a11yEnabled())) { if (TV && TV.openSettings) TV.openSettings('accessibility'); return; }
-      if (wiz.step === 3) { try { localStorage.setItem('tv-setup-done', '1'); } catch (e) {} $('wizard').hidden = true; zone = 'dock'; idx.dock = 0; render(); return; }
+      var lite = TV && TV.isLite && TV.isLite();
+      if (!lite && wiz.step === 2 && !(TV && TV.a11yEnabled && TV.a11yEnabled())) { if (TV && TV.openSettings) TV.openSettings('accessibility'); return; }
+      if (wiz.step === wiz.max) { try { localStorage.setItem('tv-setup-done', '1'); } catch (e) {} $('wizard').hidden = true; zone = 'dock'; idx.dock = 0; render(); return; }
       wiz.step++; idx.wizard = 0; renderWizard();
     }
   }

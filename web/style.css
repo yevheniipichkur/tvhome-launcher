@@ -432,3 +432,5 @@ body.map-3d.map-zoomed .map-wrap { animation: orbit 16s ease-in-out infinite; }
   50% { transform: rotateX(40deg) rotateZ(-7deg) scale(1.14); }
 }
 body.night.map-3d.map-zoomed .map-wrap { animation: none; }
+
+body.lite .full-only { display: none !important; }
