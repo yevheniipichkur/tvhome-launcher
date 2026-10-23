@@ -142,7 +142,11 @@
     // ukrainealarm geometry: districts filled, oblasts outlined; oblasts without districts
     // (м. Київ, Крим) are filled as a whole; alerted communities are drawn on top.
     // base: whole oblasts filled, so cities that are communities (Kharkiv, Dnipro…) and gaps never show as holes
-    var gb = el('g', { 'class': 'raions base' }, map);
+    // country outline: every oblast drawn with a light stroke underneath, so only the outer edge
+    // of Ukraine (plus oblast borders) reads against busy backgrounds like the street map
+    var gh = el('g', { 'class': 'halo' }, map);
+    geo.oblasts.forEach(function (o) { el('path', { d: o.base || o.d }, gh); });
+        var gb = el('g', { 'class': 'raions base' }, map);
     geo.oblasts.forEach(function (o) {
       var e = el('path', { d: o.base || o.d, 'class': 'raion' }, gb);
       raionEls.push({ id: 'oblast:' + o.id, oblast: o.id, el: e });

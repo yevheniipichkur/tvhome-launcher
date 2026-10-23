@@ -74,3 +74,11 @@ body.layout-cinema .map .oblast { stroke: rgba(255,255,255,.28); stroke-width: 1
 body.theme-paper.layout-cinema #stage::before { background: linear-gradient(90deg, rgba(236,230,218,.9) 0%, rgba(236,230,218,.75) 30%, rgba(236,230,218,0) 60%); }
 body.layout-cinema .wx-next { font-size: 16px; white-space: nowrap; }
 body.layout-cinema .wx-now b { font-size: 27px; }
+
+/* readable alert map on any background: light outline of Ukraine + solid land */
+.map .halo path { fill: #0d1424; stroke: rgba(241,236,226,.75); stroke-width: 3.4; stroke-linejoin: round; }
+body.bg-streets .map .raion:not(.alert):not(.red):not(.long),
+body.bg-streets .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill: #0f1828; stroke: rgba(255,255,255,.08); }
+body.bg-streets .map .oblast { stroke: rgba(255,255,255,.34); stroke-width: 1.4; }
+body.theme-paper .map .halo path { fill: #e6dfd2; stroke: rgba(31,29,26,.7); }
+body.theme-terminal .map .halo path { fill: #071209; stroke: rgba(61,255,138,.7); }
