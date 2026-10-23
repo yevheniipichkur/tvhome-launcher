@@ -1073,10 +1073,19 @@
   applyLayout(layoutId());
 
   // Called by the launcher when the home screen comes back to the front.
+  // Returning from an app must feel instant: show focus first, do the rest after the first frames.
+  // The dock is rebuilt only when apps actually changed (the launcher bumps appsVersion).
+  var dockVersion = -1;
+  function appsVer() { try { return TV && TV.appsVersion ? TV.appsVersion() : 0; } catch (e) { return 0; } }
   window.tvResume = function () {
-    loadApps(); buildDock();
     if (!$('drawer').hidden) closeDrawer();
-    zone = 'dock'; render(); poll(); paintWifi(); pollMedia();
+    zone = 'dock'; render();
+    setTimeout(function () {
+      var v = appsVer();
+      if (v !== dockVersion) { dockVersion = v; loadApps(); buildDock(); render(); }
+      pollMedia();
+    }, 350);
+    setTimeout(function () { poll(); paintWifi(); }, 700);
   };
   // Called by the launcher with Back while the drawer is open.
   window.tvBack = function () {
@@ -1085,7 +1094,7 @@
     return false;
   };
 
-  loadApps(); buildDock(); render();
+  dockVersion = appsVer(); loadApps(); buildDock(); render();
   // Intro sequence lives in CSS (body.intro); typed welcome line here.
   (function typeWelcome() {
     var t = $('welcome-typed');

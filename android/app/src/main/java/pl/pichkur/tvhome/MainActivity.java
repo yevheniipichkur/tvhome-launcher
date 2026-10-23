@@ -63,7 +63,6 @@ public class MainActivity extends Activity {
     private static final String ORIGIN = "https://appassets.androidplatform.net";
     private static final String HOME_URL = ORIGIN + "/web/index.html";
     private static final String FALLBACK_LAUNCHER = "com.spocky.projengmenu";
-    private static final long RELOAD_AFTER_MS = 30 * 60_000L;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final Map<String, String> imageCache = new HashMap<>();
@@ -85,6 +84,13 @@ public class MainActivity extends Activity {
         soundIds.put("back", sounds.load(this, R.raw.ui_back, 1));
         WebView.setWebContentsDebuggingEnabled(true); // chrome://inspect over ADB on the LAN
         DataService.get(this); // start fetching right away
+        android.content.IntentFilter pf = new android.content.IntentFilter();
+        pf.addAction(Intent.ACTION_PACKAGE_ADDED);
+        pf.addAction(Intent.ACTION_PACKAGE_REMOVED);
+        pf.addAction(Intent.ACTION_PACKAGE_CHANGED);
+        pf.addAction(Intent.ACTION_PACKAGE_REPLACED);
+        pf.addDataScheme("package");
+        registerReceiver(pkgReceiver, pf);
         // Owner's choice: the home screen works as a wall display and never sleeps while it is in front.
         // Other apps keep the normal 15-min timeout; the remote's power button still turns everything off.
         getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -174,18 +180,15 @@ public class MainActivity extends Activity {
         super.onResume();
         HomeGuardService.homeInFront = true;
         hideSystemUi();
-        if (loadedAt > 0 && SystemClock.elapsedRealtime() - loadedAt > RELOAD_AFTER_MS) {
-            web.loadUrl(HOME_URL);
-        } else {
-            web.evaluateJavascript("window.tvResume && window.tvResume()", null);
-        }
+        // The page is bundled in the APK and its data comes from DataService, so there is nothing to
+        // reload after a long movie — a full reload is what made the return to Home feel laggy.
+        web.evaluateJavascript("window.tvResume && window.tvResume()", null);
         web.requestFocus();
     }
 
     @Override
     protected void onNewIntent(Intent intent) {
-        super.onNewIntent(intent);
-        web.evaluateJavascript("window.tvResume && window.tvResume()", null);
+        super.onNewIntent(intent); // onResume follows and calls tvResume once
     }
 
     @Override
@@ -213,6 +216,12 @@ public class MainActivity extends Activity {
     }
 
     private volatile MediaController lastController;
+    private volatile String appsCache;
+    private volatile int appsVersion = 1;
+    private final android.content.BroadcastReceiver pkgReceiver = new android.content.BroadcastReceiver() {
+        @Override
+        public void onReceive(android.content.Context c, Intent i) { appsCache = null; appsVersion++; }
+    };
 
     private SharedPreferences prefs() {
         return getSharedPreferences("tvhome", MODE_PRIVATE);
@@ -280,8 +289,20 @@ public class MainActivity extends Activity {
 
     /** Exposed to the page as window.TV. Methods run on a binder thread. */
     private class Bridge {
+        /** Bumped when apps are installed/removed/updated; the page rebuilds the dock only then. */
+        @JavascriptInterface
+        public int appsVersion() { return appsVersion; }
+
         @JavascriptInterface
         public String apps() {
+            String cached = appsCache;
+            if (cached != null) return cached;
+            String fresh = buildApps();
+            appsCache = fresh;
+            return fresh;
+        }
+
+        private String buildApps() {
             PackageManager pm = getPackageManager();
             Map<String, ResolveInfo> found = new LinkedHashMap<>();
             Map<String, Boolean> leanback = new HashMap<>();

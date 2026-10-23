@@ -376,10 +376,13 @@ body.compact .pl-btn.big { width: 76px; height: 76px; }
 .sky-bg .scene .sc-streets-credit { position: absolute; right: 70px; bottom: 6px; font-size: 12px; color: rgba(255,255,255,.35); }
 body.bg-streets .sky-bg { background: radial-gradient(120% 90% at 50% 45%, #0c1730 0%, #050a16 70%); }
 
-/* alarm: red glow pulsing at the left and right edges. Drawn once; only opacity animates
-   (own compositor layer), so it costs the box almost nothing. */
-.alarm-edge { position: fixed; inset: 0; z-index: 4; pointer-events: none; opacity: 0;
-  background: linear-gradient(90deg, rgba(255,40,30,.55) 0%, rgba(255,40,30,.18) 7%, transparent 16%, transparent 84%, rgba(255,40,30,.18) 93%, rgba(255,40,30,.55) 100%);
-  will-change: opacity; transition: opacity .8s ease; }
-body.alarm .alarm-edge { animation: edge-pulse 1.8s ease-in-out infinite; }
-@keyframes edge-pulse { 0%, 100% { opacity: .25; } 50% { opacity: 1; } }
+
+/* alarm: soft red glow pulsing on all four edges. Drawn once; only opacity animates. */
+.alarm-edge { position: fixed; inset: 0; z-index: 4; pointer-events: none; opacity: 0; will-change: opacity; transition: opacity 1.2s ease;
+  background:
+    linear-gradient(90deg, rgba(255,45,35,.38) 0, rgba(255,45,35,.10) 2.6%, transparent 6%),
+    linear-gradient(270deg, rgba(255,45,35,.38) 0, rgba(255,45,35,.10) 2.6%, transparent 6%),
+    linear-gradient(180deg, rgba(255,45,35,.34) 0, rgba(255,45,35,.08) 4%, transparent 9%),
+    linear-gradient(0deg, rgba(255,45,35,.34) 0, rgba(255,45,35,.08) 4%, transparent 9%); }
+body.alarm .alarm-edge { animation: edge-pulse 3.6s ease-in-out infinite; }
+@keyframes edge-pulse { 0%, 100% { opacity: .3; } 50% { opacity: .85; } }
