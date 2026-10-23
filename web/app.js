@@ -160,6 +160,8 @@
     });
 
     commLayer = el('g', { 'class': 'comms' }, map);
+    frontLayer = el('g', { 'class': 'front' }, map);
+    paintFront();
     var go = el('g', { 'class': 'oblasts' }, map);
     geo.oblasts.forEach(function (o) { oblastEls[o.name] = el('path', { d: o.d, 'class': 'oblast' }, go); });
     homeOblastEl = el('path', { d: '', 'class': 'home-oblast' }, map);
@@ -264,6 +266,24 @@
   var DELTA = SHAHED;
 
   var commLayer, commKey = '';
+  // ---------- front line (DeepStateMAP) as an alternative map layer ----------
+  var frontLayer = null, frontData = null;
+  function mapLayer() { try { return localStorage.getItem('tv-maplayer') || 'alerts'; } catch (e) { return 'alerts'; } }
+  function applyMapLayer() {
+    var front = mapLayer() === 'front';
+    document.body.classList.toggle('map-front', front);
+    var c = document.querySelector('.credit');
+    if (c) c.textContent = front ? 'лінія фронту: DeepStateMAP · цілі: NEPTUN · neptun.in.ua' : 'тривоги: ukrainealarm.com · цілі: NEPTUN · neptun.in.ua';
+    if (front && !frontData) loadFront();
+  }
+  function loadFront() {
+    getJSON('https://tvhome.pichkur.com/api/public/frontline', function (err, d) { if (!err && d && d.occupied) { frontData = d; paintFront(); } });
+  }
+  function paintFront() {
+    if (!frontLayer || !frontData) return;
+    frontLayer.innerHTML = '<path class="gray" d="' + frontData.gray + '"/><path class="occ" d="' + frontData.occupied + '"/>';
+  }
+  setInterval(function () { if (mapLayer() === 'front') loadFront(); }, 30 * 60000);
   function paintAlerts() {
     var al = data.alerts || {};
     var st = al.states || {}, ds = al.districts || {}, cm = al.communities || {};
@@ -569,7 +589,7 @@
       paint(); paintBackground();
     });
   }
-  getJSON('ukraine.json', function (err, g) { if (!err) { geo = g; drawMap(); paint(); } });
+  getJSON('ukraine.json', function (err, g) { if (!err) { geo = g; drawMap(); applyMapLayer(); paint(); } });
   poll();
   // 01:00–07:00: data every 30 s instead of 5 s and no ambient motion (radar ping, glint)
   function isNight() { var h = new Date().getHours(); return h >= 1 && h < 7; }
@@ -929,6 +949,7 @@
     $('set-layout').textContent = layoutName();
     $('set-bg').textContent = bgName();
     $('set-map3d').textContent = map3d() ? '3D' : '2D';
+    $('set-maplayer').textContent = mapLayer() === 'front' ? 'лінія фронту (DeepState)' : 'тривоги';
     $('set-notchmap').textContent = TV && TV.notchMap && TV.notchMap() ? 'увімк.' : 'вимк.';
     paintUpdate();
     var list = dockList(), byPkg = {};
@@ -954,10 +975,17 @@
       $('set-notchmap').textContent = TV && TV.notchMap && TV.notchMap() ? 'увімк.' : 'вимк.';
       return;
     }
+    if (kind === 'maplayer') {
+      try { localStorage.setItem('tv-maplayer', mapLayer() === 'front' ? 'alerts' : 'front'); } catch (e) {}
+      applyMapLayer();
+      $('set-maplayer').textContent = mapLayer() === 'front' ? 'лінія фронту (DeepState)' : 'тривоги';
+      return;
+    }
     if (kind === 'map3d') {
       try { localStorage.setItem('tv-map3d', map3d() ? '0' : '1'); } catch (e) {}
       document.body.classList.toggle('map-3d', map3d());
       $('set-map3d').textContent = map3d() ? '3D' : '2D';
+    $('set-maplayer').textContent = mapLayer() === 'front' ? 'лінія фронту (DeepState)' : 'тривоги';
       return;
     }
     if (kind === 'bg') {
@@ -967,6 +995,7 @@
       bgPhase = null; paintBackground();
       $('set-bg').textContent = bgName();
     $('set-map3d').textContent = map3d() ? '3D' : '2D';
+    $('set-maplayer').textContent = mapLayer() === 'front' ? 'лінія фронту (DeepState)' : 'тривоги';
     paintUpdate();
       return;
     }

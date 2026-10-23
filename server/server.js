@@ -228,6 +228,41 @@ every('news', 10 * 60_000, async () => {
   throw lastError;
 });
 
+// ---- front line (DeepStateMAP, attribution «DeepStateMAP»): fetched once per 30 min, projected and
+// simplified here so every TV gets a small ready-to-draw payload instead of hitting DeepState itself.
+const DS_COS = Math.cos(48.5 * Math.PI / 180);
+const dsProj = (lon, lat) => [(lon - 22) * 60 * DS_COS, (52.45 - lat) * 60];
+function dsKind(name) {
+  const n = String(name ?? '');
+  if (/Unknown status|Статус невідомий/i.test(n)) return 'gray';
+  if (/Liberated|Звільнен/i.test(n)) return null;
+  if (/Occupied|Окупован|CADR|CALR|ОРДЛО|Crimea|Крим/i.test(n) && !/Transnistria|Tskhinvali|Abkhazia|Prussia|Karelia/i.test(n)) return 'occupied';
+  return null;
+}
+every('frontline', 30 * 60_000, async () => {
+  const d = await getJson('https://deepstatemap.live/api/history/last', 30_000);
+  const out = { occupied: [], gray: [] };
+  for (const f of d.map?.features ?? []) {
+    if (f.geometry?.type !== 'Polygon' && f.geometry?.type !== 'MultiPolygon') continue;
+    const kind = dsKind(f.properties?.name);
+    if (!kind) continue;
+    const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+    for (const poly of polys) {
+      const ring = poly[0];
+      let last = null, dd = '';
+      for (const [lon, lat] of ring) {
+        if (lon < 21 || lon > 41.5 || lat < 44 || lat > 53) continue;
+        const [x, y] = dsProj(lon, lat);
+        if (last && Math.hypot(x - last[0], y - last[1]) < 0.8) continue;
+        dd += (dd ? 'L' : 'M') + x.toFixed(1) + ',' + y.toFixed(1);
+        last = [x, y];
+      }
+      if (dd.split('L').length > 3) out[kind].push(dd + 'Z');
+    }
+  }
+  state.frontline = { updated: d.datetime ?? null, occupied: out.occupied.join(''), gray: out.gray.join('') };
+});
+
 every('fallback', 30_000, async () => {
   const d = await getJson('https://ubilling.net.ua/aerialalerts/');
   state.fallback = d.states ?? null;
@@ -412,6 +447,10 @@ http
       testAlert = st === 'on' ? { until: Date.now() + 120_000, city: { active: true, since: new Date().toISOString(), level: 'red', reasons: ['Тест сповіщення'] } }
         : st === 'off' ? { until: Date.now() + 120_000, city: { active: false } } : null;
       return res.end('ok ' + (st ?? 'auto'));
+    }
+    if (url.pathname === '/api/public/frontline') {
+      res.writeHead(state.frontline ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=600', 'Access-Control-Allow-Origin': '*' });
+      return res.end(JSON.stringify(state.frontline ?? { error: 'no data yet' }));
     }
     if (url.pathname === '/api/public/alerts') {
       // Public (through the Cloudflare tunnel): official ukrainealarm alerts by oblast/district/community,

@@ -434,3 +434,13 @@ body.map-3d.map-zoomed .map-wrap { animation: orbit 16s ease-in-out infinite; }
 body.night.map-3d.map-zoomed .map-wrap { animation: none; }
 
 body.lite .full-only { display: none !important; }
+
+/* front line layer (DeepStateMAP): occupied red, "unknown status" grey; alert fills hidden */
+.map .front { display: none; pointer-events: none; }
+body.map-front .map .front { display: inline; }
+body.map-front .map .comms { display: none; }
+body.map-front .map .raion.alert, body.map-front .map .raion.red, body.map-front .map .raion.long { fill: #232d3b; stroke: #18202b; }
+body.map-front.bg-streets .map .raion.alert, body.map-front.bg-streets .map .raion.red, body.map-front.bg-streets .map .raion.long { fill: #0f1828; stroke: rgba(255,255,255,.08); }
+.map .front .occ { fill: rgba(214,52,44,.62); stroke: #ff6b5e; stroke-width: 1.4; stroke-linejoin: round; }
+.map .front .gray { fill: rgba(190,175,165,.32); stroke: rgba(220,205,195,.6); stroke-width: .8; stroke-dasharray: 3 2; }
+body.theme-paper.map-front .map .raion.alert, body.theme-paper.map-front .map .raion.red, body.theme-paper.map-front .map .raion.long { fill: #d8d0c1; }
