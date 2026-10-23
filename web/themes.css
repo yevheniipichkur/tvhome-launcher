@@ -105,3 +105,5 @@ body.theme-paper .tile.cont { background-color: #e2dacd; }
 body.theme-paper .tile.cont .cont-shade { background: linear-gradient(90deg, rgba(246,242,234,.95), rgba(246,242,234,.7) 60%, rgba(246,242,234,.3)); }
 body.theme-paper .tile.cont .cont-title { color: #1f1d1a; }
 body.theme-paper .tile.cont .cont-tag { color: #b8441f; }
+
+/* backgrounds also work in «Північ», «Карпати» and «Термінал» only when chosen explicitly (not auto) */

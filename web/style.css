@@ -355,3 +355,14 @@ body.compact .pl-btn.big { width: 76px; height: 76px; }
 .set-row.app b { font-size: 17px; font-weight: 500; color: var(--dim); }
 .set-row.app.on b { color: var(--green); }
 .set-row.app.focus b { color: #24603d; }
+
+/* richer backgrounds: full-strength sky layer, lighter vignette */
+.sky-bg .layer.on { opacity: 1; }
+.sky-bg::after { background: radial-gradient(140% 120% at 35% 35%, transparent 55%, rgba(0,0,0,.45) 100%); }
+/* let the background colour through the panels */
+.sky { background: linear-gradient(180deg, rgba(6,10,18,.45), rgba(6,10,18,.62)); border-color: rgba(255,255,255,.1); }
+.dock { background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.18)); }
+.player { background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(0,0,0,.15)); }
+.status:not(.on) { background: rgba(95,211,141,.1); }
+.map .raion:not(.alert):not(.red):not(.long) { fill: rgba(16,22,34,.82); stroke: rgba(255,255,255,.06); }
+.map .raions.base .raion:not(.alert):not(.red):not(.long) { fill: rgba(16,22,34,.82); }

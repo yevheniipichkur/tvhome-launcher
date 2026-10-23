@@ -795,6 +795,7 @@
   function renderSettings() {
     $('set-city').textContent = cityName();
     $('set-layout').textContent = layoutName();
+    $('set-bg').textContent = bgName();
     var list = dockList(), byPkg = {};
     apps.forEach(function (a) { byPkg[a.pkg] = a; });
     var on = list.filter(function (p) { return byPkg[p]; });
@@ -813,6 +814,14 @@
   }
   function settingsAct(row, dir) {
     var kind = row.getAttribute('data-set');
+    if (kind === 'bg') {
+      var bi = BG_CHOICES.indexOf(bgChoice());
+      var nb = BG_CHOICES[(bi + (dir || 1) + BG_CHOICES.length) % BG_CHOICES.length];
+      try { localStorage.setItem('tv-bg', nb); } catch (e) {}
+      bgPhase = null; paintBackground();
+      $('set-bg').textContent = bgName();
+      return;
+    }
     if (kind === 'theme') {
       var ti = 0;
       THEMES.forEach(function (t, j) { if (t.id === themeId()) ti = j; });
@@ -898,13 +907,21 @@
 
   // ---------- time-of-day background ----------
   // Palettes stay dark so text and the map keep their contrast.
+  // Backgrounds: rich, saturated but dark enough for white text. "auto" follows the sun in the chosen city.
   var PHASES = {
-    night:  { bg: 'radial-gradient(140% 90% at 70% -10%, #23305a 0%, transparent 60%), linear-gradient(180deg, #121830 0%, #161a28 55%, #17181d 100%)', g1: 'rgba(90,110,210,.20)', g2: 'rgba(160,90,200,.10)', stars: true },
-    dawn:   { bg: 'radial-gradient(120% 80% at 30% 120%, #9a4e3c 0%, transparent 60%), linear-gradient(180deg, #2a2a48 0%, #4a3346 55%, #6b3d38 100%)', g1: 'rgba(255,150,110,.24)', g2: 'rgba(200,120,180,.14)' },
-    day:    { bg: 'radial-gradient(130% 90% at 75% -20%, #3d5670 0%, transparent 60%), linear-gradient(180deg, #2b3644 0%, #2a2f37 55%, #25272b 100%)', g1: 'rgba(150,190,230,.16)', g2: 'rgba(217,119,87,.10)' },
-    golden: { bg: 'radial-gradient(120% 80% at 80% 115%, #a0602e 0%, transparent 60%), linear-gradient(180deg, #33302f 0%, #4a3527 55%, #5e3a24 100%)', g1: 'rgba(255,170,90,.24)', g2: 'rgba(217,119,87,.16)' },
-    dusk:   { bg: 'radial-gradient(120% 80% at 20% 115%, #7a3348 0%, transparent 60%), linear-gradient(180deg, #1d1d38 0%, #2f2240 55%, #432a3c 100%)', g1: 'rgba(220,110,150,.20)', g2: 'rgba(110,100,210,.14)', stars: true },
+    night:  { name: 'Ніч', bg: 'radial-gradient(90% 70% at 78% 8%, #23409a 0%, transparent 62%), radial-gradient(80% 70% at 8% 100%, #3a1d6e 0%, transparent 60%), linear-gradient(180deg, #08102c 0%, #0a1233 55%, #0c0f26 100%)', stars: true },
+    dawn:   { name: 'Світанок', bg: 'radial-gradient(100% 70% at 30% 110%, #e0663f 0%, transparent 58%), radial-gradient(80% 60% at 85% 0%, #5b2a7e 0%, transparent 60%), linear-gradient(180deg, #1c1240 0%, #3d1a4e 55%, #6a2a3a 100%)' },
+    day:    { name: 'День', bg: 'radial-gradient(90% 70% at 80% 0%, #2a7bd0 0%, transparent 60%), radial-gradient(70% 60% at 0% 100%, #0e6b78 0%, transparent 60%), linear-gradient(180deg, #0b2f5c 0%, #0b2547 55%, #0a1a33 100%)' },
+    golden: { name: 'Золото', bg: 'radial-gradient(100% 70% at 85% 110%, #e88a2a 0%, transparent 58%), radial-gradient(70% 60% at 10% 0%, #7a2f1a 0%, transparent 60%), linear-gradient(180deg, #2a140c 0%, #4a2210 55%, #6a3412 100%)' },
+    dusk:   { name: 'Сутінки', bg: 'radial-gradient(100% 70% at 20% 110%, #c23a6b 0%, transparent 58%), radial-gradient(80% 60% at 90% 0%, #3b2a9a 0%, transparent 60%), linear-gradient(180deg, #120f3a 0%, #2a1550 55%, #451a48 100%)', stars: true },
+    aurora: { name: 'Сяйво', bg: 'radial-gradient(60% 50% at 25% 15%, #13a37a 0%, transparent 65%), radial-gradient(60% 55% at 70% 25%, #5a3ec8 0%, transparent 65%), radial-gradient(70% 60% at 50% 110%, #0b4f6c 0%, transparent 60%), linear-gradient(180deg, #04121c 0%, #061826 60%, #050d18 100%)', stars: true },
+    ocean:  { name: 'Океан', bg: 'radial-gradient(90% 70% at 15% 0%, #0a8fb0 0%, transparent 60%), radial-gradient(80% 60% at 100% 100%, #1d3fa8 0%, transparent 60%), linear-gradient(180deg, #03243a 0%, #042b44 55%, #031a2c 100%)' },
+    wine:   { name: 'Вино', bg: 'radial-gradient(90% 70% at 80% 0%, #a3204a 0%, transparent 60%), radial-gradient(70% 60% at 0% 100%, #5a1a6a 0%, transparent 60%), linear-gradient(180deg, #24081a 0%, #300a22 55%, #1c0614 100%)' },
+    black:  { name: 'Чорний', bg: '#000' },
   };
+  var BG_CHOICES = ['auto', 'night', 'dawn', 'day', 'golden', 'dusk', 'aurora', 'ocean', 'wine', 'black'];
+  function bgChoice() { try { return localStorage.getItem('tv-bg') || 'auto'; } catch (e) { return 'auto'; } }
+  function bgName() { var c = bgChoice(); return c === 'auto' ? 'Авто · за сонцем' : PHASES[c].name; }
   function phaseNow() {
     var w = data && data.weather;
     var now = Date.now();
@@ -918,7 +935,7 @@
   }
   var bgPhase = null, bgFront = 'bg-a';
   function paintBackground() {
-    var ph = phaseNow();
+    var ph = bgChoice() === 'auto' ? phaseNow() : bgChoice();
     document.body.classList.toggle('danger', !!(data && data.alerts && data.alerts.city && data.alerts.city.active));
     if (ph === bgPhase) return;
     var P2 = PHASES[ph];
@@ -927,8 +944,6 @@
     $(back).classList.add('on');
     $(bgFront).classList.remove('on');
     bgFront = back;
-    document.documentElement.style.setProperty('--glow1', P2.g1);
-    document.documentElement.style.setProperty('--glow2', P2.g2);
     $('stars').classList.toggle('on', !!P2.stars);
     document.body.setAttribute('data-phase', ph);
     bgPhase = ph;
