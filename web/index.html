@@ -19,7 +19,7 @@
     <section class="left">
       <div class="kicker">
         <span class="greet"><span class="spark"></span><span id="welcome-typed">Добрий вечір</span><span class="tcur"></span></span>
-        <span class="net" id="net"><svg viewBox="0 0 24 24" class="net-ico"><rect class="b1" x="3" y="15" width="3.6" height="5" rx="1.2"/><rect class="b2" x="10.2" y="10.5" width="3.6" height="9.5" rx="1.2"/><rect class="b3" x="17.4" y="5" width="3.6" height="15" rx="1.2"/></svg><span id="net-name">Wi‑Fi</span></span>
+        <span class="net" id="net"><svg viewBox="0 0 24 24" class="net-ico"><rect class="b1" x="3" y="15" width="3.6" height="5" rx="1.2"/><rect class="b2" x="10.2" y="10.5" width="3.6" height="9.5" rx="1.2"/><rect class="b3" x="17.4" y="5" width="3.6" height="15" rx="1.2"/></svg><span id="net-name">Wi‑Fi</span><span id="net-state"></span></span>
       </div>
       <div class="hero">
         <div class="clock" id="clock">--:--</div>
@@ -108,6 +108,8 @@
   </main>
 
   <footer class="dock" id="dock" aria-label="Програми"></footer>
+  <div class="move-hint" id="move-hint" hidden>◀ ▶ перемістити · ОК — готово</div>
+  <div class="appmenu" id="appmenu" hidden><div class="am-box"><div class="am-head"><span class="am-ic" id="am-ic"></span><b id="am-name"></b></div><div id="am-rows"></div><div class="am-hint">▲ ▼ вибір · ОК · Назад — закрити</div></div></div>
 
   <div class="wizard" id="wizard" hidden><div class="wizard-box" id="wizard-box"></div></div>
 
@@ -124,6 +126,8 @@
         <button class="set-row" data-set="map3d"><span class="nm">Карта</span><b id="set-map3d">3D</b><i>ОК</i></button>
         <button class="set-row full-only" data-set="notchmap"><span class="nm">Карта в сповіщенні про тривогу</span><b id="set-notchmap">вимк.</b><i>ОК</i></button>
         <button class="set-row" data-set="layout"><span class="nm">Макет</span><b id="set-layout">Класика</b><i>◀ ▶</i></button>
+        <button class="set-row" data-set="speed"><span class="nm">Інтернет</span><b id="set-net">перевірити швидкість</b><i>ОК</i></button>
+        <button class="set-row" data-set="season"><span class="nm">Святкове оформлення</span><b id="set-season">авто</b><i>ОК</i></button>
         <button class="set-row" data-set="update"><span class="nm">Оновлення</span><b id="set-update">перевіряю…</b></button>
         <button class="set-row" data-set="android"><span class="nm">Налаштування Android</span><b>›</b></button>
         <p class="set-note">Місто визначає погоду, схід сонця, тривоги «у моєму місті», плашку поверх програм і позначку на карті.</p>

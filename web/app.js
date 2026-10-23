@@ -108,6 +108,30 @@
     if (dt.getMonth() === 10 && dt.getDay() === 6 && dt.getDate() >= 22 && dt.getDate() <= 28) return 'День пам’яті жертв голодоморів';
     return null;
   }
+  function seasonOn() { try { return localStorage.getItem('tv-season') !== '0'; } catch (e) { return true; } }
+  function seasonNow() {
+    var m = /[?&]season=(\w+)/.exec(location.search);
+    if (m) return m[1];
+    if (!seasonOn()) return '';
+    var d = new Date(), md = (d.getMonth() + 1) * 100 + d.getDate();
+    if (md >= 1219 || md <= 107) return 'newyear';
+    if ([122, 628, 715, 823, 824].indexOf(md) >= 0) return 'ukraine';
+    return '';
+  }
+  function paintSeason() {
+    var s2 = seasonNow();
+    document.body.classList.toggle('season-newyear', s2 === 'newyear');
+    document.body.classList.toggle('season-ukraine', s2 === 'ukraine');
+    var dock = $('dock'), g = $('garland');
+    if (s2 === 'newyear' && dock && !g) {
+      g = document.createElement('div'); g.id = 'garland'; g.className = 'garland';
+      var h = '<svg viewBox="0 0 1000 30" preserveAspectRatio="none"><path d="M0 4 Q 25 22 50 4 T 100 4 T 150 4 T 200 4 T 250 4 T 300 4 T 350 4 T 400 4 T 450 4 T 500 4 T 550 4 T 600 4 T 650 4 T 700 4 T 750 4 T 800 4 T 850 4 T 900 4 T 950 4 T 1000 4"/></svg>';
+      for (var i = 0; i < 20; i++) h += '<i style="left:' + (2.5 + i * 5) + '%;animation-delay:' + (i % 4 * 0.6) + 's" class="c' + (i % 4) + '"></i>';
+      g.innerHTML = h;
+      dock.appendChild(g);
+    } else if (s2 !== 'newyear' && g) g.parentNode.removeChild(g);
+  }
+  setInterval(paintSeason, 3600e3);
   function cityInfo() { return (data && data.cityInfo) || { name: 'Львів', loc: 'у Львові', lat: 49.8397, lon: 24.0297, oblast: 'Львівська область', state: '27', district: '90', community: '845' }; }
   function cityName() { return cityInfo().name; }
   function cap(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
@@ -925,6 +949,8 @@
       dock.appendChild(el2);
     });
     paintWifi();
+    paintSeason();
+    if (netState !== 'ok') setNet(netState);
   }
   // One thin, rounded icon set (Lucide-style geometry, 24 px grid, 1.7 stroke).
   var SYS = [
@@ -972,6 +998,7 @@
     if (z === 'dock') return $('track') ? $('track').children : [];
     if (z === 'wizard') return document.querySelectorAll('#wizard .wz-row');
     if (z === 'settings') return document.querySelectorAll('#settings .set-row');
+    if (z === 'appmenu') return document.querySelectorAll('#appmenu .am-row');
     if (z === 'player') return Array.prototype.filter.call(document.querySelectorAll('#player .pl-btn'), function (b) { return b.offsetParent !== null; });
     return $('grid').children;
   }
@@ -1117,12 +1144,22 @@
     var steps = [
       { t: 'Вітаю у «Вітальні»', b: 'Головний екран для телевізора: годинник, погода, тривоги й небо над Україною. Налаштуємо за хвилину.', btn: 'Почати' },
       { t: 'Ваше місто', b: 'Від міста залежать погода, схід сонця, тривоги «у моєму місті» й позначка на карті.', city: true, btn: 'Далі' },
+      { t: 'Головний екран', b: 'Щоб кнопка «Додому» на пульті відкривала «Вітальню», зробіть її головним екраном.', home: true, btn: 'Вибрати головний екран' },
       { t: 'Тривоги поверх фільмів', b: 'Щоб під час тривоги поверх YouTube чи фільму з’являлося повідомлення, а кнопка «Додому» поверталася сюди, увімкніть «Вітальня» у Спеціальних можливостях.', a11y: true, btn: 'Відкрити налаштування' },
       { t: 'Готово', b: 'Полиця з програмами внизу. Шестерня — налаштування: тема, фон, макет, місто й порядок програм.', btn: 'Почати користуватися' },
     ];
-    if (TV && TV.isLite && TV.isLite()) steps = steps.filter(function (x) { return !x.a11y; });
+    var lite = TV && TV.isLite && TV.isLite();
+    if (lite) steps = steps.filter(function (x) { return !x.a11y; });
+    // already the home screen (or no bridge in a browser preview): no need to ask
+    // decided once per wizard run, so the step list doesn't shift after the user picks the home screen
+    if (wiz.askHome == null) wiz.askHome = !!(TV && TV.isDefaultHome && !TV.isDefaultHome());
+    if (!wiz.askHome) steps = steps.filter(function (x) { return !x.home; });
+    // the full edition brings Home back through Accessibility anyway, so the step is only a nicety there
+    else if (!lite) steps.forEach(function (x) { if (x.home) x.b += ' Якщо приставка не дасть вибрати — нічого страшного: на наступному кроці «Вітальня» сама повертатиме кнопку «Додому».'; });
     wiz.max = steps.length - 1;
     var st = steps[wiz.step];
+    wiz.cur = st;
+    if (st.home && TV && TV.isDefaultHome && TV.isDefaultHome()) { st.b = '✓ «Вітальня» — головний екран.'; st.btn = 'Далі'; st.homeDone = true; }
     var html = '<div class="wz-dots">' + steps.map(function (x, i) { return '<i class="' + (i === wiz.step ? 'on' : '') + '"></i>'; }).join('') + '</div>' +
       '<h1></h1><p></p>';
     if (st.city) html += '<button class="set-row wz-row" data-wz="city"><span class="nm">Місто</span><b>' + cityName() + '</b><i>◀ ▶</i></button>';
@@ -1132,7 +1169,8 @@
       if (on) st.btn = 'Далі';
     }
     html += '<button class="set-row wz-row wz-main" data-wz="next"><span class="nm"></span><b>›</b></button>';
-    if (st.a11y) html += '<button class="set-row wz-row" data-wz="skip"><span class="nm">Пропустити</span></button>';
+    if (st.home && wiz.homeTried) html = html.replace('<button class="set-row wz-row wz-main"', '<div class="wz-state">' + (lite ? 'Ця приставка не дає змінити головний екран. Відкривайте «Вітальню» з полиці програм або встановіть повну версію з сайту — вона повертає кнопку «Додому» сама.' : 'Приставка не дала вибрати — увімкніть «Вітальню» на наступному кроці.') + '</div><button class="set-row wz-row wz-main"');
+    if (st.a11y || st.home) html += '<button class="set-row wz-row" data-wz="skip"><span class="nm">' + (st.home && wiz.homeTried ? 'Далі' : 'Пропустити') + '</span></button>';
     var box = $('wizard-box');
     box.innerHTML = html;
     box.querySelector('h1').textContent = st.t;
@@ -1148,7 +1186,8 @@
     if (kind === 'skip') { wiz.step++; renderWizard(); return; }
     if (kind === 'next') {
       var lite = TV && TV.isLite && TV.isLite();
-      if (!lite && wiz.step === 2 && !(TV && TV.a11yEnabled && TV.a11yEnabled())) { if (TV && TV.openSettings) TV.openSettings('accessibility'); return; }
+      if (!lite && wiz.cur && wiz.cur.a11y && !(TV && TV.a11yEnabled && TV.a11yEnabled())) { if (TV && TV.openSettings) TV.openSettings('accessibility'); return; }
+      if (wiz.cur && wiz.cur.home && !wiz.cur.homeDone && TV && TV.chooseHome) { TV.chooseHome(); wiz.homeTried = true; setTimeout(renderWizard, 2500); return; }
       if (wiz.step === wiz.max) { try { localStorage.setItem('tv-setup-done', '1'); } catch (e) {} $('wizard').hidden = true; zone = 'dock'; idx.dock = 0; render(); return; }
       wiz.step++; idx.wizard = 0; renderWizard();
     }
@@ -1196,6 +1235,8 @@
     paintPowerSetting();
     $('set-maplayer').textContent = MAP_LAYER_NAME[mapLayer()];
     $('set-team').textContent = teamName();
+    paintSpeedSetting();
+    $('set-season').textContent = seasonOn() ? 'авто' : 'вимк.';
     $('set-notchmap').textContent = TV && TV.notchMap && TV.notchMap() ? 'увімк.' : 'вимк.';
     paintUpdate();
     var list = dockList(), byPkg = {};
@@ -1219,6 +1260,13 @@
     if (kind === 'notchmap') {
       if (TV && TV.setNotchMap) TV.setNotchMap(!TV.notchMap());
       $('set-notchmap').textContent = TV && TV.notchMap && TV.notchMap() ? 'увімк.' : 'вимк.';
+      return;
+    }
+    if (kind === 'speed') { speedTest(); return; }
+    if (kind === 'season') {
+      try { localStorage.setItem('tv-season', seasonOn() ? '0' : '1'); } catch (e) {}
+      $('set-season').textContent = seasonOn() ? 'авто' : 'вимк.';
+      paintSeason();
       return;
     }
     if (kind === 'team') {
@@ -1307,11 +1355,98 @@
   }
 
   var COLS = 6;
+  // ---------- app menu: hold OK (or press Menu) on an app → open / move / shelf / info / uninstall ----------
+  var press = null, moving = null, menuFor = null, menuFrom = null;
+  function appOf(pkg) { for (var i = 0; i < apps.length; i++) if (apps[i].pkg === pkg) return apps[i]; return null; }
+  function openAppMenu(elm) {
+    var pkg = elm && elm.getAttribute('data-pkg');
+    var a = pkg && appOf(pkg);
+    if (!a) return;
+    menuFor = pkg; menuFrom = zone;
+    var onShelf = dockList().indexOf(pkg) >= 0;
+    var rows = [['open', 'Відкрити']];
+    if (onShelf && zone === 'dock') rows.push(['move', 'Перемістити']);
+    rows.push(onShelf ? ['unshelf', 'Прибрати з полиці'] : ['shelf', 'Додати на полицю']);
+    rows.push(['info', 'Інформація про програму']);
+    if (!a.sys && TV && TV.uninstall) rows.push(['uninstall', 'Видалити']);
+    var pic = a.icon || a.banner || '';
+    $('am-ic').style.backgroundImage = pic ? 'url(' + pic + ')' : '';
+    $('am-name').textContent = a.label;
+    $('am-rows').innerHTML = rows.map(function (r) { return '<button class="set-row am-row' + (r[0] === 'uninstall' ? ' danger' : '') + '" data-am="' + r[0] + '"><span class="nm">' + r[1] + '</span></button>'; }).join('');
+    $('appmenu').hidden = false;
+    zone = 'appmenu'; idx.appmenu = 0; render();
+    SOUND.open();
+  }
+  function closeAppMenu() { $('appmenu').hidden = true; zone = menuFrom || 'dock'; render(); }
+  function appMenuAct(kind) {
+    var pkg = menuFor, list = dockList().slice();
+    closeAppMenu();
+    if (kind === 'open') { var t = document.querySelector('.focus'); if (t) activate(t); }
+    else if (kind === 'move') { moving = pkg; paintMoving(); }
+    else if (kind === 'shelf') { list.push(pkg); saveDock(list); buildDock(); render(); }
+    else if (kind === 'unshelf') { list.splice(list.indexOf(pkg), 1); saveDock(list); buildDock(); render(); }
+    else if (kind === 'info') { if (TV && TV.openSettings) TV.openSettings('app:' + pkg); }
+    else if (kind === 'uninstall') { if (TV && TV.uninstall) TV.uninstall(pkg); }
+  }
+  function paintMoving() {
+    var all = document.querySelectorAll('.tile.moving');
+    for (var i = 0; i < all.length; i++) all[i].classList.remove('moving');
+    $('move-hint').hidden = !moving;
+    if (!moving) return;
+    var t = document.querySelector('#track [data-pkg="' + moving + '"]');
+    if (t) t.classList.add('moving');
+  }
+  // Move mode: ◀ ▶ swap the app with its neighbour on the shelf, OK / Back / ▼ finish.
+  function moveKey(k, code) {
+    var list = dockList().slice(), at = list.indexOf(moving);
+    if (k === 'ArrowRight' || code === 22 || k === 'ArrowLeft' || code === 21) {
+      var to = at + (k === 'ArrowRight' || code === 22 ? 1 : -1);
+      if (at < 0 || to < 0 || to >= list.length) { SOUND.edge(); return; }
+      list.splice(at, 1); list.splice(to, 0, moving); saveDock(list);
+      buildDock();
+      var kids = $('track').children;
+      for (var i = 0; i < kids.length; i++) if (kids[i].getAttribute('data-pkg') === moving) idx.dock = i;
+      render(); paintMoving(); SOUND.move();
+      return;
+    }
+    if (k === 'Enter' || code === 13 || code === 23 || k === 'Escape' || k === 'Backspace' || k === 'GoBack' || code === 4 || code === 27 || k === 'ArrowDown' || code === 20 || k === 'ArrowUp' || code === 19) {
+      moving = null; paintMoving(); SOUND.back();
+    }
+  }
+  document.addEventListener('keyup', function (e) {
+    if (!press || !(e.key === 'Enter' || e.keyCode === 13 || e.keyCode === 23)) return;
+    clearTimeout(press.t);
+    var p = press; press = null;
+    e.preventDefault();
+    if (!p.long) { SOUND.open(); activate(p.el); }
+  });
   document.addEventListener('keydown', function (e) {
     var k = e.key || '';
     var code = e.keyCode;
     var list = items(zone);
     var before = zone + ':' + idx[zone];
+    if (zone === 'appmenu') {
+      var rows = items('appmenu');
+      if (k === 'ArrowDown' || code === 20) { idx.appmenu = Math.min(rows.length - 1, idx.appmenu + 1); SOUND.move(); }
+      else if (k === 'ArrowUp' || code === 19) { idx.appmenu = Math.max(0, idx.appmenu - 1); SOUND.move(); }
+      else if (k === 'Enter' || code === 13 || code === 23) { if (!e.repeat && !press) { var r = rows[idx.appmenu]; if (r) { SOUND.open(); appMenuAct(r.getAttribute('data-am')); } } }
+      else if (k === 'Escape' || k === 'Backspace' || k === 'GoBack' || code === 4 || code === 27) { SOUND.back(); closeAppMenu(); }
+      else return;
+      e.preventDefault(); if (zone === 'appmenu') render();
+      return;
+    }
+    if (moving) { e.preventDefault(); moveKey(k, code); return; }
+    var cur = list[idx[zone]];
+    var isApp = (zone === 'dock' || zone === 'grid') && cur && cur.getAttribute && cur.getAttribute('data-pkg');
+    if ((k === 'ContextMenu' || code === 82) && isApp) { e.preventDefault(); openAppMenu(cur); return; }
+    // OK on an app: a short press opens it on release, holding it ~0.55 s opens the menu
+    if ((k === 'Enter' || code === 13 || code === 23) && isApp) {
+      e.preventDefault();
+      if (press) return;
+      press = { el: cur, long: false };
+      press.t = setTimeout(function () { if (press) { press.long = true; openAppMenu(press.el); } }, 550);
+      return;
+    }
     if (zone === 'wizard') {
       var wr = wizardKey(k, code);
       if (!wr) return;
@@ -1350,6 +1485,8 @@
     }
   });
   document.addEventListener('click', function (e) {
+    var am = e.target.closest ? e.target.closest('[data-am]') : null;
+    if (am) { appMenuAct(am.getAttribute('data-am')); return; }
     var t = e.target.closest ? e.target.closest('[data-pkg],[data-action],[data-intent],[data-media]') : null;
     if (t) activate(t);
   });
@@ -1407,6 +1544,7 @@
       else Scene.clear(sc);
     }
     document.body.classList.toggle('bg-streets', choice === 'streets');
+    document.body.setAttribute('data-sun', phaseNow());
     paintWeatherFx();
     if (ph === bgPhase) return;
     var P2 = PHASES[ph];
@@ -1455,6 +1593,66 @@
   }
   paintWifi();
   setInterval(paintWifi, 10000);
+
+  // Is the internet actually there (not just Wi-Fi)? A tiny request every minute: slow → amber, none → red.
+  var netState = 'ok', netMs = 0;
+  function checkNet() {
+    if (document.body.classList.contains('bg-paused')) return;
+    var t0 = Date.now(), done = false;
+    var fin = function (st) { if (done) return; done = true; netMs = Date.now() - t0; setNet(st === 'off' ? 'off' : netMs > 1500 ? 'slow' : 'ok'); };
+    setTimeout(function () { fin('off'); }, 8000);
+    try { fetch('https://www.gstatic.com/generate_204?t=' + t0, { mode: 'no-cors', cache: 'no-store' }).then(function () { fin('ok'); }, function () { fin('off'); }); }
+    catch (e) { fin('off'); }
+  }
+  function setNet(st) {
+    netState = st;
+    var net = $('net');
+    net.classList.toggle('net-slow', st === 'slow');
+    net.classList.toggle('net-off', st === 'off');
+    var w = document.querySelector('.sys[data-action=wifi]');
+    if (w) { w.classList.toggle('net-slow', st === 'slow'); w.classList.toggle('net-off', st === 'off'); }
+    var tag = $('net-state');
+    if (tag) tag.textContent = st === 'off' ? ' · без інтернету' : st === 'slow' ? ' · повільний інтернет' : '';
+  }
+  setInterval(checkNet, 60000);
+  setTimeout(checkNet, 4000);
+
+  // Speed test (Settings → Інтернет): ping = best of 3 tiny requests, then a download sized to take ~3 s.
+  var speedBusy = false;
+  function speedTest() {
+    if (speedBusy) return;
+    speedBusy = true;
+    var el = $('set-net'), base = 'https://speed.cloudflare.com/__down?bytes=';
+    el.textContent = 'вимірюю пінг…';
+    var pings = [];
+    var ping = function (n) {
+      if (!n) return Promise.resolve();
+      var t0 = performance.now();
+      return fetch(base + '0&r=' + Math.random(), { cache: 'no-store' }).then(function (r) { return r.arrayBuffer(); }).then(function () { pings.push(performance.now() - t0); return ping(n - 1); });
+    };
+    var down = function (bytes) {
+      var t0 = performance.now();
+      return fetch(base + bytes + '&r=' + Math.random(), { cache: 'no-store' }).then(function (r) { return r.arrayBuffer(); }).then(function (b) { return { bytes: b.byteLength, s: (performance.now() - t0) / 1000 }; });
+    };
+    ping(3).then(function () {
+      el.textContent = 'вимірюю швидкість…';
+      return down(2e6);
+    }).then(function (r1) {
+      var mbps = r1.bytes * 8 / r1.s / 1e6;
+      var big = Math.min(100e6, Math.max(5e6, Math.round(mbps * 1e6 / 8 * 3)));
+      return down(big);
+    }).then(function (r2) {
+      var mbps = r2.bytes * 8 / r2.s / 1e6, p = Math.round(Math.min.apply(null, pings));
+      var txt = '↓ ' + (mbps >= 10 ? Math.round(mbps) : mbps.toFixed(1)) + ' Мбіт/с · пінг ' + p + ' мс';
+      el.textContent = txt;
+      try { localStorage.setItem('tv-speed', txt + ' · ' + new Date().toLocaleDateString('uk-UA')); } catch (e) {}
+      speedBusy = false;
+    }).catch(function () { el.textContent = 'не вдалося виміряти · немає інтернету?'; speedBusy = false; });
+  }
+  function paintSpeedSetting() {
+    var v = ''; try { v = localStorage.getItem('tv-speed') || ''; } catch (e) {}
+    if (!speedBusy) $('set-net').textContent = v ? v : 'перевірити швидкість';
+  }
 
   // ---------- mini player ----------
   function fmtTime(ms) {
@@ -1549,6 +1747,8 @@
   };
   // Called by the launcher with Back while the drawer is open.
   window.tvBack = function () {
+    if (!$('appmenu').hidden) { SOUND.back(); closeAppMenu(); return true; }
+    if (moving) { moving = null; paintMoving(); SOUND.back(); return true; }
     if (!$('drawer').hidden) { SOUND.back(); closeDrawer(); return true; }
     if (!$('settings').hidden) { SOUND.back(); closeSettings(); return true; }
     if (!$('wizard').hidden) { if (wiz.step > 0) { wiz.step--; renderWizard(); } return true; }

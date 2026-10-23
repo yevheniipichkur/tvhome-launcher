@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.database.Cursor;
@@ -407,6 +408,8 @@ public class MainActivity extends Activity {
                     o.put("pkg", pkg);
                     o.put("label", String.valueOf(e.getValue().loadLabel(pm)));
                     o.put("tv", leanback.containsKey(pkg));
+                    // preinstalled apps can't be removed, only disabled — the page hides «Видалити» for them
+                    o.put("sys", (ai.applicationInfo.flags & (ApplicationInfo.FLAG_SYSTEM | ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0);
                     String banner = imageCache.get("b:" + pkg);
                     String icon = imageCache.get("i:" + pkg);
                     if (banner == null && icon == null) {
@@ -453,8 +456,48 @@ public class MainActivity extends Activity {
                 else if ("accessibility".equals(what)) i = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
                 else if ("unknown-sources".equals(what)) i = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName()));
                 else if ("fallback".equals(what)) i = getPackageManager().getLaunchIntentForPackage(FALLBACK_LAUNCHER);
+                else if (what != null && what.startsWith("app:")) i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + what.substring(4)));
                 else i = new Intent(Settings.ACTION_SETTINGS);
                 if (i == null) i = new Intent(Settings.ACTION_SETTINGS);
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try {
+                    startActivity(i);
+                } catch (ActivityNotFoundException ignored) {
+                }
+            });
+        }
+
+        /** First-run wizard: is Вітальня what the system opens on Home? */
+        @JavascriptInterface
+        public boolean isDefaultHome() {
+            Intent h = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME);
+            ResolveInfo ri = getPackageManager().resolveActivity(h, PackageManager.MATCH_DEFAULT_ONLY);
+            return ri != null && ri.activityInfo != null && getPackageName().equals(ri.activityInfo.packageName);
+        }
+
+        /** Ask the system to pick the home screen: the Home settings page where the device has one,
+         *  otherwise the Home intent, which shows the "always" chooser when no default is set yet. */
+        @JavascriptInterface
+        public void chooseHome() {
+            ui.post(() -> {
+                Intent set = new Intent(Settings.ACTION_HOME_SETTINGS);
+                ResolveInfo ri = getPackageManager().resolveActivity(set, 0);
+                boolean stub = ri == null || ri.activityInfo == null || ri.activityInfo.name.contains("EmptyStub");
+                Intent i = stub ? new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME) : set;
+                i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                try {
+                    startActivity(i);
+                } catch (ActivityNotFoundException ignored) {
+                }
+            });
+        }
+
+        /** Long-press menu → «Видалити»: the system uninstall dialog asks the user to confirm. */
+        @JavascriptInterface
+        public void uninstall(String pkg) {
+            if (pkg == null || pkg.equals(getPackageName())) return;
+            ui.post(() -> {
+                Intent i = new Intent(Intent.ACTION_DELETE, Uri.parse("package:" + pkg));
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 try {
                     startActivity(i);

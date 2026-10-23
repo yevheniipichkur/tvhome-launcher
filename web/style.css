@@ -523,3 +523,42 @@ body.map-weather .wx-caption { display: block; }
 .date .hday { color: #ffc56b; }
 .date .hday.soon { color: inherit; opacity: .6; }
 .headline .news.live .ago { color: #ff6b5e; }
+
+/* app menu (hold OK on an app) */
+.appmenu { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; padding-bottom: 250px; background: rgba(4,7,14,.55); }
+.appmenu[hidden] { display: none; }
+.am-box { width: 560px; padding: 26px 26px 18px; border-radius: 30px; background: #121a26; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 30px 80px rgba(0,0,0,.6); animation: am-in .22s var(--ease-out); }
+@keyframes am-in { from { transform: translateY(18px); opacity: 0; } }
+.am-head { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.am-ic { width: 96px; height: 54px; border-radius: 12px; background: #1d2633 center / cover no-repeat; flex: none; }
+.am-head b { font-size: 26px; font-weight: 600; color: var(--ivory); }
+.am-row { width: 100%; margin-top: 8px; }
+.am-row.danger .nm { color: #ff8a80; }
+.am-hint { margin-top: 14px; font-size: 14px; color: var(--muted); text-align: center; }
+/* move mode: the tile lifts, arrows on both sides */
+.tile.moving { transform: scale(1.13) translateY(-14px) !important; box-shadow: 0 0 0 3px #fff, 0 24px 50px rgba(0,0,0,.7) !important; }
+.move-hint { position: fixed; left: 50%; bottom: 236px; transform: translateX(-50%); z-index: 50; padding: 10px 22px; border-radius: 999px; background: rgba(10,14,22,.85); border: 1px solid rgba(255,255,255,.18); font-size: 18px; color: var(--ivory); }
+.move-hint[hidden] { display: none; }
+
+/* internet state */
+.net.net-slow .net-ico { fill: #f3c66b; } .net.net-slow { color: #f3c66b; }
+.net.net-off .net-ico { fill: #ff6b5e; } .net.net-off { color: #ff8a80; }
+.sys.net-slow svg { stroke: #f3c66b; } .sys.net-off svg { stroke: #ff6b5e; }
+
+/* the street map at night: streets glow warm, like a city seen from above */
+body.bg-streets[data-sun="night"] .sky-bg .scene .sc-streets, body.bg-streets[data-sun="dusk"] .sky-bg .scene .sc-streets { filter: sepia(1) saturate(4) hue-rotate(-14deg) brightness(2.1); opacity: 1; }
+body.bg-streets[data-sun="night"] .sky-bg .scene::after, body.bg-streets[data-sun="dusk"] .sky-bg .scene::after { content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(45% 45% at 50% 50%, rgba(255,170,80,.10), transparent 70%); }
+
+/* seasons */
+.garland { position: absolute; left: 30px; right: 30px; top: 0; height: 30px; pointer-events: none; z-index: 3; }
+.garland svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.garland path { fill: none; stroke: rgba(255,255,255,.22); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.garland i { position: absolute; top: 9px; width: 9px; height: 12px; margin-left: -4px; border-radius: 50% 50% 45% 45%; animation: bulb 2.4s ease-in-out infinite alternate; }
+.garland i.c0 { background: #ff6b5e; box-shadow: 0 0 12px #ff6b5e; } .garland i.c1 { background: #ffd56b; box-shadow: 0 0 12px #ffd56b; }
+.garland i.c2 { background: #6bd7ff; box-shadow: 0 0 12px #6bd7ff; } .garland i.c3 { background: #7dff9b; box-shadow: 0 0 12px #7dff9b; }
+@keyframes bulb { from { opacity: .35; } to { opacity: 1; } }
+body.bg-paused .garland i { animation-play-state: paused; }
+body.season-ukraine { --amber: #ffd500; --amber-soft: #ffe566; --clay: #ffd500; }
+body.season-ukraine .dock { box-shadow: inset 0 3px 0 #0057b7, inset 0 6px 0 #ffd500; }
+body.season-ukraine .tile.focus { box-shadow: 0 0 0 3px #ffd500, 0 18px 40px rgba(0,0,0,.6), 0 0 70px rgba(0,87,183,.55); }
