@@ -1025,7 +1025,7 @@
       if (appInfo && appInfo.banner) glowFrom(m.pkg, appInfo.banner, pl, '--pl-accent');
       setTimeout(function () { var c = pl.style.getPropertyValue('--pl-accent'); if (c) pl.style.setProperty('--pl-accent-soft', c.replace(/,\s*[\d.]+\)$/, ',.22)')); }, 300);
     }
-    $('pl-app').textContent = m.live ? (m.app || 'плеєр') : 'продовжити · ' + (m.app || '');
+    $('pl-app').textContent = m.live ? (m.app || 'плеєр') : m.appOnly ? 'остання програма' : 'продовжити · ' + (m.app || '');
     $('pl-state').textContent = m.live ? (m.playing ? '▶ грає' : '❚❚ пауза') : 'ОК — відкрити';
     var sub = m.sub || '';
     if (m.duration > 0) sub = (sub ? sub + ' · ' : '') + fmtTime(m.position || 0) + ' / ' + fmtTime(m.duration);

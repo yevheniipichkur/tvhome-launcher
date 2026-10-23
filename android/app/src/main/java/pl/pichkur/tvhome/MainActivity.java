@@ -477,6 +477,24 @@ public class MainActivity extends Activity {
             }
             lastController = null;
             String last = prefs().getString("last_media", null); // kept by MediaListener in the background
+            // An app opened after that media (e.g. Lampa, which has no media session) wins.
+            String app = prefs().getString("last_app", null);
+            long appAt = prefs().getLong("last_app_at", 0);
+            try {
+                JSONObject lm = last != null ? new JSONObject(last) : new JSONObject();
+                if (app != null && !app.equals(lm.optString("pkg")) && appAt > lm.optLong("at", 0)) {
+                    JSONObject o = new JSONObject();
+                    o.put("live", false);
+                    o.put("playing", false);
+                    o.put("pkg", app);
+                    o.put("app", appLabel(app));
+                    o.put("title", appLabel(app));
+                    o.put("sub", "відкрито о " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(new java.util.Date(appAt)));
+                    o.put("appOnly", true);
+                    return o.toString();
+                }
+            } catch (Exception ignored) {
+            }
             return last != null ? last : "{}";
         }
 

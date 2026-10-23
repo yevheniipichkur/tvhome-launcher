@@ -72,12 +72,31 @@ public class HomeGuardService extends AccessibilityService {
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED || event.getPackageName() == null) return;
         String pkg = event.getPackageName().toString();
+        rememberApp(pkg);
         for (String s : STOCK) {
             if (s.equals(pkg)) {
                 goHome(this);
                 return;
             }
         }
+    }
+
+    // Apps without a media session (Lampa, TorrServe players…) never tell the system what plays:
+    // remember the last opened app so the home screen's player can offer to go back to it.
+    private final java.util.Map<String, Boolean> launchable = new java.util.HashMap<>();
+    private String lastApp;
+
+    private void rememberApp(String pkg) {
+        if (pkg.equals(getPackageName()) || pkg.equals(lastApp) || pkg.startsWith("com.android.") || pkg.contains("inputmethod")) return;
+        Boolean ok = launchable.get(pkg);
+        if (ok == null) {
+            android.content.pm.PackageManager pm = getPackageManager();
+            ok = pm.getLeanbackLaunchIntentForPackage(pkg) != null || pm.getLaunchIntentForPackage(pkg) != null;
+            launchable.put(pkg, ok);
+        }
+        if (!ok) return;
+        lastApp = pkg;
+        getSharedPreferences("tvhome", MODE_PRIVATE).edit().putString("last_app", pkg).putLong("last_app_at", System.currentTimeMillis()).apply();
     }
 
     @Override
