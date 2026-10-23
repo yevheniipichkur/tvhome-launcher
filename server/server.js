@@ -405,13 +405,24 @@ http
     if (url.pathname === '/api/public/alerts') {
       // Public (through the Cloudflare tunnel): official ukrainealarm alerts by oblast/district/community,
       // for TVHome APKs outside this LAN. Nothing about the Pi or the household is exposed here.
-      const al = state.alerts ?? null;
+      let al = state.alerts ?? null;
+      if (al && testAlert && testAlert.until > Date.now() && testAlert.city.active) {
+        // test switch (POST /api/test-alert from the Pi) also reaches the APKs: Lviv oblast under alert
+        al = { ...al, states: { ...al.states, '27': 'red' }, since: { ...(al.since ?? {}), '27': testAlert.city.since } };
+      }
       res.writeHead(al ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=10', 'Access-Control-Allow-Origin': '*' });
       return res.end(JSON.stringify(al ? { source: al.source, updated: state.updated.alerts ?? null, states: al.states, districts: al.districts, communities: al.communities, since: al.since ?? {} } : { error: 'no data yet' }));
     }
     if (url.pathname === '/api/diag') {
       log('[diag]', url.search.slice(0, 300));
       return res.end('ok');
+    }
+    if (url.pathname === '/api/public/download/tvhome.apk') {
+      // the current launcher build, for sharing (dist/ is mounted read-only)
+      const apk = path.join(process.env.DIST_DIR ?? '/dist', 'tvhome.apk');
+      if (!fs.existsSync(apk)) { res.writeHead(404); return res.end('no build'); }
+      res.writeHead(200, { 'Content-Type': 'application/vnd.android.package-archive', 'Content-Disposition': 'attachment; filename="tvhome.apk"', 'Content-Length': fs.statSync(apk).size });
+      return fs.createReadStream(apk).pipe(res);
     }
     if (url.pathname === '/healthz') return res.end('ok');
     const rel = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname).replace(/^\/+/, '');

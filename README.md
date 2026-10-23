@@ -3,6 +3,14 @@
 Home screen for the Mi Box S in the Claude Code style: clock, Lviv weather and sunrise,
 air-raid alerts by raion, live Shahed/missile targets on a map of Ukraine, Wi-Fi name, app dock.
 
+**Since 2026-10-23 the APK is standalone.** The page (`web/`) is bundled into the APK and served from
+`https://appassets.androidplatform.net/web/`; `DataService.java` fetches everything on the box:
+NEPTUN (targets), Open-Meteo, NBU, Ukrainska Pravda / Ukrinform RSS, ubilling (oblast fallback) and
+**our public API** `https://tvhome.pichkur.com/api/public/alerts` for official ukrainealarm alerts by
+district/community (ukrainealarm has no open API). The tunnel exposes only `/api/public/` of the Pi
+server (everything else 404). Latest build for sharing: `https://tvhome.pichkur.com/api/public/download/tvhome.apk`.
+Page changes now need a new APK build (Codemagic), not just an edit on the Pi.
+
 - `server/` — no-dependency Node server. Caches NEPTUN (threats + alerts; terms: visible link
   to NEPTUN), ubilling (fallback alerts), Open-Meteo (weather). Runs as container `tvhome`
   (`docker compose up -d --build`), LAN only at `http://192.168.1.16:8098/`.

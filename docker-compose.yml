@@ -11,6 +11,7 @@ services:
     volumes:
       - /srv/tvhome/data:/data
       - ./web:/app/web:ro
+      - ./dist:/dist:ro
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
