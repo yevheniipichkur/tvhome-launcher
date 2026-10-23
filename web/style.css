@@ -389,3 +389,7 @@ body.alarm .alarm-edge { animation: edge-pulse 3.6s ease-in-out infinite; }
    jumps to the new zoom while invisible, and fades back in — opacity is the only thing animated */
 .map-clip { transition: opacity .28s ease; will-change: opacity; }
 .map-clip.fading { opacity: 0; }
+/* SVG fill can't be animated on the GPU: a fill transition or the "flash" repainted the whole map every
+   frame for seconds whenever any district changed — that was the freeze on new alerts. Instant fills now. */
+.map .raion { transition: none; }
+.map .raion.flash { animation: none; }
