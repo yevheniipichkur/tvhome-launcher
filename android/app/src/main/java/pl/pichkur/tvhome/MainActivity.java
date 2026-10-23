@@ -176,7 +176,7 @@ public class MainActivity extends Activity {
         HomeGuardService.homeInFront = false;
         // Another app is in front: stop the page entirely (JS timers, animations, rendering) so video
         // gets the whole box. DataService keeps running in Java for the alert notch.
-        if (web != null) { web.onPause(); web.pauseTimers(); }
+        if (web != null) { web.evaluateJavascript("document.body.classList.add('bg-paused')", null); web.onPause(); web.pauseTimers(); }
         super.onPause();
     }
 
@@ -184,7 +184,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         HomeGuardService.homeInFront = true;
-        if (web != null) { web.resumeTimers(); web.onResume(); }
+        if (web != null) { web.resumeTimers(); web.onResume(); web.evaluateJavascript("document.body.classList.remove('bg-paused')", null); }
         hideSystemUi();
         // The page is bundled in the APK and its data comes from DataService, so there is nothing to
         // reload after a long movie — a full reload is what made the return to Home feel laggy.
