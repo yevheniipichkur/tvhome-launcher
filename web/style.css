@@ -444,3 +444,20 @@ body.map-front.bg-streets .map .raion.alert, body.map-front.bg-streets .map .rai
 .map .front .occ { fill: rgba(214,52,44,.62); stroke: #ff6b5e; stroke-width: 1.4; stroke-linejoin: round; }
 .map .front .gray { fill: rgba(190,175,165,.32); stroke: rgba(220,205,195,.6); stroke-width: .8; stroke-dasharray: 3 2; }
 body.theme-paper.map-front .map .raion.alert, body.theme-paper.map-front .map .raion.red, body.theme-paper.map-front .map .raion.long { fill: #d8d0c1; }
+
+/* front line: the last 24 h of changes */
+.map .front .chg .halo { fill: none; stroke-width: 2; }
+.map .front .chg .dot { stroke: #0b1017; stroke-width: .8; }
+.map .front .chg.enemy .halo { stroke: #ffd2c4; } .map .front .chg.enemy .dot { fill: #ffe7df; }
+.map .front .chg.ours .halo { stroke: #5fe39a; } .map .front .chg.ours .dot { fill: #5fe39a; }
+.map .front .chg.info .halo { stroke: #f3c66b; } .map .front .chg.info .dot { fill: #f3c66b; }
+.front-changes { display: none; position: absolute; right: 34px; top: 120px; max-width: 420px; text-align: right; font-size: 17px; line-height: 1.45; color: var(--ivory); }
+body.map-front .front-changes { display: block; }
+.front-changes .fc-h { font-size: 13px; letter-spacing: .22em; text-transform: uppercase; opacity: .6; margin-bottom: 6px; }
+.front-changes .fc-r i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; border: 2px solid; vertical-align: 1px; }
+.front-changes .fc-r.enemy i { border-color: #ffd2c4; background: #ff6b5e; }
+.front-changes .fc-r.ours i { border-color: #5fe39a; background: #1f6b43; }
+.front-changes .fc-r.info { opacity: .75; } .front-changes .fc-r.info i { border-color: #f3c66b; }
+body.layout-cinema .front-changes { right: 64px; top: 120px; }
+body.theme-paper .front-changes { color: #1f1d1a; }
+body.layout-cinema .front-changes { top: 150px; }

@@ -260,7 +260,31 @@ every('frontline', 30 * 60_000, async () => {
       if (dd.split('L').length > 3) out[kind].push(dd + 'Z');
     }
   }
-  state.frontline = { updated: d.datetime ?? null, occupied: out.occupied.join(''), gray: out.gray.join('') };
+  state.frontline = { updated: d.datetime ?? null, occupied: out.occupied.join(''), gray: out.gray.join(''), changes: state.frontline?.changes ?? [], lastChange: state.frontline?.lastChange ?? null };
+  // what moved during the last 24 h: DeepState's update log names each place with a map link
+  try {
+    const hist = await getJson('https://deepstatemap.live/api/history/public', 30_000);
+    let lastChange = 0;
+    for (const h of hist) lastChange = Math.max(lastChange, Date.parse(h.createdAt) || 0);
+    // the last 24 h; when DeepState posted nothing in that time, the latest update (marked not fresh)
+    const fresh = lastChange > Date.now() - 24 * 3600_000;
+    const since = fresh ? Date.now() - 24 * 3600_000 : lastChange, changes = [];
+    for (const h of hist) {
+      const t = Date.parse(h.createdAt);
+      if (!(t >= since)) continue;
+      // classify each sentence: enemy advance, our gains, or a plain correction
+      for (const sent of String(h.description ?? '').split(/(?<=\.)\s+(?=[А-ЯІЇЄҐA-Z])/)) {
+        const kind = /Ворог|окупант/i.test(sent) ? 'enemy' : /Сил[иа] Оборони|ЗСУ|звільнил|повернули контроль|просунулися/i.test(sent) ? 'ours' : 'info';
+        for (const m of sent.matchAll(/<a href="[^"]*#\d+\/(-?[\d.]+)\/(-?[\d.]+)">([^<]+)<\/a>/g)) {
+          const [x, y] = dsProj(+m[2], +m[1]);
+          changes.push({ t, kind, name: m[3], x: +x.toFixed(1), y: +y.toFixed(1) });
+        }
+      }
+    }
+    state.frontline.changes = changes;
+    state.frontline.lastChange = lastChange || null;
+    state.frontline.fresh = fresh;
+  } catch (e) { log('frontline history', e.message); }
 });
 
 every('fallback', 30_000, async () => {

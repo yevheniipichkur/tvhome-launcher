@@ -277,11 +277,39 @@
     if (front && !frontData) loadFront();
   }
   function loadFront() {
-    getJSON('https://tvhome.pichkur.com/api/public/frontline', function (err, d) { if (!err && d && d.occupied) { frontData = d; paintFront(); } });
+    getJSON('https://tvhome.pichkur.com/api/public/frontline?v=2', function (err, d) { if (!err && d && d.occupied) { frontData = d; paintFront(); } });
   }
   function paintFront() {
     if (!frontLayer || !frontData) return;
-    frontLayer.innerHTML = '<path class="gray" d="' + frontData.gray + '"/><path class="occ" d="' + frontData.occupied + '"/>';
+    var h = '<path class="gray" d="' + frontData.gray + '"/><path class="occ" d="' + frontData.occupied + '"/>';
+    // changes of the last 24 h: a ring per place (red = enemy advance, green = our gains, amber = correction)
+    var seen = {};
+    (frontData.changes || []).forEach(function (c) {
+      var k = Math.round(c.x / 4) + ':' + Math.round(c.y / 4);
+      if (seen[k]) return; seen[k] = 1;
+      h += '<g class="chg ' + c.kind + '" transform="translate(' + c.x + ',' + c.y + ')"><circle class="halo" r="9"/><circle class="dot" r="2.6"/></g>';
+    });
+    frontLayer.innerHTML = h;
+    paintFrontList();
+  }
+  function paintFrontList() {
+    var box = $('front-changes');
+    if (!box || !frontData) return;
+    var ch = frontData.changes || [], html = '';
+    if (!ch.length) {
+      var d = frontData.lastChange ? new Date(frontData.lastChange) : null;
+      html = '<div class="fc-h">За добу без змін</div>' + (d ? '<div class="fc-r info">останнє оновлення ' + d.getDate() + '.' + ('0' + (d.getMonth() + 1)).slice(-2) + '</div>' : '');
+    } else {
+      var en = ch.filter(function (c) { return c.kind === 'enemy'; }).map(function (c) { return c.name; });
+      var ou = ch.filter(function (c) { return c.kind === 'ours'; }).map(function (c) { return c.name; });
+      var inf = ch.filter(function (c) { return c.kind === 'info'; }).map(function (c) { return c.name; });
+      var ld = new Date(frontData.lastChange || ch[0].t);
+      html = '<div class="fc-h">' + (frontData.fresh === false ? 'Останні зміни · ' + ld.getDate() + '.' + ('0' + (ld.getMonth() + 1)).slice(-2) : 'Зміни за добу') + '</div>';
+      if (en.length) html += '<div class="fc-r enemy"><i></i>ворог просунувся біля ' + en.join(', ') + '</div>';
+      if (ou.length) html += '<div class="fc-r ours"><i></i>ЗСУ: ' + ou.join(', ') + '</div>';
+      if (inf.length) html += '<div class="fc-r info"><i></i>уточнено: ' + inf.join(', ') + '</div>';
+    }
+    box.innerHTML = html;
   }
   setInterval(function () { if (mapLayer() === 'front') loadFront(); }, 30 * 60000);
   function paintAlerts() {
