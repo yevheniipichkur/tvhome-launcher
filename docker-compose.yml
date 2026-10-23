@@ -12,6 +12,7 @@ services:
       - /srv/tvhome/data:/data
       - ./web:/app/web:ro
       - ./dist:/dist:ro
+      - ./site:/app/site:ro
     read_only: true
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]

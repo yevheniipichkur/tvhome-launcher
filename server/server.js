@@ -9,6 +9,7 @@ import path from 'node:path';
 
 const PORT = Number(process.env.PORT ?? 8098);
 const HOST = process.env.HOST ?? '127.0.0.1';
+const SITE = path.resolve(process.env.SITE_DIR ?? new URL('../site', import.meta.url).pathname);
 const WEB = path.resolve(process.env.WEB_DIR ?? new URL('../web', import.meta.url).pathname);
 const DATA = process.env.DATA_DIR ?? '/data';
 const CITY = { name: 'Львів', oblast: 'Львівська область', raion: 'Львівський район', lat: 49.8397, lon: 24.0297 };
@@ -376,11 +377,21 @@ function snapshot() {
 
 let testAlert = null;
 
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.png': 'image/png' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.png': 'image/png', '.jpg': 'image/jpeg', '.txt': 'text/plain; charset=utf-8' };
 
 http
   .createServer((req, res) => {
     const url = new URL(req.url, 'http://x');
+    // Public host (Cloudflare tunnel): the landing site and /api/public/* only — nothing else of this server.
+    const host = String(req.headers.host ?? '').split(':')[0];
+    if (host === 'tvhome.pichkur.com' && !url.pathname.startsWith('/api/public/')) {
+      const rel = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname).replace(/^\/+/, '');
+      const file = path.resolve(SITE, rel);
+      if (!file.startsWith(SITE + path.sep) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.writeHead(404); return res.end('not found'); }
+      const long = /\.(woff2|jpg|png)$/.test(file);
+      res.writeHead(200, { 'Content-Type': TYPES[path.extname(file)] ?? 'application/octet-stream', 'Cache-Control': long ? 'public, max-age=604800' : 'public, max-age=300', 'X-Content-Type-Options': 'nosniff' });
+      return fs.createReadStream(file).pipe(res);
+    }
     if (url.pathname === '/api/state') {
       res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
       return res.end(JSON.stringify(snapshot()));
