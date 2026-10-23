@@ -85,6 +85,9 @@ public class MainActivity extends Activity {
         soundIds.put("back", sounds.load(this, R.raw.ui_back, 1));
         WebView.setWebContentsDebuggingEnabled(true); // chrome://inspect over ADB on the LAN
         DataService.get(this); // start fetching right away
+        // Owner's choice: the home screen works as a wall display and never sleeps while it is in front.
+        // Other apps keep the normal 15-min timeout; the remote's power button still turns everything off.
+        getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         createWebView();
         hideSystemUi();
     }
