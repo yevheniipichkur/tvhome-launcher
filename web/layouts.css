@@ -82,9 +82,3 @@ body.bg-streets .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill
 body.bg-streets .map .oblast { stroke: rgba(255,255,255,.34); stroke-width: 1.4; }
 body.theme-paper .map .halo path { fill: #e6dfd2; stroke: rgba(31,29,26,.7); }
 body.theme-terminal .map .halo path { fill: #071209; stroke: rgba(61,255,138,.7); }
-/* alarm zoom stays inside the map area (Кіно lets the map overflow otherwise) */
-body.layout-cinema.alarm .map-clip { overflow: hidden;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 90px, #000 calc(100% - 90px), transparent 100%), linear-gradient(180deg, transparent 0, #000 70px, #000 calc(100% - 70px), transparent 100%);
-  -webkit-mask-composite: source-in; mask-composite: intersect; }
-/* in «Кіно» the map is already big: a gentler zoom keeps most of the west in view */
-body.layout-cinema.alarm .map-wrap { transform: scale(1.4); }
