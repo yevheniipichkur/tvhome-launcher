@@ -1297,10 +1297,6 @@
       var x = (i * 137.5) % 100, y = (i * 61.8 * 1.7) % 100, sz = i % 7 === 0 ? 3 : 2;
       html += '<b style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;width:' + sz + 'px;height:' + sz + 'px;animation-delay:' + (i % 9 * 0.45).toFixed(2) + 's"></b>';
     }
-    var wEn = {}, wOu = {};
-    all.forEach(function (c) { if (c.t > Date.now() - 7 * 864e5) (c.kind === 'enemy' ? wEn : c.kind === 'ours' ? wOu : {})[c.name] = 1; });
-    var nEn = Object.keys(wEn).length, nOu = Object.keys(wOu).length;
-    if (nEn || nOu) html += '<div class="fc-w">за тиждень: ворог просунувся біля ' + nEn + ' н. п.' + (nOu ? ' · ЗСУ — ' + nOu : '') + '</div>';
     box.innerHTML = html;
   })();
   paintBackground();
