@@ -82,3 +82,5 @@ body.bg-streets .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill
 body.bg-streets .map .oblast { stroke: rgba(255,255,255,.34); stroke-width: 1.4; }
 body.theme-paper .map .halo path { fill: #e6dfd2; stroke: rgba(31,29,26,.7); }
 body.theme-terminal .map .halo path { fill: #071209; stroke: rgba(61,255,138,.7); }
+/* alarm zoom stays inside the map area (Кіно lets the map overflow otherwise) */
+body.layout-cinema.alarm .map-clip { overflow: hidden; }
