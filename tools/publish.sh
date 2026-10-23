@@ -12,9 +12,10 @@ curl -s -H "x-auth-token: $T" https://api.codemagic.io/builds/$ID > /tmp/tvhome-
 N=$(python3 -c "import json;print(json.load(open('/tmp/tvhome-build.json'))['build']['index'])")
 for ed in full lite; do
   U=$(python3 -c "import json,sys;print([a['url'] for a in json.load(open('/tmp/tvhome-build.json'))['build']['artefacts'] if a['name'].endswith('-$ed-release.apk')][0])")
-  OUT=$D/tvhome$([ $ed = lite ] && echo -lite).apk
+  SUF=""; [ "$ed" = lite ] && SUF="-lite" || true
+  OUT=$D/tvhome$SUF.apk
   curl -sL -H "x-auth-token: $T" -o "$OUT.new" "$U" && mv "$OUT.new" "$OUT"
-  printf '{"versionCode":%s,"versionName":"1.%s"}\n' "$N" "$N" > $D/version$([ $ed = lite ] && echo -lite).json
+  printf '{"versionCode":%s,"versionName":"1.%s"}\n' "$N" "$N" > $D/version$SUF.json
 done
 echo "published 1.$N"
 [ "${1:-}" = "--no-install" ] || ~/tvhome/tools/install-on-box.sh $D/tvhome.apk
