@@ -483,15 +483,15 @@ public class MainActivity extends Activity {
             try {
                 JSONObject lm = last != null ? new JSONObject(last) : new JSONObject();
                 if (app != null && !app.equals(lm.optString("pkg")) && appAt > lm.optLong("at", 0)) {
-                    JSONObject o = new JSONObject();
-                    o.put("live", false);
-                    o.put("playing", false);
-                    o.put("pkg", app);
-                    o.put("app", appLabel(app));
-                    o.put("title", appLabel(app));
-                    o.put("sub", "відкрито о " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(new java.util.Date(appAt)));
-                    o.put("appOnly", true);
-                    return o.toString();
+                    JSONObject ao = new JSONObject();
+                    ao.put("live", false);
+                    ao.put("playing", false);
+                    ao.put("pkg", app);
+                    ao.put("app", appLabel(app));
+                    ao.put("title", appLabel(app));
+                    ao.put("sub", "відкрито о " + new java.text.SimpleDateFormat("HH:mm", java.util.Locale.US).format(new java.util.Date(appAt)));
+                    ao.put("appOnly", true);
+                    return ao.toString();
                 }
             } catch (Exception ignored) {
             }
