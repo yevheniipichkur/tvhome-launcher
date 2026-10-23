@@ -84,6 +84,8 @@ public class MainActivity extends Activity {
         soundIds.put("back", sounds.load(this, R.raw.ui_back, 1));
         WebView.setWebContentsDebuggingEnabled(true); // chrome://inspect over ADB on the LAN
         DataService.get(this); // start fetching right away
+        checkUpdate();
+        ui.postDelayed(new Runnable() { @Override public void run() { checkUpdate(); ui.postDelayed(this, 6 * 3600_000L); } }, 6 * 3600_000L);
         android.content.IntentFilter pf = new android.content.IntentFilter();
         pf.addAction(Intent.ACTION_PACKAGE_ADDED);
         pf.addAction(Intent.ACTION_PACKAGE_REMOVED);
@@ -172,6 +174,9 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         HomeGuardService.homeInFront = false;
+        // Another app is in front: stop the page entirely (JS timers, animations, rendering) so video
+        // gets the whole box. DataService keeps running in Java for the alert notch.
+        if (web != null) { web.onPause(); web.pauseTimers(); }
         super.onPause();
     }
 
@@ -179,6 +184,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         HomeGuardService.homeInFront = true;
+        if (web != null) { web.resumeTimers(); web.onResume(); }
         hideSystemUi();
         // The page is bundled in the APK and its data comes from DataService, so there is nothing to
         // reload after a long movie — a full reload is what made the return to Home feel laggy.
@@ -235,6 +241,60 @@ public class MainActivity extends Activity {
             if (p.equals(keep) || p.equals("ru.yourok.torrserve") && keep.startsWith("top.rootu")) continue; // Lampa streams through TorrServe
             try { am.killBackgroundProcesses(p); } catch (Exception ignored) { }
         }
+    }
+
+    // ---------- self-update ----------
+    private volatile int latestCode;
+
+    private void checkUpdate() {
+        new Thread(() -> {
+            try {
+                HttpURLConnection c = (HttpURLConnection) new URL(BuildConfig.UPDATE_URL + "version").openConnection();
+                c.setConnectTimeout(8000);
+                c.setReadTimeout(8000);
+                if (c.getResponseCode() == 200) {
+                    java.io.InputStream in = c.getInputStream();
+                    java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+                    byte[] buf = new byte[4096];
+                    for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
+                    latestCode = new JSONObject(out.toString("UTF-8")).optInt("versionCode", 0);
+                }
+                c.disconnect();
+            } catch (Exception ignored) {
+            }
+        }).start();
+    }
+
+    /** Download the APK and hand it to the system installer (it asks the user to confirm). */
+    private void installUpdate() {
+        if (!getPackageManager().canRequestPackageInstalls()) {
+            new Bridge().openSettings("unknown-sources");
+            return;
+        }
+        new Thread(() -> {
+            try {
+                android.content.pm.PackageInstaller pi = getPackageManager().getPackageInstaller();
+                android.content.pm.PackageInstaller.SessionParams sp = new android.content.pm.PackageInstaller.SessionParams(
+                        android.content.pm.PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+                int id = pi.createSession(sp);
+                android.content.pm.PackageInstaller.Session session = pi.openSession(id);
+                HttpURLConnection c = (HttpURLConnection) new URL(BuildConfig.UPDATE_URL + "download/tvhome.apk").openConnection();
+                c.setConnectTimeout(10000);
+                c.setReadTimeout(60000);
+                try (java.io.InputStream in = c.getInputStream(); java.io.OutputStream out = session.openWrite("tvhome.apk", 0, -1)) {
+                    byte[] buf = new byte[65536];
+                    for (int n; (n = in.read(buf)) > 0; ) out.write(buf, 0, n);
+                    session.fsync(out);
+                }
+                c.disconnect();
+                Intent done = new Intent(this, UpdateReceiver.class);
+                PendingIntent pend = PendingIntent.getBroadcast(this, id, done, PendingIntent.FLAG_UPDATE_CURRENT);
+                session.commit(pend.getIntentSender());
+                session.close();
+            } catch (Exception e) {
+                ui.post(() -> web.evaluateJavascript("window.tvUpdateFailed && window.tvUpdateFailed()", null));
+            }
+        }).start();
     }
 
     private volatile MediaController lastController;
@@ -390,6 +450,8 @@ public class MainActivity extends Activity {
             ui.post(() -> {
                 Intent i;
                 if ("wifi".equals(what)) i = new Intent(Settings.ACTION_WIFI_SETTINGS);
+                else if ("accessibility".equals(what)) i = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+                else if ("unknown-sources".equals(what)) i = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName()));
                 else if ("fallback".equals(what)) i = getPackageManager().getLaunchIntentForPackage(FALLBACK_LAUNCHER);
                 else i = new Intent(Settings.ACTION_SETTINGS);
                 if (i == null) i = new Intent(Settings.ACTION_SETTINGS);
@@ -400,6 +462,33 @@ public class MainActivity extends Activity {
                 }
             });
         }
+
+        /** First-run wizard: is the Home/alert service enabled in Accessibility? */
+        @JavascriptInterface
+        public boolean a11yEnabled() {
+            String on = Settings.Secure.getString(getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+            return on != null && on.contains(getPackageName() + "/");
+        }
+
+        /** {current, latest, name, ready} — latest build published on the owner's server. */
+        @JavascriptInterface
+        public String updateInfo() {
+            JSONObject o = new JSONObject();
+            try {
+                o.put("current", BuildConfig.VERSION_CODE);
+                o.put("name", BuildConfig.VERSION_NAME);
+                o.put("latest", latestCode);
+                o.put("canInstall", getPackageManager().canRequestPackageInstalls());
+            } catch (Exception ignored) {
+            }
+            return o.toString();
+        }
+
+        @JavascriptInterface
+        public void checkUpdate() { MainActivity.this.checkUpdate(); }
+
+        @JavascriptInterface
+        public void installUpdate() { MainActivity.this.installUpdate(); }
 
         /** {type: wifi|ethernet|none, ssid, level 0..3}. SSID needs location permission on Android 9. */
         @JavascriptInterface

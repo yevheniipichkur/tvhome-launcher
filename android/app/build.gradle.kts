@@ -9,7 +9,7 @@ android {
         minSdk = 24
         targetSdk = 28 // Mi Box S runs Android 9; sideloaded, never published
         versionCode = (System.getenv("BUILD_NUMBER") ?: "1").toInt()
-        versionName = "1.0"
+        versionName = "1." + (System.getenv("BUILD_NUMBER") ?: "0")
     }
 
     signingConfigs {
@@ -30,6 +30,7 @@ android {
         }
     }
     buildFeatures { buildConfig = true }
+    defaultConfig { buildConfigField("String", "UPDATE_URL", "\"https://tvhome.pichkur.com/api/public/\"") }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

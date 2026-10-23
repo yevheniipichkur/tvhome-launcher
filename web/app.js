@@ -571,7 +571,16 @@
   }
   getJSON('ukraine.json', function (err, g) { if (!err) { geo = g; drawMap(); paint(); } });
   poll();
-  setInterval(poll, CFG.pollMs || 5000);
+  // 01:00–07:00: data every 30 s instead of 5 s and no ambient motion (radar ping, glint)
+  function isNight() { var h = new Date().getHours(); return h >= 1 && h < 7; }
+  var lastPoll = 0;
+  setInterval(function () {
+    var night = isNight();
+    document.body.classList.toggle('night', night);
+    if (night && Date.now() - lastPoll < 29000) return;
+    lastPoll = Date.now();
+    poll();
+  }, CFG.pollMs || 5000);
 
   // ---------- apps ----------
   var apps = [];
@@ -697,6 +706,7 @@
   var idx = { dock: 0, corner: 0, grid: 0 };
   function items(z) {
     if (z === 'dock') return $('track') ? $('track').children : [];
+    if (z === 'wizard') return document.querySelectorAll('#wizard .wz-row');
     if (z === 'settings') return document.querySelectorAll('#settings .set-row');
     if (z === 'player') return Array.prototype.filter.call(document.querySelectorAll('#player .pl-btn'), function (b) { return b.offsetParent !== null; });
     return $('grid').children;
@@ -819,6 +829,83 @@
   applyTheme(themeId());
   var cities = [];
   getJSON('cities.json', function (err, c) { if (!err) cities = c; });
+  // ---------- first-run wizard (shown once; the owner's box is marked done) ----------
+  var wiz = { step: 0, ok: false };
+  function wizardNeeded() { try { return !localStorage.getItem('tv-setup-done'); } catch (e) { return false; } }
+  function openWizard() {
+    loadApps();
+    // shelf: the known players that are installed, in a sensible order
+    if (!localStorage.getItem('tv-dock')) {
+      var have = {}; apps.forEach(function (a) { have[a.pkg] = 1; });
+      var pick = (CFG.favorites || []).concat(['com.google.android.youtube.tv', 'com.netflix.ninja', 'com.megogo.application', 'com.spotify.tv.android', 'org.videolan.vlc'])
+        .filter(function (p, i, arr) { return have[p] && arr.indexOf(p) === i; });
+      if (pick.length < 3) pick = apps.slice(0, 6).map(function (a) { return a.pkg; });
+      saveDock(pick.slice(0, 6)); buildDock();
+    }
+    wiz.step = 0; renderWizard();
+    $('wizard').hidden = false; zone = 'wizard'; idx.wizard = 0; render();
+  }
+  function renderWizard() {
+    var steps = [
+      { t: 'Вітаю у «Вітальні»', b: 'Головний екран для телевізора: годинник, погода, тривоги й небо над Україною. Налаштуємо за хвилину.', btn: 'Почати' },
+      { t: 'Ваше місто', b: 'Від міста залежать погода, схід сонця, тривоги «у моєму місті» й позначка на карті.', city: true, btn: 'Далі' },
+      { t: 'Тривоги поверх фільмів', b: 'Щоб під час тривоги поверх YouTube чи фільму з’являлося повідомлення, а кнопка «Додому» поверталася сюди, увімкніть «Вітальня» у Спеціальних можливостях.', a11y: true, btn: 'Відкрити налаштування' },
+      { t: 'Готово', b: 'Полиця з програмами внизу. Шестерня — налаштування: тема, фон, макет, місто й порядок програм.', btn: 'Почати користуватися' },
+    ];
+    var st = steps[wiz.step];
+    var html = '<div class="wz-dots">' + steps.map(function (x, i) { return '<i class="' + (i === wiz.step ? 'on' : '') + '"></i>'; }).join('') + '</div>' +
+      '<h1></h1><p></p>';
+    if (st.city) html += '<button class="set-row wz-row" data-wz="city"><span class="nm">Місто</span><b>' + cityName() + '</b><i>◀ ▶</i></button>';
+    if (st.a11y) {
+      var on = TV && TV.a11yEnabled ? TV.a11yEnabled() : false;
+      html += '<div class="wz-state ' + (on ? 'ok' : '') + '">' + (on ? '✓ Увімкнено' : 'Ще не увімкнено · знайдіть «Вітальня: головний екран» і увімкніть') + '</div>';
+      if (on) st.btn = 'Далі';
+    }
+    html += '<button class="set-row wz-row wz-main" data-wz="next"><span class="nm"></span><b>›</b></button>';
+    if (st.a11y) html += '<button class="set-row wz-row" data-wz="skip"><span class="nm">Пропустити</span></button>';
+    var box = $('wizard-box');
+    box.innerHTML = html;
+    box.querySelector('h1').textContent = st.t;
+    box.querySelector('p').textContent = st.b;
+    box.querySelector('.wz-main .nm').textContent = st.btn;
+    idx.wizard = Math.min(idx.wizard || 0, items('wizard').length - 1);
+    if (st.city || st.a11y) idx.wizard = 0;
+    render();
+  }
+  function wizardAct(row, dir) {
+    var kind = row.getAttribute('data-wz');
+    if (kind === 'city') { settingsAct(document.querySelector('[data-set=city]'), dir || 1); setTimeout(renderWizard, 50); return; }
+    if (kind === 'skip') { wiz.step++; renderWizard(); return; }
+    if (kind === 'next') {
+      if (wiz.step === 2 && !(TV && TV.a11yEnabled && TV.a11yEnabled())) { if (TV && TV.openSettings) TV.openSettings('accessibility'); return; }
+      if (wiz.step === 3) { try { localStorage.setItem('tv-setup-done', '1'); } catch (e) {} $('wizard').hidden = true; zone = 'dock'; idx.dock = 0; render(); return; }
+      wiz.step++; idx.wizard = 0; renderWizard();
+    }
+  }
+  function wizardKey(k, code) {
+    var rows = items('wizard'), row = rows[idx.wizard];
+    if (k === 'ArrowDown' || code === 20) { idx.wizard = Math.min(rows.length - 1, idx.wizard + 1); return 'move'; }
+    if (k === 'ArrowUp' || code === 19) { idx.wizard = Math.max(0, idx.wizard - 1); return 'move'; }
+    if ((k === 'ArrowRight' || code === 22) && row && row.getAttribute('data-wz') === 'city') { wizardAct(row, 1); return 'move'; }
+    if ((k === 'ArrowLeft' || code === 21) && row && row.getAttribute('data-wz') === 'city') { wizardAct(row, -1); return 'move'; }
+    if (k === 'Enter' || code === 13 || code === 23) { if (row) wizardAct(row, 0); return 'open'; }
+    if (k === 'Escape' || k === 'Backspace' || k === 'GoBack' || code === 4 || code === 27) { if (wiz.step > 0) { wiz.step--; renderWizard(); } return 'back'; }
+    return null;
+  }
+
+  // ---------- 6. update banner ----------
+  function paintUpdate() {
+    if (!TV || !TV.updateInfo) return;
+    var u = {};
+    try { u = JSON.parse(TV.updateInfo()); } catch (e) { return; }
+    var has = u.latest && u.current && u.latest > u.current;
+    var b = $('set-update');
+    if (b) b.textContent = has ? 'є нова версія · ОК — оновити' : 'версія ' + (u.name || '') + ' · найновіша';
+    document.body.classList.toggle('has-update', !!has);
+  }
+  setInterval(paintUpdate, 60000);
+  window.tvUpdateFailed = function () { var b = $('set-update'); if (b) b.textContent = 'не вдалося завантажити, спробуйте пізніше'; };
+
   function openSettings() {
     loadApps();
     renderSettings();
@@ -834,6 +921,7 @@
     $('set-city').textContent = cityName();
     $('set-layout').textContent = layoutName();
     $('set-bg').textContent = bgName();
+    paintUpdate();
     var list = dockList(), byPkg = {};
     apps.forEach(function (a) { byPkg[a.pkg] = a; });
     var on = list.filter(function (p) { return byPkg[p]; });
@@ -858,6 +946,7 @@
       try { localStorage.setItem('tv-bg', nb); } catch (e) {}
       bgPhase = null; paintBackground();
       $('set-bg').textContent = bgName();
+    paintUpdate();
       return;
     }
     if (kind === 'theme') {
@@ -877,6 +966,10 @@
       setTimeout(poll, 600); setTimeout(poll, 3000);
     } else if (kind === 'layout') {
       stepLayout(dir || 1);
+    } else if (kind === 'update') {
+      var u = {}; try { u = JSON.parse(TV.updateInfo()); } catch (e) {}
+      if (u.latest > u.current) { $('set-update').textContent = 'завантажую…'; TV.installUpdate(); }
+      else { TV.checkUpdate(); $('set-update').textContent = 'перевіряю…'; setTimeout(paintUpdate, 4000); }
     } else if (kind === 'android') {
       if (TV && TV.openSettings) TV.openSettings('android');
     } else if (kind === 'app') {
@@ -907,6 +1000,12 @@
     var code = e.keyCode;
     var list = items(zone);
     var before = zone + ':' + idx[zone];
+    if (zone === 'wizard') {
+      var wr = wizardKey(k, code);
+      if (!wr) return;
+      e.preventDefault(); render(); SOUND[wr === 'move' ? 'move' : wr]();
+      return;
+    }
     if (zone === 'settings') {
       var r = settingsKey(k, code);
       if (!r) return;
@@ -1112,6 +1211,7 @@
   var dockVersion = -1;
   function appsVer() { try { return TV && TV.appsVersion ? TV.appsVersion() : 0; } catch (e) { return 0; } }
   window.tvResume = function () {
+    if (!$('wizard').hidden) { renderWizard(); return; }
     if (!$('drawer').hidden) closeDrawer();
     zone = 'dock'; render();
     setTimeout(function () {
@@ -1125,10 +1225,13 @@
   window.tvBack = function () {
     if (!$('drawer').hidden) { SOUND.back(); closeDrawer(); return true; }
     if (!$('settings').hidden) { SOUND.back(); closeSettings(); return true; }
+    if (!$('wizard').hidden) { if (wiz.step > 0) { wiz.step--; renderWizard(); } return true; }
     return false;
   };
 
   dockVersion = appsVer(); loadApps(); buildDock(); render();
+  if (TV && wizardNeeded()) setTimeout(openWizard, 600);
+  setTimeout(paintUpdate, 5000);
   // Intro sequence lives in CSS (body.intro); typed welcome line here.
   (function typeWelcome() {
     var t = $('welcome-typed');

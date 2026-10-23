@@ -393,3 +393,24 @@ body.alarm .alarm-edge { animation: edge-pulse 3.6s ease-in-out infinite; }
    frame for seconds whenever any district changed — that was the freeze on new alerts. Instant fills now. */
 .map .raion { transition: none; }
 .map .raion.flash { animation: none; }
+
+/* night (01–07): no ambient motion */
+body.night .fly .home .ping, body.night .tile.focus::after { animation: none; }
+body.night #glint { display: none; }
+
+/* settings: update row highlight */
+body.has-update .set-row[data-set=update] b { color: var(--green); }
+
+/* first-run wizard */
+.wizard { position: absolute; inset: 0; z-index: 7; display: grid; place-items: center; background: rgba(6,10,16,.94); }
+.wizard:not([hidden]) { animation: drawer .45s var(--ease-out); }
+.wizard-box { width: 980px; }
+.wz-dots { display: flex; gap: 10px; margin-bottom: 30px; }
+.wz-dots i { width: 10px; height: 10px; border-radius: 5px; background: rgba(255,255,255,.2); transition: width .3s; }
+.wz-dots i.on { width: 34px; background: var(--amber); }
+.wizard h1 { font-family: 'Fixel Display', sans-serif; font-weight: 500; font-size: 56px; color: #fff; }
+.wizard p { margin: 18px 0 34px; font-size: 26px; line-height: 1.5; color: var(--muted); max-width: 900px; }
+.wz-row { height: 80px; font-size: 26px; }
+.wz-main { background: rgba(244,166,64,.14); border-color: rgba(244,166,64,.4); }
+.wz-state { margin: 0 0 22px; padding: 16px 22px; border-radius: 16px; font-size: 21px; color: #ffcfc9; background: rgba(255,90,78,.1); }
+.wz-state.ok { color: #c4f5d6; background: rgba(95,211,141,.12); }

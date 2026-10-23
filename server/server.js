@@ -417,6 +417,13 @@ http
       log('[diag]', url.search.slice(0, 300));
       return res.end('ok');
     }
+    if (url.pathname === '/api/public/version') {
+      // latest launcher build ({versionCode, versionName}), written next to the APK when it is published
+      const f = path.join(process.env.DIST_DIR ?? '/dist', 'version.json');
+      if (!fs.existsSync(f)) { res.writeHead(404); return res.end('{}'); }
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+      return res.end(fs.readFileSync(f));
+    }
     if (url.pathname === '/api/public/download/tvhome.apk') {
       // the current launcher build, for sharing (dist/ is mounted read-only)
       const apk = path.join(process.env.DIST_DIR ?? '/dist', 'tvhome.apk');

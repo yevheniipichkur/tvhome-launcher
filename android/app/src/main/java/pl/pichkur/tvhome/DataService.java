@@ -167,7 +167,17 @@ final class DataService {
         return "other";
     }
 
+    private long lastThreats;
+
+    /** 01:00–07:00 local: refresh targets once a minute instead of every 10 s. */
+    static boolean night() {
+        int h = Calendar.getInstance().get(Calendar.HOUR_OF_DAY);
+        return h >= 1 && h < 7;
+    }
+
     private void pollThreats() throws Exception {
+        if (night() && System.currentTimeMillis() - lastThreats < 55_000) return;
+        lastThreats = System.currentTimeMillis();
         JSONObject d = new JSONObject(http("https://neptun.in.ua/api/v1/threats"));
         JSONArray in = d.optJSONArray("threats");
         JSONArray out = new JSONArray();
