@@ -761,6 +761,24 @@
   };
 
   // ---------- launcher settings: city, shelf, map size ----------
+  var THEMES = [
+    { id: 'lviv', name: 'Вечірній Львів' },
+    { id: 'oled', name: 'Північ' },
+    { id: 'forest', name: 'Карпати' },
+    { id: 'paper', name: 'Папір' },
+    { id: 'terminal', name: 'Термінал' },
+  ];
+  function themeId() { try { return localStorage.getItem('tv-theme') || 'lviv'; } catch (e) { return 'lviv'; } }
+  function applyTheme(id) {
+    THEMES.forEach(function (t) { document.body.classList.remove('theme-' + t.id); });
+    if (id !== 'lviv') document.body.classList.add('theme-' + id);
+    document.documentElement.className = '';
+    try { localStorage.setItem('tv-theme', id); } catch (e) {}
+    var t = THEMES.filter(function (x) { return x.id === id; })[0];
+    if ($('set-theme') && t) $('set-theme').textContent = t.name;
+    clockShown = ''; $('clock').innerHTML = ''; tickClock(); // re-measure digit slots for the new font
+  }
+  applyTheme(themeId());
   var cities = [];
   getJSON('cities.json', function (err, c) { if (!err) cities = c; });
   function openSettings() {
@@ -795,6 +813,12 @@
   }
   function settingsAct(row, dir) {
     var kind = row.getAttribute('data-set');
+    if (kind === 'theme') {
+      var ti = 0;
+      THEMES.forEach(function (t, j) { if (t.id === themeId()) ti = j; });
+      applyTheme(THEMES[(ti + (dir || 1) + THEMES.length) % THEMES.length].id);
+      return;
+    }
     if (kind === 'city') {
       if (!cities.length) return;
       var i = 0;

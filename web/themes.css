@@ -1,0 +1,107 @@
+/* Home screen themes. The default («Вечірній Львів») lives in style.css; each theme here is a
+   body class set from the launcher settings (localStorage "tv-theme"). Same GPU rules: flat
+   colours, no blur, nothing animated full-screen. Alert colours (yellow/red on the map, the red
+   Lviv status) stay the same in every theme — they carry meaning. */
+
+@font-face { font-family: 'JBM'; src: url(fonts/jbm-cyrillic-200.woff2) format('woff2'); font-weight: 200; unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: 'JBM'; src: url(fonts/jbm-latin-200.woff2) format('woff2'); font-weight: 200; }
+@font-face { font-family: 'JBM'; src: url(fonts/jbm-cyrillic-400.woff2) format('woff2'); font-weight: 400; unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: 'JBM'; src: url(fonts/jbm-latin-400.woff2) format('woff2'); font-weight: 400; }
+@font-face { font-family: 'JBM'; src: url(fonts/jbm-cyrillic-700.woff2) format('woff2'); font-weight: 700; unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
+@font-face { font-family: 'JBM'; src: url(fonts/jbm-latin-700.woff2) format('woff2'); font-weight: 700; }
+
+#arc-g stop { stop-color: var(--amber); }
+
+/* shared: themes with their own flat background hide the time-of-day sky */
+body.theme-paper .sky-bg, body.theme-oled .sky-bg, body.theme-forest .sky-bg .layer,
+body.theme-forest .sky-bg .stars, body.theme-terminal .sky-bg { display: none; }
+
+/* ================= «Північ» — OLED black, white, one cold cyan ================= */
+body.theme-oled { --bg: #000; --ivory: #f5f5f5; --muted: #8a8f98; --dim: #4c5058; --amber: #5ac8fa; --amber-soft: #a6e3ff; --line: rgba(255,255,255,.07); background: #000; }
+body.theme-oled .sky { background: #000; border-color: #16181c; box-shadow: none; }
+body.theme-oled .map .raion:not(.alert):not(.red):not(.long) { fill: #15181d; stroke: #0a0b0d; }
+body.theme-oled .map .oblast { stroke: #000; }
+body.theme-oled .dock { background: #07080a; border-color: #16181c; }
+body.theme-oled .player, body.theme-oled .status:not(.on) { background: #07080a; }
+body.theme-oled .tile { background-color: #0c0e11; }
+
+/* ================= «Карпати» — night forest, mist, sage ================= */
+body.theme-forest { --bg: #0c1712; --ivory: #ecf0e4; --muted: #8fa394; --dim: #577061; --amber: #b5dc7a; --amber-soft: #d6efb0; --line: rgba(220,240,210,.09);
+  background: radial-gradient(110% 80% at 70% 0%, #17301f 0%, transparent 60%), radial-gradient(90% 70% at 0% 100%, #102419 0%, transparent 60%), #0c1712; }
+body.theme-forest .sky { background: linear-gradient(180deg, rgba(16,34,25,.94), rgba(11,24,18,.94)); }
+body.theme-forest .map .raion:not(.alert):not(.red):not(.long) { fill: #1d3326; stroke: #142419; }
+body.theme-forest .map .oblast { stroke: #0c1712; }
+body.theme-forest .dock { background: linear-gradient(180deg, rgba(220,240,210,.07), rgba(220,240,210,.03)); }
+body.theme-forest .tile { background-color: #13241b; }
+body.theme-forest .pl-art { background-color: #13241b; }
+
+/* ================= «Папір» — warm daylight paper, ink, brick ================= */
+body.theme-paper { --bg: #ece6da; --ivory: #1f1d1a; --ink: #1f1d1a; --muted: #6d665c; --dim: #9b9488; --amber: #b8441f; --amber-soft: #9a3a1a; --green: #2f8a55; --line: rgba(0,0,0,.09);
+  background: #ece6da; }
+body.theme-paper .clock, body.theme-paper .wx-now b, body.theme-paper .st-text, body.theme-paper .pl-title,
+body.theme-paper .rate b, body.theme-paper .st-sky b { color: #1f1d1a; }
+body.theme-paper .headline .news { color: #3a3631; }
+body.theme-paper #wx-icon { stroke: #1f1d1a; }
+body.theme-paper #wx-icon .cloud { fill: #d9d1c3; stroke: #1f1d1a; }
+body.theme-paper #wx-icon .moon { fill: #3a3631; }
+body.theme-paper .arc-horizon, body.theme-paper .arc-base { stroke: rgba(0,0,0,.18); }
+body.theme-paper .arc.night .arc-sun { fill: #3a3631; }
+body.theme-paper .status { background: rgba(47,138,85,.1); border-color: rgba(47,138,85,.3); }
+body.theme-paper .status.on .st-text { color: #8f1d12; }
+body.theme-paper .sky { background: #f6f2ea; border-color: rgba(0,0,0,.08); box-shadow: 0 20px 50px rgba(60,40,10,.12); }
+body.theme-paper .map .raion:not(.alert):not(.red):not(.long) { fill: #d8d0c1; stroke: #cbc2b2; }
+body.theme-paper .map .oblast { stroke: #f6f2ea; }
+body.theme-paper .map .labels text { fill: #3a3631; stroke: rgba(246,242,234,.6); }
+body.theme-paper .fly .t path { fill: #1f1d1a; stroke: #f6f2ea; }
+body.theme-paper .fly .trail { background: #1f1d1a; }
+body.theme-paper .fly .badge { background: #1f1d1a; color: #f6f2ea; }
+body.theme-paper .legend { color: #1f1d1a; }
+body.theme-paper .legend svg path { fill: #1f1d1a; stroke: #f6f2ea; }
+body.theme-paper .player { background: #f6f2ea; border-color: rgba(0,0,0,.08); }
+body.theme-paper .pl-art { background-color: #e2dacd; }
+body.theme-paper .pl-btn { color: #1f1d1a; background: rgba(0,0,0,.05); border-color: rgba(0,0,0,.1); }
+body.theme-paper .pl-btn.focus { background: #1f1d1a; color: #f6f2ea; }
+body.theme-paper .dock { background: #f6f2ea; border-color: rgba(0,0,0,.08); }
+body.theme-paper .tile { background-color: #e2dacd; border-color: rgba(0,0,0,.06); color: #1f1d1a; box-shadow: 0 8px 18px rgba(60,40,10,.12); }
+body.theme-paper .tile.focus { border-color: #1f1d1a; box-shadow: 0 0 0 3px rgba(31,29,26,.75), 0 10px 22px rgba(60,40,10,.2); }
+body.theme-paper .sys { color: #1f1d1a; background: rgba(0,0,0,.05); border-color: rgba(0,0,0,.1); }
+body.theme-paper .sys.focus { background: #1f1d1a; color: #f6f2ea; }
+body.theme-paper .net-ico { fill: #1f1d1a; }
+body.theme-paper .drawer, body.theme-paper .settings { background: rgba(236,230,218,.98); }
+body.theme-paper .set-row { background: rgba(0,0,0,.04); }
+body.theme-paper .set-row.focus { background: #1f1d1a; color: #f6f2ea; }
+body.theme-paper .set-row.focus b { color: #f0b49a; }
+
+/* ================= «Термінал» — green phosphor, monospace ================= */
+body.theme-terminal { --bg: #040805; --ivory: #b9f6c7; --ink: #b9f6c7; --muted: #5f9c6e; --dim: #3c6748; --amber: #3dff8a; --amber-soft: #8affb8; --line: rgba(61,255,138,.14);
+  background: radial-gradient(120% 90% at 50% 40%, #07140b 0%, #030604 80%); }
+body.theme-terminal, body.theme-terminal .clock, body.theme-terminal .date, body.theme-terminal .st-text, body.theme-terminal .wx-now b,
+body.theme-terminal .pl-title, body.theme-terminal .rate b, body.theme-terminal .sky-count b, body.theme-terminal .set-head,
+body.theme-terminal .drawer-head, body.theme-terminal .map .labels text, body.theme-terminal .arc-t, body.theme-terminal .arc-mid { font-family: 'JBM', monospace; }
+body.theme-terminal .clock { font-weight: 200; font-size: 150px; color: #c9ffd6; text-shadow: 0 0 18px rgba(61,255,138,.35); }
+body.theme-terminal .clock .slot { width: .6em; }
+body.theme-terminal .clock .slot.colon { width: .6em; }
+body.theme-terminal .wx-now b, body.theme-terminal .st-text, body.theme-terminal .pl-title, body.theme-terminal .rate b, body.theme-terminal .st-sky b { color: #c9ffd6; }
+body.theme-terminal .headline .news { color: #9fe0ae; }
+body.theme-terminal #wx-icon { stroke: #b9f6c7; }
+body.theme-terminal #wx-icon .cloud { fill: #0b1d10; stroke: #b9f6c7; }
+body.theme-terminal .status { border-radius: 6px; background: rgba(61,255,138,.06); border-color: rgba(61,255,138,.3); }
+body.theme-terminal .sky, body.theme-terminal .player, body.theme-terminal .dock { border-radius: 8px; background: rgba(4,12,6,.9); border-color: rgba(61,255,138,.22); box-shadow: none; }
+body.theme-terminal .map .raion:not(.alert):not(.red):not(.long) { fill: #0c1f12; stroke: #17351f; }
+body.theme-terminal .map .oblast { stroke: #2a5c37; stroke-width: 1.2; }
+body.theme-terminal .map .labels text { fill: #7fd897; stroke: none; }
+body.theme-terminal .fly .t path { fill: #c9ffd6; stroke: #040805; }
+body.theme-terminal .fly .badge { background: #3dff8a; color: #040805; border-radius: 3px; }
+body.theme-terminal .tile { border-radius: 6px; background-color: #071009; border-color: rgba(61,255,138,.18); }
+body.theme-terminal .tile.focus { border-color: #3dff8a; box-shadow: 0 0 0 2px #3dff8a, 0 0 30px rgba(61,255,138,.35); }
+body.theme-terminal .sys { border-radius: 8px; color: #b9f6c7; }
+body.theme-terminal .sys.focus { background: #3dff8a; color: #040805; }
+body.theme-terminal .pl-btn { border-radius: 6px; color: #b9f6c7; }
+body.theme-terminal .pl-btn.focus { background: #3dff8a; color: #040805; }
+body.theme-terminal .set-row { border-radius: 6px; }
+body.theme-terminal .set-row.focus { background: #3dff8a; color: #040805; }
+body.theme-terminal .drawer, body.theme-terminal .settings { background: rgba(3,7,4,.98); }
+body.theme-paper .tile.cont { background-color: #e2dacd; }
+body.theme-paper .tile.cont .cont-shade { background: linear-gradient(90deg, rgba(246,242,234,.95), rgba(246,242,234,.7) 60%, rgba(246,242,234,.3)); }
+body.theme-paper .tile.cont .cont-title { color: #1f1d1a; }
+body.theme-paper .tile.cont .cont-tag { color: #b8441f; }
