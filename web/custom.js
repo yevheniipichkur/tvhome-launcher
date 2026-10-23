@@ -513,7 +513,7 @@
       box = document.createElement('div');
       box.id = 'editor'; box.className = 'editor';
       box.innerHTML = '<div class="ed-panel"><div class="ed-title">Конструктор екрана<small>▲ ▼ вибір · ◀ ▶ змінити · ОК — дії · Назад — вийти</small></div><div class="ed-list" id="ed-list"></div><div class="ed-pop" id="ed-pop" hidden></div></div>';
-      document.body.appendChild(box);
+      ($('stage') || document.body).appendChild(box); // inside the scaled stage, like the other overlays
     }
     box.hidden = false;
     document.body.classList.add('editing');
@@ -541,6 +541,7 @@
 
   window.TVC = {
     open: open,
+    close: close,
     clock: clock,
     cfg: function () { return cfg; },
     sysHidden: function (action) { return (action === 'apps' && !cfg.sysApps) || (action === 'wifi' && !cfg.sysWifi) || (action === 'layout' && !cfg.sysLayout); },
