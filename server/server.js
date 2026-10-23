@@ -6,6 +6,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 
 const PORT = Number(process.env.PORT ?? 8098);
 const HOST = process.env.HOST ?? '127.0.0.1';
@@ -27,6 +28,7 @@ const state = {
 };
 
 const powerCache = new Map();
+let monthAgoCache = null;
 async function getJson(url, timeout = 12_000) {
   const res = await fetch(url, { headers: { 'User-Agent': UA, Accept: 'application/json' }, signal: AbortSignal.timeout(timeout) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -240,10 +242,10 @@ function dsKind(name) {
   if (/Occupied|Окупован|CADR|CALR|ОРДЛО|Crimea|Крим/i.test(n) && !/Transnistria|Tskhinvali|Abkhazia|Prussia|Karelia/i.test(n)) return 'occupied';
   return null;
 }
-every('frontline', 30 * 60_000, async () => {
-  const d = await getJson('https://deepstatemap.live/api/history/last', 30_000);
+// DeepState GeoJSON → SVG paths in map units: occupied and the grey zone
+function dsPaths(d) {
   const out = { occupied: [], gray: [] };
-  for (const f of d.map?.features ?? []) {
+  for (const f of d.map?.features ?? d.features ?? []) {
     if (f.geometry?.type !== 'Polygon' && f.geometry?.type !== 'MultiPolygon') continue;
     const kind = dsKind(f.properties?.name);
     if (!kind) continue;
@@ -261,13 +263,104 @@ every('frontline', 30 * 60_000, async () => {
       if (dd.split('L').length > 3) out[kind].push(dd + 'Z');
     }
   }
-  state.frontline = { updated: d.datetime ?? null, occupied: out.occupied.join(''), gray: out.gray.join(''), changes: state.frontline?.changes ?? [], lastChange: state.frontline?.lastChange ?? null };
+  return out;
+}
+// ---------- weather map: precipitation + clouds over Ukraine as a small PNG, temperatures in cities ----------
+// A 1° grid (lon 22–40, lat 44–52) from Open-Meteo, upsampled bilinearly into an RGBA image whose
+// corners sit at lon 21.5/40.5, lat 52.5/43.5 — the map projection is linear in lon/lat, so the page
+// just stretches the image over that box.
+const WX_LON = [], WX_LAT = [];
+for (let lo = 22; lo <= 40; lo++) WX_LON.push(lo);
+for (let la = 52; la >= 44; la--) WX_LAT.push(la);
+const CRC_T = new Int32Array(256).map((_, n) => { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; return c; });
+const crc32 = (buf) => { let c = -1; for (const b of buf) c = CRC_T[(c ^ b) & 255] ^ (c >>> 8); return (c ^ -1) >>> 0; };
+function png(w, h, rgba) {
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
+    const td = Buffer.concat([Buffer.from(type), data]);
+    const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(td));
+    return Buffer.concat([len, td, crc]);
+  };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8; ihdr[9] = 6;
+  const raw = Buffer.alloc((w * 4 + 1) * h);
+  for (let y = 0; y < h; y++) { raw[y * (w * 4 + 1)] = 0; rgba.copy(raw, y * (w * 4 + 1) + 1, y * w * 4, (y + 1) * w * 4); }
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
+}
+every('wxmap', 60 * 60_000, async () => {
+  let cities = [];
+  try { cities = JSON.parse(fs.readFileSync(path.join(WEB, 'cities.json'), 'utf8')); } catch {}
+  const pts = [];
+  for (const la of WX_LAT) for (const lo of WX_LON) pts.push([la, lo]);
+  for (const c of cities) pts.push([c.lat, c.lon]);
+  const d = await getJson('https://api.open-meteo.com/v1/forecast?latitude=' + pts.map((p) => p[0]).join(',') + '&longitude=' + pts.map((p) => p[1]).join(',') +
+    '&current=precipitation,cloud_cover,temperature_2m,weather_code&models=icon_eu&timezone=Europe%2FKyiv', 30_000); // one model for the whole country: the default blend seams at ICON-D2's edge
+  const cur = d.map((x) => x.current);
+  const nx = WX_LON.length, ny = WX_LAT.length, S = 16, W = nx * S, H = ny * S;
+  const field = (k) => (i, j) => cur[Math.max(0, Math.min(ny - 1, j)) * nx + Math.max(0, Math.min(nx - 1, i))][k] ?? 0;
+  const P = field('precipitation'), C = field('cloud_cover'), T = field('temperature_2m');
+  const bil = (f, gx, gy) => {
+    const i = Math.floor(gx), j = Math.floor(gy), fx = gx - i, fy = gy - j;
+    return f(i, j) * (1 - fx) * (1 - fy) + f(i + 1, j) * fx * (1 - fy) + f(i, j + 1) * (1 - fx) * fy + f(i + 1, j + 1) * fx * fy;
+  };
+  const img = Buffer.alloc(W * H * 4);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const gx = (x + 0.5) / S - 0.5, gy = (y + 0.5) / S - 0.5;
+    const mmh = bil(P, gx, gy) * 4, cloud = bil(C, gx, gy), t = bil(T, gx, gy);
+    // clouds: a cool grey haze; precipitation: radar-like blue → violet (rain), white-lilac (snow)
+    let r = 170, g = 184, b = 204, a = Math.max(0, (cloud - 35) / 65) * 0.3;
+    if (mmh >= 0.02) {
+      const k = Math.max(0, Math.min(1, Math.log10(mmh * 10) / 2)); // 0.1 mm/h → 0, 10 mm/h → 1
+      const fade = Math.min(1, (mmh - 0.02) / 0.18);                 // soft edge instead of a hard contour
+      const snow = Math.max(0, Math.min(1, (1.5 - t) / 2));
+      const rr = k < 0.5 ? 80 + 40 * k : 100 + 120 * (k - 0.5), rg = k < 0.5 ? 175 - 90 * k : 130 - 90 * (k - 0.5), rb = 255;
+      const pr = rr * (1 - snow) + 230 * snow, pg = rg * (1 - snow) + 236 * snow, pb = rb * (1 - snow) + 255 * snow;
+      const pa = (0.38 + 0.47 * k) * fade;
+      r = pr * pa + r * a * (1 - pa); g = pg * pa + g * a * (1 - pa); b = pb * pa + b * a * (1 - pa);
+      a = pa + a * (1 - pa); r /= a; g /= a; b /= a;
+    }
+    const o = (y * W + x) * 4;
+    img[o] = r; img[o + 1] = g; img[o + 2] = b; img[o + 3] = Math.round(a * 255);
+  }
+  const [x0, y0] = dsProj(21.5, 52.5), [x1, y1] = dsProj(40.5, 43.5);
+  state.wxmap = {
+    updated: Date.now(),
+    image: 'data:image/png;base64,' + png(W, H, img).toString('base64'),
+    box: [+x0.toFixed(1), +y0.toFixed(1), +(x1 - x0).toFixed(1), +(y1 - y0).toFixed(1)],
+    cities: cities.map((c, k) => { const q = cur[nx * ny + k] ?? {}; const [x, y] = dsProj(c.lon, c.lat); return { name: c.name, x: +x.toFixed(1), y: +y.toFixed(1), t: q.temperature_2m, code: q.weather_code }; }),
+  };
+});
+
+// ---------- football: next / last / live match of a team (TheSportsDB, free test key) ----------
+const footballCache = new Map();
+async function football(id) {
+  const hit = footballCache.get(id);
+  const live = hit?.body?.live;
+  if (hit && Date.now() - hit.at < (live ? 90_000 : 10 * 60_000)) return hit.body;
+  const base = 'https://www.thesportsdb.com/api/v1/json/123/';
+  const ev = (e) => e && { id: e.idEvent, league: e.strLeague, home: e.strHomeTeam, away: e.strAwayTeam, homeId: e.idHomeTeam, awayId: e.idAwayTeam,
+    at: Date.parse(e.strTimestamp + (/[zZ+]/.test(e.strTimestamp.slice(10)) ? '' : 'Z')), hs: e.intHomeScore == null ? null : +e.intHomeScore, as: e.intAwayScore == null ? null : +e.intAwayScore,
+    status: e.strStatus ?? null, progress: e.strProgress ?? null };
+  const [n, l] = await Promise.all([getJson(base + 'eventsnext.php?id=' + id, 15_000).catch(() => null), getJson(base + 'eventslast.php?id=' + id, 15_000).catch(() => null)]);
+  const body = { next: ev(n?.events?.[0]), last: ev(l?.results?.[0]), live: null };
+  // a match that has kicked off: look it up for the running score
+  const started = body.next && body.next.at < Date.now() && Date.now() - body.next.at < 3 * 3600_000 ? body.next : null;
+  if (started) {
+    const e = await getJson(base + 'lookupevent.php?id=' + started.id, 15_000).catch(() => null);
+    body.live = ev(e?.events?.[0]) ?? started;
+  }
+  footballCache.set(id, { at: Date.now(), body });
+  return body;
+}
+
+every('frontline', 30 * 60_000, async () => {
+  const d = await getJson('https://deepstatemap.live/api/history/last', 30_000);
+  const out = dsPaths(d);
+  state.frontline = { updated: d.datetime ?? null, occupied: out.occupied.join(''), gray: out.gray.join(''), changes: state.frontline?.changes ?? [], lastChange: state.frontline?.lastChange ?? null, monthAgo: state.frontline?.monthAgo ?? null };
   // what moved during the last 24 h: DeepState's update log names each place with a map link
   try {
     const hist = await getJson('https://deepstatemap.live/api/history/public', 30_000);
     let lastChange = 0;
     for (const h of hist) lastChange = Math.max(lastChange, Date.parse(h.createdAt) || 0);
-    // the last 24 h; when DeepState posted nothing in that time, the latest update (marked not fresh)
     // a week of changes (the page replays them day by day); fresh = anything in the last 24 h
     const fresh = lastChange > Date.now() - 24 * 3600_000;
     const since = Math.min(lastChange, Date.now() - 7 * 24 * 3600_000), changes = [];
@@ -285,6 +378,14 @@ every('frontline', 30 * 60_000, async () => {
     }
     state.frontline.changes = changes;
     state.frontline.lastChange = lastChange || null;
+    // the line a month ago (once a day): drawn as a dashed outline so the month's movement shows
+    const want = Date.now() / 1000 - 30 * 86400;
+    const old = hist.filter((h) => h.id <= want).pop();
+    if (old && (!monthAgoCache || monthAgoCache.id !== old.id)) {
+      const g = await getJson('https://deepstatemap.live/api/history/' + old.id + '/geojson', 60_000);
+      monthAgoCache = { id: old.id, at: old.createdAt, path: dsPaths(g).occupied.join('') };
+    }
+    if (monthAgoCache) state.frontline.monthAgo = { at: Date.parse(monthAgoCache.at), occupied: monthAgoCache.path };
     state.frontline.fresh = fresh;
   } catch (e) { log('frontline history', e.message); }
 });
@@ -473,6 +574,16 @@ http
       testAlert = st === 'on' ? { until: Date.now() + 120_000, city: { active: true, since: new Date().toISOString(), level: 'red', reasons: ['Тест сповіщення'] } }
         : st === 'off' ? { until: Date.now() + 120_000, city: { active: false } } : null;
       return res.end('ok ' + (st ?? 'auto'));
+    }
+    if (url.pathname === '/api/public/wxmap') {
+      res.writeHead(state.wxmap ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=600', 'Access-Control-Allow-Origin': '*' });
+      return res.end(JSON.stringify(state.wxmap ?? { error: 'no data yet' }));
+    }
+    if (url.pathname === '/api/public/football') {
+      const id = String(url.searchParams.get('team') ?? '');
+      const send = (code, body) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=60', 'Access-Control-Allow-Origin': '*' }); res.end(body); };
+      if (!/^\d{3,8}$/.test(id)) return send(400, '{"error":"bad team"}');
+      return football(id).then((b) => send(200, JSON.stringify(b))).catch(() => send(503, '{"error":"no data"}'));
     }
     if (url.pathname === '/api/public/power') {
       // outage schedules by region (svitlo aggregator of oblenergo/DTEK/YASNO data), cached 10 min

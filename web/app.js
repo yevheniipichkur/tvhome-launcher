@@ -87,6 +87,27 @@
     clockShown = text;
   }
   // the home city comes from the launcher settings (DataService → data.cityInfo); Lviv until chosen
+  // State holidays and memorable days of Ukraine (Christmas on 25 Dec since 2023, Easter by the
+  // Julian computus). Under martial law they are not days off, so the screen never says «вихідний».
+  var HOLIDAYS = { '1-1': 'Новий рік', '1-22': 'День Соборності', '2-24': 'роковини повномасштабного вторгнення', '3-8': 'Міжнародний жіночий день',
+    '5-1': 'День праці', '5-8': 'День пам’яті та перемоги', '6-28': 'День Конституції', '7-15': 'День Української Державності', '8-23': 'День Прапора',
+    '8-24': 'День Незалежності', '10-1': 'День захисників і захисниць', '11-9': 'День писемності та мови', '11-21': 'День Гідності та Свободи',
+    '12-6': 'День Збройних Сил', '12-25': 'Різдво Христове' };
+  function orthodoxEaster(y) {
+    var a = y % 4, b = y % 7, c = y % 19, d = (19 * c + 15) % 30, e = (2 * a + 4 * b - d + 34) % 7;
+    var m = Math.floor((d + e + 114) / 31), day = (d + e + 114) % 31 + 1;
+    return new Date(y, m - 1, day + 13);
+  }
+  function holiday(dt) {
+    var k = (dt.getMonth() + 1) + '-' + dt.getDate();
+    if (HOLIDAYS[k]) return HOLIDAYS[k];
+    var e = orthodoxEaster(dt.getFullYear()), diff = Math.round((new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()) - e) / 864e5);
+    if (diff === 0) return 'Великдень';
+    if (diff === 49) return 'Трійця';
+    // Holodomor remembrance: the fourth Saturday of November
+    if (dt.getMonth() === 10 && dt.getDay() === 6 && dt.getDate() >= 22 && dt.getDate() <= 28) return 'День пам’яті жертв голодоморів';
+    return null;
+  }
   function cityInfo() { return (data && data.cityInfo) || { name: 'Львів', loc: 'у Львові', lat: 49.8397, lon: 24.0297, oblast: 'Львівська область', state: '27', district: '90', community: '845' }; }
   function cityName() { return cityInfo().name; }
   function cap(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
@@ -103,7 +124,13 @@
   function tickClock() {
     var now = new Date();
     setClock(hhmm(now));
-    $('date').textContent = DAYS[now.getDay()] + ', ' + now.getDate() + ' ' + MONTHS[now.getMonth()];
+    var dk = now.toDateString();
+    if ($('date').getAttribute('data-k') !== dk) {
+      var hd = holiday(now), ht = hd ? null : holiday(new Date(now.getTime() + 864e5));
+      $('date').setAttribute('data-k', dk);
+      $('date').innerHTML = DAYS[now.getDay()] + ', ' + now.getDate() + ' ' + MONTHS[now.getMonth()] +
+        (hd ? '<span class="hday"> · ' + hd + '</span>' : ht ? '<span class="hday soon"> · завтра ' + ht + '</span>' : '');
+    }
     greet();
   }
   setInterval(tickClock, 1000);
@@ -162,6 +189,11 @@
     commLayer = el('g', { 'class': 'comms' }, map);
     frontLayer = el('g', { 'class': 'front' }, map);
     paintFront();
+    // Ukraine's outline as a clip for the weather image
+    var defs = el('defs', {}, map), clip = el('clipPath', { id: 'ua-clip' }, defs);
+    geo.oblasts.forEach(function (o) { el('path', { d: o.base || o.d }, clip); });
+    wxLayer = el('g', { 'class': 'wxl' }, map);
+    paintWxMap();
     var go = el('g', { 'class': 'oblasts' }, map);
     geo.oblasts.forEach(function (o) { oblastEls[o.name] = el('path', { d: o.d, 'class': 'oblast' }, go); });
     homeOblastEl = el('path', { d: '', 'class': 'home-oblast' }, map);
@@ -268,21 +300,51 @@
   var commLayer, commKey = '';
   // ---------- front line (DeepStateMAP) as an alternative map layer ----------
   var frontLayer = null, frontData = null;
-  function mapLayer() { try { return localStorage.getItem('tv-maplayer') || 'alerts'; } catch (e) { return 'alerts'; } }
+  var MAP_LAYERS = ['alerts', 'front', 'weather'];
+  var MAP_LAYER_NAME = { alerts: 'тривоги', front: 'лінія фронту (DeepState)', weather: 'погода' };
+  function mapLayer() { try { var v = localStorage.getItem('tv-maplayer'); return MAP_LAYERS.indexOf(v) >= 0 ? v : 'alerts'; } catch (e) { return 'alerts'; } }
   function applyMapLayer() {
-    var front = mapLayer() === 'front';
+    var layer = mapLayer(), front = layer === 'front', wx = layer === 'weather';
     document.body.classList.toggle('map-front', front);
+    document.body.classList.toggle('map-weather', wx);
+    document.body.classList.toggle('map-alt', front || wx);
     var c = document.querySelector('.credit');
-    if (c) c.textContent = front ? 'лінія фронту: DeepStateMAP · цілі: NEPTUN · neptun.in.ua' : 'тривоги: ukrainealarm.com · цілі: NEPTUN · neptun.in.ua';
+    if (c) c.textContent = (front ? 'лінія фронту: DeepStateMAP' : wx ? 'погода: Open-Meteo' : 'тривоги: ukrainealarm.com') + ' · цілі: NEPTUN · neptun.in.ua';
     if (front && !frontData) loadFront();
     else if (front) setTimeout(replayFront, 900);
+    if (wx) loadWxMap();
   }
+
+  // ---------- weather layer: precipitation / clouds image + temperatures in the cities ----------
+  var wxLayer = null, wxData = null;
+  function loadWxMap() {
+    getJSON('https://tvhome.pichkur.com/api/public/wxmap', function (err, d) { if (!err && d && d.image) { wxData = d; paintWxMap(); } });
+  }
+  function paintWxMap() {
+    if (!wxLayer || !wxData) return;
+    var b = wxData.box, home = cityName();
+    var h = '<image href="' + wxData.image + '" x="' + b[0] + '" y="' + b[1] + '" width="' + b[2] + '" height="' + b[3] + '" preserveAspectRatio="none" clip-path="url(#ua-clip)"/>';
+    wxData.cities.forEach(function (c) {
+      if (c.t == null) return;
+      var t = Math.round(c.t);
+      h += '<g class="wxt' + (c.name === home ? ' home' : '') + '" transform="translate(' + c.x + ',' + c.y + ')"><text>' + (t > 0 ? '+' : '') + t + '°</text></g>';
+    });
+    wxLayer.innerHTML = h;
+    var box = $('wx-caption');
+    if (box) {
+      var d = new Date(wxData.updated);
+      box.innerHTML = '<div class="fc-h">Погода зараз · ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + '</div>' +
+        '<div class="fc-r"><i class="wr"></i>дощ <i class="ws"></i>сніг <i class="wc"></i>хмари</div>';
+    }
+  }
+  setInterval(function () { if (mapLayer() === 'weather') loadWxMap(); }, 30 * 60000);
   function loadFront() {
-    getJSON('https://tvhome.pichkur.com/api/public/frontline?v=3', function (err, d) { if (!err && d && d.occupied) { var first = !frontData; frontData = d; paintFront(); if (first) setTimeout(replayFront, 900); } });
+    getJSON('https://tvhome.pichkur.com/api/public/frontline?v=4', function (err, d) { if (!err && d && d.occupied) { var first = !frontData; frontData = d; paintFront(); if (first) setTimeout(replayFront, 900); } });
   }
   function paintFront() {
     if (!frontLayer || !frontData) return;
-    var h = '<path class="gray" d="' + frontData.gray + '"/><path class="occ" d="' + frontData.occupied + '"/>';
+    var h = '<path class="gray" d="' + frontData.gray + '"/><path class="occ" d="' + frontData.occupied + '"/>' +
+      (frontData.monthAgo ? '<path class="month" d="' + frontData.monthAgo.occupied + '"/>' : '');
     // changes of the last 24 h: a ring per place (red = enemy advance, green = our gains, amber = correction)
     // newest first, so a place that changed twice keeps its latest ring
     var seen = {}, latest = recentChanges();
@@ -342,6 +404,7 @@
     all.forEach(function (c) { if (c.t > Date.now() - 7 * 864e5) (c.kind === 'enemy' ? wEn : c.kind === 'ours' ? wOu : {})[c.name] = 1; });
     var nEn = Object.keys(wEn).length, nOu = Object.keys(wOu).length;
     if (nEn || nOu) html += '<div class="fc-w">за тиждень: ворог просунувся біля ' + nEn + ' н. п.' + (nOu ? ' · ЗСУ — ' + nOu : '') + '</div>';
+    if (frontData.monthAgo) html += '<div class="fc-w"><i class="dash"></i>лінія фронту ' + ddmm(frontData.monthAgo.at) + ' (місяць тому)</div>';
     box.innerHTML = html;
   }
   setInterval(function () { if (mapLayer() === 'front') loadFront(); }, 30 * 60000);
@@ -601,18 +664,77 @@
     if (key !== newsKey) { newsKey = key; newsPage = 0; renderNews(); }
   }
   function renderNews() {
-    var n = data && data.news;
-    if (!n || !n.items || !n.items.length) return;
-    var x = n.items[newsPage % n.items.length];
+    var n = data && data.news, fl = footballLine();
+    var hasNews = n && n.items && n.items.length;
+    if (!hasNews && !fl) return;
+    // a live match stays on; a match today/tomorrow or a fresh result alternates with the news
+    var showBall = !!fl && (fl.live || !hasNews || newsPage % 2 === 0);
+    var x = showBall ? null : n.items[newsPage % n.items.length];
     var box = $('news');
     box.classList.add('swap');
     setTimeout(function () {
       box.innerHTML = '<span class="t"></span> <span class="ago"></span>';
-      box.firstChild.textContent = x.title;
-      box.lastChild.textContent = ago(x.at);
+      box.firstChild.textContent = showBall ? '⚽ ' + fl.text : x.title;
+      box.lastChild.textContent = showBall ? fl.tag : ago(x.at);
+      box.classList.toggle('ball', showBall);
+      box.classList.toggle('live', !!(showBall && fl.live));
+      $('news-args').textContent = showBall ? fl.league : n.source;
       box.classList.remove('swap');
     }, 350);
   }
+
+  // ---------- football: the chosen team's match (TheSportsDB) ----------
+  var TEAMS = [['', 'не показувати'], ['133915', 'Збірна України'], ['134426', 'Карпати'], ['133944', 'Динамо'], ['134126', 'Шахтар'],
+    ['140180', 'Полісся'], ['146860', 'ЛНЗ'], ['142826', 'Кривбас'], ['134422', 'Зоря'], ['135911', 'Верес'], ['136858', 'Колос'],
+    ['134122', 'Металіст 1925'], ['134392', 'Чорноморець'], ['146857', 'Епіцентр'], ['149227', 'Кудрівка'], ['147624', 'Лівий Берег'], ['146855', 'Буковина']];
+  var TEAM_UA = { 'Ukraine': 'Україна', 'Karpaty Lviv': 'Карпати', 'Dynamo Kyiv': 'Динамо', 'Shakhtar Donetsk': 'Шахтар', 'Polissya Zhytomyr': 'Полісся',
+    'LNZ Cherkasy': 'ЛНЗ', 'Kryvbas Kryvyi Rih': 'Кривбас', 'Zorya Luhansk': 'Зоря', 'Veres Rivne': 'Верес', 'Kolos Kovalivka': 'Колос', 'Kharkiv': 'Металіст 1925',
+    'Chornomorets Odesa': 'Чорноморець', 'Epitsentr Kamianets-Podilsky': 'Епіцентр', 'Kudrivka': 'Кудрівка', 'Livyi Bereh Kyiv': 'Лівий Берег',
+    'Bukovyna Chernivtsi': 'Буковина', 'Obolon Kyiv': 'Оболонь', 'Rukh Lviv': 'Рух', 'Oleksandriya': 'Олександрія',
+    'N.Ireland': 'Півн. Ірландія', 'Northern Ireland': 'Півн. Ірландія', 'Hungary': 'Угорщина', 'Poland': 'Польща', 'Germany': 'Німеччина', 'France': 'Франція',
+    'Spain': 'Іспанія', 'Italy': 'Італія', 'England': 'Англія', 'Portugal': 'Португалія', 'Netherlands': 'Нідерланди', 'Belgium': 'Бельгія',
+    'Croatia': 'Хорватія', 'Serbia': 'Сербія', 'Romania': 'Румунія', 'Slovakia': 'Словаччина', 'Czech Republic': 'Чехія', 'Georgia': 'Грузія',
+    'Iceland': 'Ісландія', 'Albania': 'Албанія', 'Austria': 'Австрія', 'Switzerland': 'Швейцарія', 'Sweden': 'Швеція', 'Norway': 'Норвегія',
+    'Denmark': 'Данія', 'Finland': 'Фінляндія', 'Scotland': 'Шотландія', 'Wales': 'Уельс', 'Ireland': 'Ірландія', 'Turkey': 'Туреччина',
+    'Greece': 'Греція', 'Moldova': 'Молдова', 'Lithuania': 'Литва', 'Latvia': 'Латвія', 'Estonia': 'Естонія', 'Bosnia-Herzegovina': 'Боснія і Герцеговина',
+    'Slovenia': 'Словенія', 'Bulgaria': 'Болгарія', 'Israel': 'Ізраїль', 'Azerbaijan': 'Азербайджан', 'Armenia': 'Вірменія', 'Kazakhstan': 'Казахстан' };
+  var LEAGUE_UA = { 'Ukrainian Premier League': 'УПЛ', 'UEFA Nations League': 'Ліга націй', 'UEFA Champions League': 'Ліга чемпіонів', 'UEFA Europa League': 'Ліга Європи',
+    'UEFA Europa Conference League': 'Ліга конференцій', 'UEFA Conference League': 'Ліга конференцій', 'FIFA World Cup': 'Чемпіонат світу',
+    'World Cup Qualifying UEFA': 'Відбір ЧС', 'UEFA European Championship': 'Євро', 'International Friendlies': 'Товариський', 'Ukrainian Cup': 'Кубок України' };
+  var ballData = null;
+  function teamId() { try { return localStorage.getItem('tv-team') || ''; } catch (e) { return ''; } }
+  function teamName() { var id = teamId(), n = 'не показувати'; TEAMS.forEach(function (t) { if (t[0] === id) n = t[1]; }); return n; }
+  function loadBall() {
+    var id = teamId();
+    if (!id) { ballData = null; return; }
+    getJSON('https://tvhome.pichkur.com/api/public/football?team=' + id, function (err, d) { if (!err && d) { ballData = d; if (d.live) renderNews(); } });
+  }
+  function ua(n) { return TEAM_UA[n] || n; }
+  // the line for the news slot: a live score, a result from the last 14 h, or a match today/tomorrow
+  function footballLine() {
+    var d = ballData;
+    if (!d || !teamId()) return null;
+    var now = Date.now(), today = new Date(); today.setHours(0, 0, 0, 0);
+    var hm = function (t) { var x = new Date(t); return ('0' + x.getHours()).slice(-2) + ':' + ('0' + x.getMinutes()).slice(-2); };
+    var lg = function (e) { return LEAGUE_UA[e.league] || e.league || ''; };
+    var L = d.live;
+    if (L && !/^(FT|AET|PEN|AP|CANC|PST|ABD)$/.test(L.status || '')) {
+      var st = L.status === 'HT' ? 'перерва' : L.status === '1H' ? '1-й тайм' : L.status === '2H' ? '2-й тайм' : L.progress ? L.progress + "'" : 'наживо';
+      return { live: true, text: ua(L.home) + ' ' + (L.hs == null ? 0 : L.hs) + ':' + (L.as == null ? 0 : L.as) + ' ' + ua(L.away), tag: st, league: lg(L) };
+    }
+    var fin = L && L.hs != null ? L : d.last;
+    if (fin && fin.hs != null && now - fin.at < 14 * 3600e3)
+      return { text: ua(fin.home) + ' ' + fin.hs + ':' + fin.as + ' ' + ua(fin.away), tag: 'фінал', league: lg(fin) };
+    var n = d.next;
+    if (n && n.at > now - 3 * 3600e3) {
+      var dd = Math.floor((n.at - today.getTime()) / 864e5);
+      if (dd === 0 || dd === 1) return { text: (dd ? 'завтра ' : 'сьогодні ') + hm(n.at) + ' · ' + ua(n.home) + ' — ' + ua(n.away), tag: '', league: lg(n) };
+    }
+    return null;
+  }
+  setInterval(loadBall, 2 * 60000);
+  setTimeout(loadBall, 2500);
+
   setInterval(function () { newsPage++; renderNews(); }, 12000);
 
   // ---------- data ----------
@@ -1072,7 +1194,8 @@
     $('set-bg').textContent = bgName();
     $('set-map3d').textContent = map3d() ? '3D' : '2D';
     paintPowerSetting();
-    $('set-maplayer').textContent = mapLayer() === 'front' ? 'лінія фронту (DeepState)' : 'тривоги';
+    $('set-maplayer').textContent = MAP_LAYER_NAME[mapLayer()];
+    $('set-team').textContent = teamName();
     $('set-notchmap').textContent = TV && TV.notchMap && TV.notchMap() ? 'увімк.' : 'вимк.';
     paintUpdate();
     var list = dockList(), byPkg = {};
@@ -1098,6 +1221,14 @@
       $('set-notchmap').textContent = TV && TV.notchMap && TV.notchMap() ? 'увімк.' : 'вимк.';
       return;
     }
+    if (kind === 'team') {
+      var ti2 = 0;
+      TEAMS.forEach(function (t, j) { if (t[0] === teamId()) ti2 = j; });
+      try { localStorage.setItem('tv-team', TEAMS[(ti2 + (dir || 1) + TEAMS.length) % TEAMS.length][0]); } catch (e) {}
+      $('set-team').textContent = teamName();
+      ballData = null; loadBall();
+      return;
+    }
     if (kind === 'powerq') {
       var ids = [''].concat(powerData && powerData.id === powerRegion() ? powerData.queues.map(function (x) { return x.id; }) : []);
       var at = Math.max(0, ids.indexOf(powerQueue() || ''));
@@ -1107,17 +1238,16 @@
       return;
     }
     if (kind === 'maplayer') {
-      try { localStorage.setItem('tv-maplayer', mapLayer() === 'front' ? 'alerts' : 'front'); } catch (e) {}
+      var li = MAP_LAYERS.indexOf(mapLayer());
+      try { localStorage.setItem('tv-maplayer', MAP_LAYERS[(li + (dir || 1) + MAP_LAYERS.length) % MAP_LAYERS.length]); } catch (e) {}
       applyMapLayer();
-      $('set-maplayer').textContent = mapLayer() === 'front' ? 'лінія фронту (DeepState)' : 'тривоги';
+      $('set-maplayer').textContent = MAP_LAYER_NAME[mapLayer()];
       return;
     }
     if (kind === 'map3d') {
       try { localStorage.setItem('tv-map3d', map3d() ? '0' : '1'); } catch (e) {}
       document.body.classList.toggle('map-3d', map3d());
       $('set-map3d').textContent = map3d() ? '3D' : '2D';
-    paintPowerSetting();
-    $('set-maplayer').textContent = mapLayer() === 'front' ? 'лінія фронту (DeepState)' : 'тривоги';
       return;
     }
     if (kind === 'bg') {
@@ -1127,8 +1257,6 @@
       bgPhase = null; paintBackground();
       $('set-bg').textContent = bgName();
     $('set-map3d').textContent = map3d() ? '3D' : '2D';
-    paintPowerSetting();
-    $('set-maplayer').textContent = mapLayer() === 'front' ? 'лінія фронту (DeepState)' : 'тривоги';
     paintUpdate();
       return;
     }

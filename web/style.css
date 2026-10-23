@@ -438,12 +438,12 @@ body.lite .full-only { display: none !important; }
 /* front line layer (DeepStateMAP): occupied red, "unknown status" grey; alert fills hidden */
 .map .front { display: none; pointer-events: none; }
 body.map-front .map .front { display: inline; }
-body.map-front .map .comms { display: none; }
-body.map-front .map .raion.alert, body.map-front .map .raion.red, body.map-front .map .raion.long { fill: #232d3b; stroke: #18202b; }
-body.map-front.bg-streets .map .raion.alert, body.map-front.bg-streets .map .raion.red, body.map-front.bg-streets .map .raion.long { fill: #0f1828; stroke: rgba(255,255,255,.08); }
+body.map-alt .map .comms { display: none; }
+body.map-alt .map .raion.alert, body.map-alt .map .raion.red, body.map-alt .map .raion.long { fill: #232d3b; stroke: #18202b; }
+body.map-alt.bg-streets .map .raion.alert, body.map-alt.bg-streets .map .raion.red, body.map-alt.bg-streets .map .raion.long { fill: #0f1828; stroke: rgba(255,255,255,.08); }
 .map .front .occ { fill: rgba(214,52,44,.62); stroke: #ff6b5e; stroke-width: 1.4; stroke-linejoin: round; }
 .map .front .gray { fill: rgba(190,175,165,.32); stroke: rgba(220,205,195,.6); stroke-width: .8; stroke-dasharray: 3 2; }
-body.theme-paper.map-front .map .raion.alert, body.theme-paper.map-front .map .raion.red, body.theme-paper.map-front .map .raion.long { fill: #d8d0c1; }
+body.theme-paper.map-alt .map .raion.alert, body.theme-paper.map-alt .map .raion.red, body.theme-paper.map-alt .map .raion.long { fill: #d8d0c1; }
 
 /* front line: the last 24 h of changes */
 .map .front .chg .halo { fill: none; stroke-width: 2; }
@@ -503,3 +503,23 @@ body.theme-paper .power { color: #1f1d1a; }
 @keyframes wx-snow { from { transform: translateY(0); } to { transform: translateY(var(--dy, 240px)); } }
 @keyframes wx-drift { from { transform: translateX(-6%); } to { transform: translateX(6%); } }
 body.bg-paused .wx-fx i { animation-play-state: paused; }
+
+/* front line a month ago: a dashed outline over today's occupied area */
+.map .front .month { fill: none; stroke: #ffe1a8; stroke-width: 1.3; stroke-dasharray: 4 3; stroke-opacity: .85; }
+.front-changes .fc-w i.dash { display: inline-block; width: 22px; height: 0; border-top: 2px dashed #ffe1a8; margin-right: 8px; vertical-align: 4px; }
+
+/* weather layer */
+.map .wxl { display: none; pointer-events: none; }
+body.map-weather .map .wxl { display: inline; }
+body.map-weather .map .labels { display: none; }
+.map .wxl text { font-size: 15px; font-weight: 600; fill: #f4efe6; text-anchor: middle; dominant-baseline: central; paint-order: stroke; stroke: rgba(8,12,20,.85); stroke-width: 3.5px; }
+.map .wxl .home text { fill: #ffc56b; font-size: 18px; }
+.wx-caption { display: none; }
+body.map-weather .wx-caption { display: block; }
+.wx-caption .fc-r i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin: 0 6px 0 14px; vertical-align: -1px; }
+.wx-caption .fc-r i.wr { background: #6a9cff; } .wx-caption .fc-r i.ws { background: #e6ecff; } .wx-caption .fc-r i.wc { background: #aab8cc; opacity: .6; }
+
+/* holidays next to the date; football in the news line */
+.date .hday { color: #ffc56b; }
+.date .hday.soon { color: inherit; opacity: .6; }
+.headline .news.live .ago { color: #ff6b5e; }
