@@ -87,7 +87,7 @@
     clockShown = text;
   }
   // the home city comes from the launcher settings (DataService → data.cityInfo); Lviv until chosen
-  function cityInfo() { return (data && data.cityInfo) || { name: 'Львів', loc: 'у Львові', lat: 49.8397, lon: 24.0297, oblast: 'Львівська область' }; }
+  function cityInfo() { return (data && data.cityInfo) || { name: 'Львів', loc: 'у Львові', lat: 49.8397, lon: 24.0297, oblast: 'Львівська область', state: '27', district: '90', community: '845' }; }
   function cityName() { return cityInfo().name; }
   function cap(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
   function greet() {
@@ -919,9 +919,9 @@
     wine:   { name: 'Вино', bg: 'radial-gradient(90% 70% at 80% 0%, #a3204a 0%, transparent 60%), radial-gradient(70% 60% at 0% 100%, #5a1a6a 0%, transparent 60%), linear-gradient(180deg, #24081a 0%, #300a22 55%, #1c0614 100%)' },
     black:  { name: 'Чорний', bg: '#000' },
   };
-  var BG_CHOICES = ['auto', 'night', 'dawn', 'day', 'golden', 'dusk', 'aurora', 'ocean', 'wine', 'black'];
-  function bgChoice() { try { return localStorage.getItem('tv-bg') || 'auto'; } catch (e) { return 'auto'; } }
-  function bgName() { var c = bgChoice(); return c === 'auto' ? 'Авто · за сонцем' : PHASES[c].name; }
+  var BG_CHOICES = ['city', 'streets', 'auto', 'night', 'dawn', 'day', 'golden', 'dusk', 'aurora', 'ocean', 'wine', 'black'];
+  function bgChoice() { try { return localStorage.getItem('tv-bg') || 'city'; } catch (e) { return 'city'; } }
+  function bgName() { var c = bgChoice(); return c === 'city' ? 'Місто · живе небо' : c === 'streets' ? 'Мапа міста' : c === 'auto' ? 'Градієнт · за сонцем' : PHASES[c].name; }
   function phaseNow() {
     var w = data && data.weather;
     var now = Date.now();
@@ -935,8 +935,16 @@
   }
   var bgPhase = null, bgFront = 'bg-a';
   function paintBackground() {
-    var ph = bgChoice() === 'auto' ? phaseNow() : bgChoice();
+    var choice = bgChoice();
+    var ph = choice === 'auto' || choice === 'city' ? phaseNow() : choice === 'streets' ? 'black' : choice;
     document.body.classList.toggle('danger', !!(data && data.alerts && data.alerts.city && data.alerts.city.active));
+    var sc = $('scene');
+    if (sc && window.Scene) {
+      if (choice === 'city') Scene.city(sc, cityInfo(), ph, data && data.weather);
+      else if (choice === 'streets') Scene.streets(sc, cityInfo());
+      else Scene.clear(sc);
+    }
+    document.body.classList.toggle('bg-streets', choice === 'streets');
     if (ph === bgPhase) return;
     var P2 = PHASES[ph];
     var back = bgFront === 'bg-a' ? 'bg-b' : 'bg-a';
