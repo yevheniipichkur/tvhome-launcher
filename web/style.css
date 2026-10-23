@@ -331,3 +331,27 @@ body.compact .pl-btn.big { width: 76px; height: 76px; }
 /* dock in its own layer: focus changes repaint only the dock, not the whole screen */
 .dock { will-change: transform; }
 #glint { will-change: transform; }
+
+/* ---------- launcher settings ---------- */
+.settings { position: absolute; inset: 0; z-index: 6; background: rgba(8,12,18,.97); padding: 60px 84px; }
+.settings:not([hidden]) { animation: drawer .4s var(--ease-out); }
+.set-head { font-family: 'Fixel Display', sans-serif; font-weight: 500; font-size: 38px; }
+.set-head .muted { font-family: 'Fixel Text', sans-serif; font-weight: 400; font-size: 19px; margin-left: 10px; }
+.set-body { display: grid; grid-template-columns: 640px 1fr; gap: 60px; margin-top: 40px; height: 860px; }
+.set-col { min-height: 0; display: flex; flex-direction: column; }
+.set-title { font-size: 22px; color: var(--ivory); margin-bottom: 14px; }
+.set-title .muted { font-size: 17px; margin-left: 8px; }
+.set-row { display: flex; align-items: center; gap: 16px; width: 100%; height: 72px; padding: 0 24px; margin-bottom: 10px; border-radius: 18px; background: rgba(255,255,255,.05); border: 1px solid var(--line); text-align: left; font-size: 23px; color: var(--ivory); transition: transform .3s var(--spring), background .2s; }
+.set-row .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.set-row b { font-weight: 600; color: var(--amber-soft); }
+.set-row i { font-style: normal; font-size: 16px; color: var(--dim); }
+.set-row.focus { background: var(--ivory); color: #0b1017; transform: scale(1.02); }
+.set-row.focus b { color: #8a4e00; }
+.set-row.focus i { color: #556; }
+.set-note { margin-top: 16px; font-size: 17px; line-height: 1.5; color: var(--muted); }
+.set-apps { flex: 1; min-height: 0; overflow: hidden; }
+.set-row.app { height: 64px; }
+.set-row.app .ic { flex: none; width: 72px; height: 42px; border-radius: 8px; background: #141b25 center/contain no-repeat; }
+.set-row.app b { font-size: 17px; font-weight: 500; color: var(--dim); }
+.set-row.app.on b { color: var(--green); }
+.set-row.app.focus b { color: #24603d; }

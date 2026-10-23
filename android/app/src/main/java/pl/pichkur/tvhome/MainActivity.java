@@ -504,6 +504,12 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void setCity(String json) { DataService.get(MainActivity.this).setCity(json); }
+
+        @JavascriptInterface
+        public String getCity() { return DataService.get(MainActivity.this).getCity(); }
+
+        @JavascriptInterface
         public void sound(String name) {
             Integer id = soundIds.get(name);
             if (id != null && sounds != null) sounds.play(id, 0.5f, 0.5f, 1, 0, 1f);

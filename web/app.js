@@ -86,12 +86,16 @@
     }
     clockShown = text;
   }
+  // the home city comes from the launcher settings (DataService → data.cityInfo); Lviv until chosen
+  function cityInfo() { return (data && data.cityInfo) || { name: 'Львів', loc: 'у Львові', lat: 49.8397, lon: 24.0297, oblast: 'Львівська область' }; }
+  function cityName() { return cityInfo().name; }
+  function cap(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
   function greet() {
     var el = $('welcome-typed');
     if (!el || el.getAttribute('data-typing')) return;
     var alarm = document.body.classList.contains('alarm');
     var h = new Date().getHours();
-    var text = (alarm ? 'Повітряна тривога' : h >= 5 && h < 11 ? 'Доброго ранку' : h < 17 && h >= 11 ? 'Доброго дня' : h >= 17 && h < 23 ? 'Доброго вечора' : 'Добраніч') + ' · Львів';
+    var text = (alarm ? 'Повітряна тривога' : h >= 5 && h < 11 ? 'Доброго ранку' : h < 17 && h >= 11 ? 'Доброго дня' : h >= 17 && h < 23 ? 'Доброго вечора' : 'Добраніч') + ' · ' + cityName();
     if (el.textContent !== text) el.textContent = text;
     var spark = document.querySelector('.greet .spark');
     if (spark) spark.textContent = alarm ? '⚠ ' : '';
@@ -125,6 +129,12 @@
 
   // label nudges (map units) so names don't collide with each other or the Lviv marker
   var labelEls = {};
+  var homeOblastEl = null, homeKey = '';
+  function paintHomeOblast() {
+    if (!homeOblastEl || !geo) return;
+    var name = cityInfo().oblast;
+    geo.oblasts.forEach(function (o) { if (o.name === name) homeOblastEl.setAttribute('d', o.base || o.d); });
+  }
   var LABEL_OFF = { 'м. Київ': [0, -8], 'Львівська область': [-4, 20], 'Тернопільська область': [4, 14], 'Хмельницька область': [12, -6], 'Київська область': [0, 8], 'Івано-Франківська область': [0, 4] };
   function drawMap() {
     map.setAttribute('viewBox', '-1 -1 ' + (geo.width + 2) + ' ' + (geo.height + 2));
@@ -148,7 +158,8 @@
     commLayer = el('g', { 'class': 'comms' }, map);
     var go = el('g', { 'class': 'oblasts' }, map);
     geo.oblasts.forEach(function (o) { oblastEls[o.name] = el('path', { d: o.d, 'class': 'oblast' }, go); });
-    geo.oblasts.forEach(function (o) { if (o.name === 'Львівська область') el('path', { d: o.d, 'class': 'home-oblast' }, map); });
+    homeOblastEl = el('path', { d: '', 'class': 'home-oblast' }, map);
+    paintHomeOblast();
     var gl = el('g', { 'class': 'labels' }, map);
     geo.oblasts.forEach(function (o) {
       if (o.name === 'Севастополь') return;
@@ -163,7 +174,8 @@
     drawHome();
   }
   function drawHome() {
-    var p = toScreen(24.0297, 49.8397);
+    var ci = cityInfo();
+    var p = toScreen(ci.lon, ci.lat);
     // alarm zoom centres on Lviv
     document.querySelector('.map-wrap').style.transformOrigin = p[0].toFixed(0) + 'px ' + p[1].toFixed(0) + 'px';
     var home = document.createElement('div');
@@ -482,10 +494,10 @@
     } else if (a && a.active) {
       line.className = 'status on';
       var mins = a.since ? Math.max(1, Math.round((Date.now() - Date.parse(a.since)) / 60000)) : null;
-      $('alert-text').textContent = 'Тривога у Львові' + (mins ? ' · ' + (mins >= 60 ? Math.floor(mins / 60) + ' год ' + (mins % 60) + ' хв' : mins + ' хв') : '');
+      $('alert-text').textContent = 'Тривога ' + cityInfo().loc + (mins ? ' · ' + (mins >= 60 ? Math.floor(mins / 60) + ' год ' + (mins % 60) + ' хв' : mins + ' хв') : '');
     } else {
       line.className = 'status';
-      $('alert-text').textContent = 'У Львові спокійно';
+      $('alert-text').textContent = cap(cityInfo().loc) + ' спокійно';
     }
     paintArc();
     var n = data.inSky || 0;
@@ -513,7 +525,10 @@
       // a newer page on the Pi → reload (keeps the TV in sync with edits)
       if (d.webVersion && pageVersion && d.webVersion !== pageVersion) { location.reload(); return; }
       if (d.webVersion) pageVersion = d.webVersion;
-      data = d; paint(); paintBackground();
+      data = d;
+      var hk = cityInfo().name;
+      if (hk !== homeKey) { homeKey = hk; paintHomeOblast(); if (geo && threatLayer) relayoutMap(); greet(); }
+      paint(); paintBackground();
     });
   }
   getJSON('ukraine.json', function (err, g) { if (!err) { geo = g; drawMap(); paint(); } });
@@ -569,6 +584,11 @@
     b.setAttribute('aria-label', a.label);
     return b;
   }
+  function dockList() {
+    try { var v = JSON.parse(localStorage.getItem('tv-dock') || 'null'); if (v && v.length) return v; } catch (e) {}
+    return CFG.favorites || [];
+  }
+  function saveDock(list) { try { localStorage.setItem('tv-dock', JSON.stringify(list)); } catch (e) {} }
   function buildDock() {
     var host = $('dock');
     host.innerHTML = '';
@@ -579,7 +599,7 @@
     var glint = $('glint') || document.createElement('div');
     glint.id = 'glint';
     host.parentNode.insertBefore(glint, host.nextSibling);
-    var fav = CFG.favorites || [];
+    var fav = dockList();
     var byPkg = {};
     apps.forEach(function (a) { byPkg[a.pkg] = a; });
     var cont = continueTile(byPkg);
@@ -639,6 +659,7 @@
   var idx = { dock: 0, corner: 0, grid: 0 };
   function items(z) {
     if (z === 'dock') return $('track') ? $('track').children : [];
+    if (z === 'settings') return document.querySelectorAll('#settings .set-row');
     if (z === 'player') return Array.prototype.filter.call(document.querySelectorAll('#player .pl-btn'), function (b) { return b.offsetParent !== null; });
     return $('grid').children;
   }
@@ -671,7 +692,7 @@
     var f = list[idx[zone]];
     f.classList.add('focus');
     moveGlint(f);
-    if (zone === 'grid' && f.scrollIntoView) f.scrollIntoView({ block: 'nearest' });
+    if ((zone === 'grid' || zone === 'settings') && f.scrollIntoView) f.scrollIntoView({ block: 'nearest' });
   }
   function openDrawer() {
     loadApps(); buildGrid();
@@ -692,6 +713,7 @@
     if (pkg) { try { localStorage.setItem('opened:' + pkg, Date.now()); } catch (e) {} if (TV && TV.launch) TV.launch(pkg); return; }
     if (action === 'apps') return openDrawer();
     if (action === 'layout') return toggleLayout();
+    if (action === 'settings') return openSettings();
     if (TV && TV.openSettings) TV.openSettings(action);
   }
   // ---------- UI sounds (Web Audio, synthesized: a soft tick on move, a two-note chime on launch) ----------
@@ -738,12 +760,91 @@
     back: function () { play('back', SOUND_WEB.back); },
   };
 
+  // ---------- launcher settings: city, shelf, map size ----------
+  var cities = [];
+  getJSON('cities.json', function (err, c) { if (!err) cities = c; });
+  function openSettings() {
+    loadApps();
+    renderSettings();
+    $('settings').hidden = false;
+    zone = 'settings'; idx.settings = 0; render();
+  }
+  function closeSettings() {
+    $('settings').hidden = true;
+    buildDock();
+    zone = 'dock'; idx.dock = 0; render();
+  }
+  function renderSettings() {
+    $('set-city').textContent = cityName();
+    $('set-layout').textContent = document.body.classList.contains('compact') ? 'компактна' : 'велика';
+    var list = dockList(), byPkg = {};
+    apps.forEach(function (a) { byPkg[a.pkg] = a; });
+    var on = list.filter(function (p) { return byPkg[p]; });
+    var off = apps.filter(function (a) { return on.indexOf(a.pkg) < 0; }).sort(function (x, y) { return x.label.localeCompare(y.label, 'uk'); });
+    var html = '';
+    on.forEach(function (p, i) { html += appRow(byPkg[p], i + 1); });
+    off.forEach(function (a) { html += appRow(a, 0); });
+    $('set-apps').innerHTML = html;
+  }
+  function appRow(a, n) {
+    var pic = a.icon || a.banner || '';
+    return '<button class="set-row app' + (n ? ' on' : '') + '" data-set="app" data-pkg-set="' + a.pkg + '">' +
+      '<span class="ic"' + (pic ? ' style="background-image:url(' + pic + ')"' : '') + '></span>' +
+      '<span class="nm">' + a.label.replace(/</g, '&lt;') + '</span>' +
+      '<b>' + (n ? 'на полиці · ' + n : 'сховано') + '</b></button>';
+  }
+  function settingsAct(row, dir) {
+    var kind = row.getAttribute('data-set');
+    if (kind === 'city') {
+      if (!cities.length) return;
+      var i = 0;
+      cities.forEach(function (c, j) { if (c.name === cityName()) i = j; });
+      var c = cities[(i + (dir || 1) + cities.length) % cities.length];
+      if (TV && TV.setCity) TV.setCity(JSON.stringify(c));
+      data = data || {}; data.cityInfo = c; data.city = c.name;
+      homeKey = ''; $('set-city').textContent = c.name;
+      setTimeout(poll, 600); setTimeout(poll, 3000);
+    } else if (kind === 'layout') {
+      setLayout(!document.body.classList.contains('compact'));
+      $('set-layout').textContent = document.body.classList.contains('compact') ? 'компактна' : 'велика';
+    } else if (kind === 'android') {
+      if (TV && TV.openSettings) TV.openSettings('android');
+    } else if (kind === 'app') {
+      var pkg = row.getAttribute('data-pkg-set'), list = dockList().slice(), at = list.indexOf(pkg);
+      if (!dir) { if (at >= 0) list.splice(at, 1); else list.push(pkg); }
+      else if (at >= 0) { var to = Math.max(0, Math.min(list.length - 1, at + dir)); list.splice(at, 1); list.splice(to, 0, pkg); }
+      else return;
+      saveDock(list);
+      renderSettings();
+      var rows = items('settings');
+      for (var r = 0; r < rows.length; r++) if (rows[r].getAttribute('data-pkg-set') === pkg) idx.settings = r;
+    }
+  }
+  function settingsKey(k, code) {
+    var rows = items('settings'), row = rows[idx.settings];
+    if (k === 'ArrowDown' || code === 20) { idx.settings = Math.min(rows.length - 1, idx.settings + 1); return 'move'; }
+    if (k === 'ArrowUp' || code === 19) { idx.settings = Math.max(0, idx.settings - 1); return 'move'; }
+    if (k === 'ArrowRight' || code === 22) { if (row) settingsAct(row, 1); return 'move'; }
+    if (k === 'ArrowLeft' || code === 21) { if (row) settingsAct(row, -1); return 'move'; }
+    if (k === 'Enter' || code === 13 || code === 23) { if (row) settingsAct(row, 0); return 'open'; }
+    if (k === 'Escape' || k === 'Backspace' || k === 'GoBack' || code === 4 || code === 27) { closeSettings(); return 'back'; }
+    return null;
+  }
+
   var COLS = 6;
   document.addEventListener('keydown', function (e) {
     var k = e.key || '';
     var code = e.keyCode;
     var list = items(zone);
     var before = zone + ':' + idx[zone];
+    if (zone === 'settings') {
+      var r = settingsKey(k, code);
+      if (!r) return;
+      e.preventDefault();
+      render();
+      SOUND[r === 'move' ? 'move' : r]();
+      return;
+    }
     if (k === 'ArrowRight' || code === 22) idx[zone]++;
     else if (k === 'ArrowLeft' || code === 21) idx[zone]--;
     else if (k === 'ArrowUp' || code === 19) {
@@ -908,6 +1009,7 @@
   // Called by the launcher with Back while the drawer is open.
   window.tvBack = function () {
     if (!$('drawer').hidden) { SOUND.back(); closeDrawer(); return true; }
+    if (!$('settings').hidden) { SOUND.back(); closeSettings(); return true; }
     return false;
   };
 

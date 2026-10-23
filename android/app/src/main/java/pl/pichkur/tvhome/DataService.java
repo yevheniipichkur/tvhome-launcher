@@ -41,10 +41,12 @@ final class DataService {
     private static final String TZ = "Europe/Kyiv";
     private static final String ALERTS_URL = "https://tvhome.pichkur.com/api/public/alerts";
 
-    // The home city (as before: Lviv). ukrainealarm ids: oblast / district / community.
-    static final String CITY = "Львів", CITY_OBLAST = "Львівська область";
-    static final double CITY_LAT = 49.8397, CITY_LON = 24.0297;
-    private static final String CITY_STATE = "27", CITY_DISTRICT = "90", CITY_COMMUNITY = "845";
+    // The home city, chosen in the launcher's settings (web/cities.json); Lviv until then.
+    // ukrainealarm ids: state (oblast) / district / community.
+    private static final String DEFAULT_CITY = "{\"id\":\"Львів\",\"name\":\"Львів\",\"loc\":\"у Львові\",\"lat\":49.8397,\"lon\":24.0297,"
+            + "\"oblast\":\"Львівська область\",\"state\":\"27\",\"district\":\"90\",\"community\":\"845\"}";
+    private volatile JSONObject city;
+    private String cityName() { return city.optString("name", "Львів"); }
 
     private static DataService instance;
 
@@ -72,6 +74,7 @@ final class DataService {
     private DataService(Context ctx) {
         this.ctx = ctx;
         prefs = ctx.getSharedPreferences("tvhome-data", Context.MODE_PRIVATE);
+        try { city = new JSONObject(prefs.getString("city", DEFAULT_CITY)); } catch (Exception e) { try { city = new JSONObject(DEFAULT_CITY); } catch (Exception ignored) { } }
         todayDate = prefs.getString("today_date", localDate());
         try { todayIds = new JSONObject(prefs.getString("today_ids", "{}")); } catch (Exception ignored) { }
         loadOblastIds();
@@ -83,6 +86,21 @@ final class DataService {
         every("news", 4, 600, this::pollNews);
         pool.scheduleWithFixedDelay(this::saveToday, 30, 30, TimeUnit.SECONDS);
     }
+
+    /** Settings: switch the home city (JSON from web/cities.json). Weather and alerts refresh at once. */
+    void setCity(String json) {
+        try {
+            JSONObject c = new JSONObject(json);
+            if (!c.has("lat") || !c.has("lon") || !c.has("state")) return;
+            city = c;
+            prefs.edit().putString("city", c.toString()).apply();
+            pool.execute(() -> { try { pollWeather(); } catch (Exception ignored) { } });
+            pool.execute(() -> { try { pollAlerts(); } catch (Exception ignored) { } });
+        } catch (Exception ignored) {
+        }
+    }
+
+    String getCity() { return city.toString(); }
 
     private interface Job { void run() throws Exception; }
 
@@ -229,22 +247,23 @@ final class DataService {
         JSONObject d = new JSONObject(http(ALERTS_URL));
         JSONObject states = d.optJSONObject("states"), districts = d.optJSONObject("districts"), comms = d.optJSONObject("communities"), since = d.optJSONObject("since");
         if (states == null) throw new Exception("bad alerts payload");
-        JSONObject city = new JSONObject();
-        String hit = states.has(CITY_STATE) ? CITY_STATE : districts != null && districts.has(CITY_DISTRICT) ? CITY_DISTRICT : comms != null && comms.has(CITY_COMMUNITY) ? CITY_COMMUNITY : null;
+        JSONObject cityState = new JSONObject();
+        String cs = city.optString("state", ""), cd = city.optString("district", ""), cc = city.optString("community", "");
+        String hit = states.has(cs) ? cs : districts != null && !cd.isEmpty() && districts.has(cd) ? cd : comms != null && !cc.isEmpty() && comms.has(cc) ? cc : null;
         if (hit != null) {
-            city.put("active", true);
-            city.put("since", since != null ? since.optString(hit, null) : JSONObject.NULL);
-            city.put("level", hit.equals(CITY_COMMUNITY) ? comms.getJSONObject(hit).optString("level") : (hit.equals(CITY_STATE) ? states : districts).optString(hit));
-            city.put("reasons", new JSONArray());
+            cityState.put("active", true);
+            cityState.put("since", since != null ? since.optString(hit, null) : JSONObject.NULL);
+            cityState.put("level", hit.equals(cc) && comms != null && comms.has(cc) ? comms.getJSONObject(hit).optString("level") : (hit.equals(cs) ? states : districts).optString(hit));
+            cityState.put("reasons", new JSONArray());
         } else {
-            city.put("active", false);
+            cityState.put("active", false);
         }
         JSONObject a = new JSONObject();
         a.put("source", d.optString("source", "ukrainealarm"));
         a.put("states", states);
         a.put("districts", districts != null ? districts : new JSONObject());
         a.put("communities", comms != null ? comms : new JSONObject());
-        a.put("city", city);
+        a.put("city", cityState);
         alerts = a;
     }
 
@@ -262,16 +281,16 @@ final class DataService {
                 JSONObject st = fallback.optJSONObject(name);
                 if (st != null && st.optBoolean("alertnow") && oblastIdByName.containsKey(name)) states.put(oblastIdByName.get(name), "alert");
             }
-            JSONObject c = fallback.optJSONObject(CITY_OBLAST), city = new JSONObject();
+            JSONObject c = fallback.optJSONObject(city.optString("oblast")), cityState = new JSONObject();
             boolean on = c != null && c.optBoolean("alertnow");
-            city.put("active", on);
-            if (on) { city.put("since", c.optString("changed", null)); city.put("level", "alert"); city.put("reasons", new JSONArray()); }
+            cityState.put("active", on);
+            if (on) { cityState.put("since", c.optString("changed", null)); cityState.put("level", "alert"); cityState.put("reasons", new JSONArray()); }
             JSONObject a = new JSONObject();
             a.put("source", "ubilling");
             a.put("states", states);
             a.put("districts", new JSONObject());
             a.put("communities", new JSONObject());
-            a.put("city", city);
+            a.put("city", cityState);
             a.put("fallback", true);
             return a;
         }
@@ -284,7 +303,7 @@ final class DataService {
         try {
             JSONObject a = currentAlerts();
             JSONObject c = a != null ? a.optJSONObject("city") : null;
-            o.put("city", CITY);
+            o.put("city", cityName());
             o.put("known", a != null);
             o.put("active", c != null && c.optBoolean("active"));
             if (c != null) { o.put("since", c.opt("since")); o.put("level", c.opt("level")); o.put("reasons", c.optJSONArray("reasons")); }
@@ -306,7 +325,7 @@ final class DataService {
     }
 
     private void pollWeather() throws Exception {
-        String q = "latitude=" + CITY_LAT + "&longitude=" + CITY_LON + "&timezone=Europe%2FKyiv&forecast_days=2"
+        String q = "latitude=" + city.optDouble("lat") + "&longitude=" + city.optDouble("lon") + "&timezone=Europe%2FKyiv&forecast_days=2"
                 + "&current=temperature_2m,weather_code,is_day&hourly=precipitation_probability,precipitation,weather_code"
                 + "&daily=sunrise,sunset,temperature_2m_max,temperature_2m_min,weather_code";
         JSONObject d = new JSONObject(http("https://api.open-meteo.com/v1/forecast?" + q));
@@ -445,7 +464,8 @@ final class DataService {
         try {
             JSONObject s = new JSONObject();
             s.put("now", iso(new Date()));
-            s.put("city", CITY);
+            s.put("city", cityName());
+            s.put("cityInfo", city);
             s.put("weather", weather != null ? weather : JSONObject.NULL);
             JSONObject fc = null;
             try { fc = forecast(); } catch (Exception ignored) { }

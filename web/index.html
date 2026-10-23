@@ -98,6 +98,23 @@
 
   <footer class="dock" id="dock" aria-label="Програми"></footer>
 
+  <div class="settings" id="settings" hidden>
+    <div class="set-head">Налаштування <span class="muted">· ▲▼ вибір · ◀▶ змінити · ОК · Назад — закрити</span></div>
+    <div class="set-body">
+      <div class="set-col">
+        <button class="set-row" data-set="city"><span class="nm">Місто</span><b id="set-city">Львів</b><i>◀ ▶</i></button>
+        <button class="set-row" data-set="layout"><span class="nm">Розмір карти</span><b id="set-layout">велика</b><i>ОК</i></button>
+        <button class="set-row" data-set="android"><span class="nm">Налаштування Android</span><b>›</b></button>
+        <p class="set-note">Місто визначає погоду, схід сонця, тривоги «у моєму місті», плашку поверх програм і позначку на карті.</p>
+        <p class="set-note">Щоб плашка тривоги з’являлася поверх інших програм, увімкніть «Вітальня» в Налаштуваннях Android → Спеціальні можливості.</p>
+      </div>
+      <div class="set-col">
+        <div class="set-title">Полиця <span class="muted">ОК — показати/сховати · ◀ ▶ — порядок</span></div>
+        <div class="set-apps" id="set-apps"></div>
+      </div>
+    </div>
+  </div>
+
   <div class="drawer" id="drawer" hidden>
     <div class="drawer-head">Усі програми <span class="muted">· Назад — закрити</span></div>
     <div class="grid" id="grid"></div>

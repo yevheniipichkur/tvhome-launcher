@@ -51,7 +51,6 @@ public class HomeGuardService extends AccessibilityService {
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private Boolean lastActive; // null until the first successful poll
-    private View banner;
     private boolean polling;
 
     static void goHome(Context ctx) {
@@ -126,123 +125,37 @@ public class HomeGuardService extends AccessibilityService {
 
     private void showAlert(JSONObject a, long since) {
         String city = a.optString("city", "Львів");
-        StringBuilder sub = new StringBuilder();
-        if (since > 0) sub.append("з ").append(hhmm(since));
-        JSONArray reasons = a.optJSONArray("reasons");
-        if (reasons != null && reasons.length() > 0) {
-            if (sub.length() > 0) sub.append(" · ");
-            sub.append(reasons.optString(0).replaceAll("\\s*\\(.*\\)", ""));
-        }
-        if (sub.length() > 0) sub.append(" · ");
-        sub.append("пройдіть в укриття");
-        present("Повітряна тривога · " + city, sub.toString(), 0xFFE5584F, 0xF2321715, R.raw.alert_chime, 15_000);
+        String sub = city + (since > 0 ? " · з " + hhmm(since) : "") + " · пройдіть в укриття";
+        present("Повітряна тривога", sub, "ТРИВОГА", 0xFFFF453A, R.raw.alert_chime, 14_000);
     }
 
     private void showClear(JSONObject a) {
-        present("Відбій тривоги · " + a.optString("city", "Львів"), hhmm(System.currentTimeMillis()), 0xFF7FBF6A, 0xF2162418, R.raw.clear_chime, 9_000);
+        present("Відбій тривоги", a.optString("city", "Львів") + " · " + hhmm(System.currentTimeMillis()), "ВІДБІЙ", 0xFF32D74B, R.raw.clear_chime, 7_000);
     }
 
-    // ---------- banner ----------
+    // ---------- notch ----------
+    private View banner;
 
-    private float dp(float v) {
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, v, getResources().getDisplayMetrics());
-    }
-
-    private void present(String title, String subtitle, int accent, int fill, int sound, long showMs) {
+    private void present(String title, String subtitle, String chip, int color, int sound, long holdMs) {
         playChime(sound);
         if (homeInFront) return;
         hideBanner(false);
-
-        LinearLayout box = new LinearLayout(this);
-        box.setOrientation(LinearLayout.HORIZONTAL);
-        box.setGravity(Gravity.CENTER_VERTICAL);
-        int padH = (int) dp(22), padV = (int) dp(14);
-        box.setPadding(padH, padV, (int) dp(28), padV);
-        GradientDrawable bg = new GradientDrawable();
-        bg.setColor(fill);
-        bg.setCornerRadius(dp(18));
-        bg.setStroke((int) dp(2), accent);
-        box.setBackground(bg);
-        box.setElevation(dp(12));
-
-        View dot = new View(this);
-        GradientDrawable dotBg = new GradientDrawable();
-        dotBg.setShape(GradientDrawable.OVAL);
-        dotBg.setColor(accent);
-        dot.setBackground(dotBg);
-        LinearLayout.LayoutParams dlp = new LinearLayout.LayoutParams((int) dp(12), (int) dp(12));
-        dlp.rightMargin = (int) dp(16);
-        box.addView(dot, dlp);
-
-        LinearLayout texts = new LinearLayout(this);
-        texts.setOrientation(LinearLayout.VERTICAL);
-        TextView t = new TextView(this);
-        t.setText("✻ " + title);
-        t.setTextColor(Color.WHITE);
-        t.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
-        t.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17);
-        TextView s = new TextView(this);
-        s.setText(subtitle);
-        s.setTextColor(0xFFD9D6CF);
-        s.setTypeface(Typeface.MONOSPACE);
-        s.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
-        s.setPadding(0, (int) dp(3), 0, 0);
-        t.setSingleLine(true);
-        s.setSingleLine(true);
-        texts.addView(t);
-        texts.addView(s);
-        box.addView(texts);
-
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
-                WindowManager.LayoutParams.WRAP_CONTENT, WindowManager.LayoutParams.WRAP_CONTENT,
-                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
-                PixelFormat.TRANSLUCENT);
-        lp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-        // overlay windows get a narrow default width; size it to the text explicitly
-        box.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
-        lp.width = Math.min(box.getMeasuredWidth(), getResources().getDisplayMetrics().widthPixels - (int) dp(80));
-        lp.y = (int) dp(24);
+        NotchBanner notch = new NotchBanner(this, title, subtitle, chip, color);
+        WindowManager wm = (WindowManager) getSystemService(WINDOW_SERVICE);
         try {
-            ((WindowManager) getSystemService(WINDOW_SERVICE)).addView(box, lp);
+            wm.addView(notch, NotchBanner.windowParams(this));
         } catch (Exception e) {
             return;
         }
-        banner = box;
-
-        // slide in from above, pulse the dot, slide out after a while
-        box.setAlpha(0f);
-        box.setTranslationY(-dp(90));
-        box.animate().alpha(1f).translationY(0f).setDuration(650).setInterpolator(new DecelerateInterpolator(2.2f)).start();
-        pulse(dot, 6);
-        final View shown = box;
-        ui.postDelayed(() -> {
-            if (banner == shown) hideBanner(true);
-        }, showMs);
-    }
-
-    private void pulse(View dot, int times) {
-        if (times <= 0) return;
-        dot.animate().scaleX(1.6f).scaleY(1.6f).alpha(.45f).setDuration(520).withEndAction(() ->
-                dot.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(520).withEndAction(() -> pulse(dot, times - 1)).start()).start();
+        banner = notch;
+        notch.play(holdMs, () -> { if (banner == notch) hideBanner(false); });
     }
 
     private void hideBanner(boolean animated) {
         final View b = banner;
         banner = null;
         if (b == null) return;
-        final WindowManager wm = (WindowManager) getSystemService(WINDOW_SERVICE);
-        if (!animated) {
-            try { wm.removeView(b); } catch (Exception ignored) { }
-            return;
-        }
-        b.animate().alpha(0f).translationY(-dp(60)).setDuration(450).setListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                try { wm.removeView(b); } catch (Exception ignored) { }
-            }
-        }).start();
+        try { ((WindowManager) getSystemService(WINDOW_SERVICE)).removeView(b); } catch (Exception ignored) { }
     }
 
     private void playChime(int res) {
