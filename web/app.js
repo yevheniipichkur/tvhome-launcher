@@ -959,7 +959,7 @@
   var SYS = [
     { action: 'apps', label: 'Усі програми', icon: '<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>' },
     { action: 'wifi', label: 'Мережа', icon: '<path class="w3" d="M2 8.8a15 15 0 0 1 20 0"/><path class="w2" d="M5 12.9a10 10 0 0 1 14 0"/><path class="w1" d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M12 20h.01" stroke-width="2.6"/>' },
-    { action: 'layout', label: 'Макет', icon: '<rect x="3" y="3.5" width="18" height="17" rx="3"/><path d="M14.5 3.5v17M14.5 12H21"/>' },
+    { action: 'quick', label: 'Швидкі налаштування', icon: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/>' },
     { action: 'settings', label: 'Налаштування', icon: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>' },
   ];
   // «Продовжити»: the newest Android TV "Play Next" item, Lampa first.
@@ -1033,6 +1033,16 @@
     idx[zone] = Math.max(0, Math.min(idx[zone], list.length - 1));
     var f = list[idx[zone]];
     f.classList.add('focus');
+    // carousel: the focused card is largest, its neighbours a little smaller, the rest smaller still
+    var trk = $('track');
+    if (trk) {
+      trk.classList.toggle('has-focus', zone === 'dock');
+      var kids = trk.children;
+      for (var q = 0; q < kids.length; q++) {
+        var dd = zone === 'dock' ? Math.abs(q - idx.dock) : 9;
+        kids[q].classList.toggle('n1', dd === 1);
+      }
+    }
     moveGlint(f);
     if ((zone === 'grid' || zone === 'settings') && f.scrollIntoView) f.scrollIntoView({ block: 'nearest' });
   }
@@ -1055,6 +1065,7 @@
     if (pkg) { try { localStorage.setItem('opened:' + pkg, Date.now()); } catch (e) {} if (TV && TV.launch) TV.launch(pkg); return; }
     if (action === 'apps') return openDrawer();
     if (action === 'layout') return toggleLayout();
+    if (action === 'quick') { if (window.TVS) TVS.quick(); return; }
     if (action === 'settings') return openSettings();
     if (TV && TV.openSettings) TV.openSettings(action);
   }
@@ -1086,6 +1097,7 @@
     setTimeout(function () { diag('audio-' + actx.state + '-' + Math.round((actx.baseLatency || 0) * 1000) + 'ms'); }, 500);
   }
   function play(name, fallback) {
+    try { if (localStorage.getItem('tv-sounds') === '0') return; } catch (e) {} // Settings → Система → Звуки меню
     if (TV && TV.sound) { try { TV.sound(name); return; } catch (e) {} }
     fallback();
   }
@@ -1142,6 +1154,7 @@
       if (pick.length < 3) pick = apps.slice(0, 6).map(function (a) { return a.pkg; });
       saveDock(pick.slice(0, 6)); buildDock();
     }
+    if (window.TVS) { TVS.wizard(); return; } // the new wizard (setup.js)
     wiz.step = 0; renderWizard();
     $('wizard').hidden = false; zone = 'wizard'; idx.wizard = 0; render();
   }
@@ -1223,6 +1236,7 @@
 
   function openSettings() {
     loadApps();
+    if (window.TVS) { TVS.open(); return; } // the sectioned settings (setup.js)
     renderSettings();
     $('settings').hidden = false;
     zone = 'settings'; idx.settings = 0; render();
@@ -1324,12 +1338,7 @@
       if (!cities.length) return;
       var i = 0;
       cities.forEach(function (c, j) { if (c.name === cityName()) i = j; });
-      var c = cities[(i + (dir || 1) + cities.length) % cities.length];
-      if (TV && TV.setCity) TV.setCity(JSON.stringify(c));
-      data = data || {}; data.cityInfo = c; data.city = c.name;
-      homeKey = ''; $('set-city').textContent = c.name;
-      powerData = null; loadPower(); paintPowerSetting();
-      setTimeout(poll, 600); setTimeout(poll, 3000);
+      setCityObj(cities[(i + (dir || 1) + cities.length) % cities.length]);
     } else if (kind === 'layout') {
       stepLayout(dir || 1);
     } else if (kind === 'update') {
@@ -1348,6 +1357,13 @@
       var rows = items('settings');
       for (var r = 0; r < rows.length; r++) if (rows[r].getAttribute('data-pkg-set') === pkg) idx.settings = r;
     }
+  }
+  function setCityObj(c) {
+    if (TV && TV.setCity) TV.setCity(JSON.stringify(c));
+    data = data || {}; data.cityInfo = c; data.city = c.name;
+    homeKey = ''; $('set-city').textContent = c.name;
+    powerData = null; loadPower(); paintPowerSetting();
+    setTimeout(poll, 600); setTimeout(poll, 3000);
   }
   function settingsKey(k, code) {
     var rows = items('settings'), row = rows[idx.settings];
@@ -1777,6 +1793,19 @@
     leagueUA: function (l) { return LEAGUE_UA[l] || l; },
     stepTeam: function (dir) { settingsAct({ getAttribute: function () { return 'team'; } }, dir); },
     buildDock: function () { buildDock(); render(); },
+    act: function (kind, dir) { settingsAct({ getAttribute: function (a) { return a === 'data-set' ? kind : null; } }, dir); },
+    renderLegacy: function () { renderSettings(); },
+    closeSettings: function () { closeSettings(); },
+    cities: function () { return cities; }, setCity: setCityObj, cityInfo: cityInfo,
+    apps: function () { loadApps(); return apps; }, dockList: dockList, saveDock: saveDock,
+    powerRegion: powerRegion, powerQueues: function () { return powerData && powerData.id === powerRegion() ? powerData.queues.map(function (x) { return x.id; }) : []; },
+    powerQueue: powerQueue,
+    setPowerQueue: function (q) { try { localStorage.setItem('tv-powerq', q ? powerRegion() + '|' + q : ''); } catch (e) {} paintPower(); },
+    TEAMS: function () { return TEAMS; }, setTeam: function (id) { try { localStorage.setItem('tv-team', id); } catch (e) {} ballData = null; loadBall(); },
+    THEMES: function () { return THEMES; }, themeId: themeId, BG_CHOICES: function () { return BG_CHOICES; }, bgChoice: bgChoice,
+    LAYOUTS: function () { return LAYOUTS; }, layoutId: function () { return layoutId(); },
+    MAP_LAYERS: function () { return MAP_LAYERS; }, mapLayer: mapLayer, map3d: map3d, seasonOn: seasonOn, wifi: function () { try { return JSON.parse(TV.wifi()); } catch (e) { return null; } },
+    zoneDock: function () { zone = 'dock'; render(); },
     resetClock: function () { clockShown = ''; $('clock').innerHTML = ''; $('clock').removeAttribute('data-k'); tickClock(); },
   };
   dockVersion = appsVer(); loadApps(); buildDock(); render();

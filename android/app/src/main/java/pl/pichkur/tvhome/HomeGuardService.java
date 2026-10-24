@@ -101,8 +101,54 @@ public class HomeGuardService extends AccessibilityService {
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
-        if (event.getKeyCode() != KeyEvent.KEYCODE_HOME) return false;
+        int code = event.getKeyCode();
+        if (code == KeyEvent.KEYCODE_VOLUME_UP || code == KeyEvent.KEYCODE_VOLUME_DOWN || code == KeyEvent.KEYCODE_VOLUME_MUTE) return onVolumeKey(event);
+        if (code != KeyEvent.KEYCODE_HOME) return false;
         if (event.getAction() == KeyEvent.ACTION_UP) goHome(this);
+        return true;
+    }
+
+    // ---------- volume: our notch instead of the system panel ----------
+    private VolumePill volPill;
+    private final Runnable volHide = () -> {
+        final VolumePill p = volPill;
+        if (p == null) return;
+        p.slide(false, () -> {
+            try { ((WindowManager) getSystemService(WINDOW_SERVICE)).removeView(p); } catch (Exception ignored) { }
+            if (volPill == p) volPill = null;
+        });
+    };
+
+    /** Volume keys change the box's media volume ourselves and show the volume notch. Off in the
+     *  launcher settings, or when the output has a fixed volume (the TV/receiver handles it), the
+     *  key goes to the system as before. */
+    private boolean onVolumeKey(KeyEvent event) {
+        android.media.AudioManager am = (android.media.AudioManager) getSystemService(AUDIO_SERVICE);
+        if (am == null || am.isVolumeFixed() || !getSharedPreferences("tvhome", MODE_PRIVATE).getBoolean("vol_ui", true)) return false;
+        if (event.getAction() != KeyEvent.ACTION_DOWN) return true;
+        int code = event.getKeyCode();
+        int dir = code == KeyEvent.KEYCODE_VOLUME_UP ? android.media.AudioManager.ADJUST_RAISE
+                : code == KeyEvent.KEYCODE_VOLUME_DOWN ? android.media.AudioManager.ADJUST_LOWER : android.media.AudioManager.ADJUST_TOGGLE_MUTE;
+        try {
+            am.adjustStreamVolume(android.media.AudioManager.STREAM_MUSIC, dir, 0);
+        } catch (Exception e) {
+            return false;
+        }
+        int cur = am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC), max = am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);
+        boolean muted = am.isStreamMute(android.media.AudioManager.STREAM_MUSIC);
+        if (volPill == null) {
+            volPill = new VolumePill(this);
+            try {
+                ((WindowManager) getSystemService(WINDOW_SERVICE)).addView(volPill, VolumePill.windowParams(this));
+            } catch (Exception e) {
+                volPill = null;
+                return true;
+            }
+            volPill.slide(true, null);
+        }
+        volPill.setLevel(cur, max, muted);
+        ui.removeCallbacks(volHide);
+        ui.postDelayed(volHide, 1600);
         return true;
     }
 

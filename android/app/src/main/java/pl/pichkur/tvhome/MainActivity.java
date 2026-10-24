@@ -456,6 +456,7 @@ public class MainActivity extends Activity {
                 else if ("accessibility".equals(what)) i = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
                 else if ("unknown-sources".equals(what)) i = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName()));
                 else if ("fallback".equals(what)) i = getPackageManager().getLaunchIntentForPackage(FALLBACK_LAUNCHER);
+                else if ("notifications".equals(what)) i = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
                 else if (what != null && what.startsWith("app:")) i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + what.substring(4)));
                 else i = new Intent(Settings.ACTION_SETTINGS);
                 if (i == null) i = new Intent(Settings.ACTION_SETTINGS);
@@ -466,6 +467,115 @@ public class MainActivity extends Activity {
                 }
             });
         }
+
+        /** Settings → Система → Про приставку. */
+        @JavascriptInterface
+        public String deviceInfo() {
+            JSONObject o = new JSONObject();
+            try {
+                o.put("model", android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL);
+                o.put("android", android.os.Build.VERSION.RELEASE);
+                android.app.ActivityManager am = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+                android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
+                am.getMemoryInfo(mi);
+                o.put("ramTotal", mi.totalMem);
+                o.put("ramFree", mi.availMem);
+                android.os.StatFs fs = new android.os.StatFs(android.os.Environment.getDataDirectory().getPath());
+                o.put("diskTotal", fs.getTotalBytes());
+                o.put("diskFree", fs.getAvailableBytes());
+                o.put("uptime", android.os.SystemClock.elapsedRealtime());
+                o.put("temp", cpuTemp());
+                o.put("ip", localIp());
+                o.put("version", BuildConfig.VERSION_NAME);
+                android.media.AudioManager au = (android.media.AudioManager) getSystemService(AUDIO_SERVICE);
+                o.put("volFixed", au != null && au.isVolumeFixed());
+            } catch (Exception ignored) {
+            }
+            return o.toString();
+        }
+
+        private double cpuTemp() {
+            for (int z = 0; z < 6; z++) {
+                try (java.io.BufferedReader r = new java.io.BufferedReader(new java.io.FileReader("/sys/class/thermal/thermal_zone" + z + "/temp"))) {
+                    double t = Double.parseDouble(r.readLine().trim());
+                    if (t > 1000) t /= 1000;
+                    if (t > 10 && t < 130) return t;
+                } catch (Exception ignored) {
+                }
+            }
+            return -1;
+        }
+
+        private String localIp() {
+            try {
+                for (java.net.NetworkInterface ni : java.util.Collections.list(java.net.NetworkInterface.getNetworkInterfaces())) {
+                    if (!ni.isUp() || ni.isLoopback()) continue;
+                    for (java.net.InetAddress a : java.util.Collections.list(ni.getInetAddresses()))
+                        if (a instanceof java.net.Inet4Address) return a.getHostAddress();
+                }
+            } catch (Exception ignored) {
+            }
+            return "";
+        }
+
+        /** «Звільнити пам'ять»: ask Android to drop the background processes of every launchable
+         *  app (never the one playing in front, never us), then report how much memory came back. */
+        @JavascriptInterface
+        public String freeMemory() {
+            android.app.ActivityManager am = (android.app.ActivityManager) getSystemService(ACTIVITY_SERVICE);
+            android.app.ActivityManager.MemoryInfo mi = new android.app.ActivityManager.MemoryInfo();
+            am.getMemoryInfo(mi);
+            long before = mi.availMem;
+            int n = 0;
+            Intent tv = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LEANBACK_LAUNCHER);
+            Intent ph = new Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER);
+            java.util.Set<String> pkgs = new java.util.HashSet<>();
+            for (ResolveInfo ri : getPackageManager().queryIntentActivities(tv, 0)) pkgs.add(ri.activityInfo.packageName);
+            for (ResolveInfo ri : getPackageManager().queryIntentActivities(ph, 0)) pkgs.add(ri.activityInfo.packageName);
+            pkgs.add("com.google.android.youtube.tv");
+            pkgs.remove(getPackageName());
+            for (String p : pkgs) {
+                try { am.killBackgroundProcesses(p); n++; } catch (Exception ignored) { }
+            }
+            try { Thread.sleep(900); } catch (InterruptedException ignored) { }
+            am.getMemoryInfo(mi);
+            JSONObject o = new JSONObject();
+            try {
+                o.put("before", before);
+                o.put("after", mi.availMem);
+                o.put("total", mi.totalMem);
+                o.put("apps", n);
+            } catch (Exception ignored) {
+            }
+            return o.toString();
+        }
+
+        /** Notification access (the mini player reads what is playing from it). */
+        @JavascriptInterface
+        public boolean notifAccess() {
+            String s = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
+            return s != null && s.contains(getPackageName());
+        }
+
+        @JavascriptInterface
+        public String volume() {
+            android.media.AudioManager am = (android.media.AudioManager) getSystemService(AUDIO_SERVICE);
+            if (am == null) return "{}";
+            return "{\"cur\":" + am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) + ",\"max\":" + am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
+                    + ",\"fixed\":" + am.isVolumeFixed() + "}";
+        }
+
+        @JavascriptInterface
+        public void setVolume(int v) {
+            android.media.AudioManager am = (android.media.AudioManager) getSystemService(AUDIO_SERVICE);
+            if (am != null) am.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, Math.max(0, Math.min(v, am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC))), 0);
+        }
+
+        @JavascriptInterface
+        public void setPref(String key, boolean on) { if ("vol_ui".equals(key)) prefs().edit().putBoolean(key, on).apply(); }
+
+        @JavascriptInterface
+        public boolean pref(String key) { return prefs().getBoolean(key, true); }
 
         /** First-run wizard: is Вітальня what the system opens on Home? */
         @JavascriptInterface

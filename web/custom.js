@@ -46,7 +46,7 @@
     shelfRows: { name: 'Рядів на полиці', values: [1, 2], labels: { 1: 'один', 2: 'два' } },
     sysApps: { name: 'Кнопка «Усі програми»', values: [true, false], labels: { 'true': 'показувати', 'false': 'сховати' } },
     sysWifi: { name: 'Кнопка «Мережа»', values: [true, false], labels: { 'true': 'показувати', 'false': 'сховати' } },
-    sysLayout: { name: 'Кнопка «Макет»', values: [true, false], labels: { 'true': 'показувати', 'false': 'сховати' } },
+    sysLayout: { name: 'Кнопка «Швидкі налаштування»', values: [true, false], labels: { 'true': 'показувати', 'false': 'сховати' } },
     tz2: { name: 'Місто', values: ['Europe/Warsaw', 'Europe/Berlin', 'Europe/London', 'Europe/Lisbon', 'Asia/Tbilisi', 'Asia/Dubai', 'America/New_York', 'America/Toronto', 'America/Los_Angeles', 'Asia/Tokyo'],
       labels: { 'Europe/Warsaw': 'Варшава', 'Europe/Berlin': 'Берлін', 'Europe/London': 'Лондон', 'Europe/Lisbon': 'Лісабон', 'Asia/Tbilisi': 'Тбілісі', 'Asia/Dubai': 'Дубай', 'America/New_York': 'Нью-Йорк', 'America/Toronto': 'Торонто', 'America/Los_Angeles': 'Лос-Анджелес', 'Asia/Tokyo': 'Токіо' } },
   };
@@ -544,7 +544,7 @@
     close: close,
     clock: clock,
     cfg: function () { return cfg; },
-    sysHidden: function (action) { return (action === 'apps' && !cfg.sysApps) || (action === 'wifi' && !cfg.sysWifi) || (action === 'layout' && !cfg.sysLayout); },
+    sysHidden: function (action) { return (action === 'apps' && !cfg.sysApps) || (action === 'wifi' && !cfg.sysWifi) || (action === 'quick' && !cfg.sysLayout); },
     fit: fitSoon,
   };
   apply();
