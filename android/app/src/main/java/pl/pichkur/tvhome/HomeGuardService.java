@@ -48,6 +48,7 @@ public class HomeGuardService extends AccessibilityService {
 
     /** Set by MainActivity: the home screen shows alerts itself. */
     static volatile boolean homeInFront;
+    static volatile HomeGuardService instance;
 
     private final Handler ui = new Handler(Looper.getMainLooper());
     private Boolean lastActive; // null until the first successful poll
@@ -62,6 +63,8 @@ public class HomeGuardService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        instance = this;
+        RemoteServer.start(this); // phone remote keeps working while other apps are in front
         if (!polling) {
             polling = true;
             ui.post(this::poll);
@@ -134,6 +137,18 @@ public class HomeGuardService extends AccessibilityService {
         } catch (Exception e) {
             return false;
         }
+        showVolumeNow();
+        return true;
+    }
+
+    /** The volume notch with the current level (also used by the phone remote). */
+    void showVolumeNow() {
+        ui.post(this::showVolumeOnUi);
+    }
+
+    private void showVolumeOnUi() {
+        android.media.AudioManager am = (android.media.AudioManager) getSystemService(AUDIO_SERVICE);
+        if (am == null || !getSharedPreferences("tvhome", MODE_PRIVATE).getBoolean("vol_ui", true)) return;
         int cur = am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC), max = am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC);
         boolean muted = am.isStreamMute(android.media.AudioManager.STREAM_MUSIC);
         if (volPill == null) {
@@ -142,14 +157,13 @@ public class HomeGuardService extends AccessibilityService {
                 ((WindowManager) getSystemService(WINDOW_SERVICE)).addView(volPill, VolumePill.windowParams(this));
             } catch (Exception e) {
                 volPill = null;
-                return true;
+                return;
             }
             volPill.slide(true, null);
         }
         volPill.setLevel(cur, max, muted);
         ui.removeCallbacks(volHide);
         ui.postDelayed(volHide, 1600);
-        return true;
     }
 
     @Override
@@ -158,6 +172,7 @@ public class HomeGuardService extends AccessibilityService {
 
     @Override
     public void onDestroy() {
+        if (instance == this) instance = null;
         polling = false;
         ui.removeCallbacksAndMessages(null);
         hideBanner(false);

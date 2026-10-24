@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -11,6 +12,8 @@
     <!-- Self-update from the owner's server (the system still asks the user to confirm). -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
+    <!-- switch to the phone keyboard by itself; granted once over the box's own debugging, never by default -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS" tools:ignore="ProtectedPermissions" />
     <!-- Android 9 hides the Wi-Fi name without it; granted once over ADB. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- Read the Android TV "Play Next" row for the «Продовжити» tile; granted over ADB. -->
@@ -61,6 +64,18 @@
         </service>
 
         <!-- Lets the mini player see what is playing (media sessions). -->
+        <!-- «Вітальня: клавіатура з телефону»: text typed on the phone remote goes into the focused field -->
+        <service
+            android:name=".RemoteIme"
+            android:exported="true"
+            android:label="Вітальня: клавіатура з телефону"
+            android:permission="android.permission.BIND_INPUT_METHOD">
+            <intent-filter>
+                <action android:name="android.view.InputMethod" />
+            </intent-filter>
+            <meta-data android:name="android.view.im" android:resource="@xml/remote_ime" />
+        </service>
+
         <service
             android:name=".MediaListener"
             android:exported="true"

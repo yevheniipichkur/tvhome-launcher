@@ -136,3 +136,13 @@
 .dock .track > .tile { transition: transform .45s var(--spring), opacity .35s ease, box-shadow .3s ease, border-color .3s ease; }
 .dock .track.has-focus > .tile:not(.focus) { transform: scale(.92); opacity: .74; }
 .dock .track.has-focus > .tile.n1:not(.focus) { transform: scale(.97); opacity: .92; }
+
+/* phone remote card */
+.sv-remote { display: flex; gap: 26px; align-items: center; padding: 20px; margin-bottom: 14px; border-radius: 20px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); }
+.sv-remote .qr { flex: none; width: 210px; height: 210px; border-radius: 14px; }
+.sv-remote p { margin: 6px 0; font-size: 17px; color: var(--muted); }
+.sv-remote .rm-url { display: block; font-family: 'Fixel Display', sans-serif; font-weight: 500; font-size: 34px; color: var(--ivory); margin: 4px 0; }
+.sv-remote .rm-pin { font-family: 'Fixel Display', sans-serif; font-weight: 500; font-size: 30px; letter-spacing: .12em; color: var(--amber); }
+.sv-remote small { display: block; font-size: 14px; color: var(--dim); line-height: 1.45; margin-top: 8px; }
+
+.sv-main, .sv-remote .rm-t { min-width: 0; }

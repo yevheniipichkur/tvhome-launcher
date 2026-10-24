@@ -68,6 +68,12 @@ public class MainActivity extends Activity {
     private final Handler ui = new Handler(Looper.getMainLooper());
     private final Map<String, String> imageCache = new HashMap<>();
     private WebView web;
+    static volatile MainActivity instance;
+
+    /** A key from the phone remote while the home screen is in front: same path as the TV remote. */
+    void webKey(String k) {
+        ui.post(() -> { if (web != null) web.evaluateJavascript("window.tvKey && tvKey('" + k.replaceAll("[^a-z]", "") + "')", null); });
+    }
     private SoundPool sounds;
     private final Map<String, Integer> soundIds = new HashMap<>();
     private long loadedAt;
@@ -75,6 +81,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        instance = this;
+        RemoteServer.start(this);
         // UI sounds via SoundPool: low latency and independent of the WebView
         sounds = new SoundPool.Builder().setMaxStreams(4).setAudioAttributes(new AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_GAME) // media volume: the system stream is near-silent over HDMI on this box
@@ -456,6 +464,7 @@ public class MainActivity extends Activity {
                 else if ("accessibility".equals(what)) i = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
                 else if ("unknown-sources".equals(what)) i = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName()));
                 else if ("fallback".equals(what)) i = getPackageManager().getLaunchIntentForPackage(FALLBACK_LAUNCHER);
+                else if ("keyboard".equals(what)) i = new Intent(Settings.ACTION_INPUT_METHOD_SETTINGS);
                 else if ("notifications".equals(what)) i = new Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS");
                 else if (what != null && what.startsWith("app:")) i = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + what.substring(4)));
                 else i = new Intent(Settings.ACTION_SETTINGS);
@@ -465,6 +474,25 @@ public class MainActivity extends Activity {
                     startActivity(i);
                 } catch (ActivityNotFoundException ignored) {
                 }
+            });
+        }
+
+        /** Settings → Система → Пульт з телефону: address, code, keyboard and debugging state. */
+        @JavascriptInterface
+        public String remoteInfo() { return RemoteServer.info(MainActivity.this).toString(); }
+
+        /** Make our keyboard current (when allowed); otherwise the caller opens the picker/settings. */
+        @JavascriptInterface
+        public boolean useOurKeyboard() { return RemoteServer.useOurKeyboard(); }
+
+        @JavascriptInterface
+        public void adbProbe() { RemoteServer.adbProbe(); }
+
+        /** The system keyboard picker, to switch to «Вітальня: клавіатура з телефону». */
+        @JavascriptInterface
+        public void pickKeyboard() {
+            ui.post(() -> {
+                try { ((android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).showInputMethodPicker(); } catch (Exception ignored) { }
             });
         }
 

@@ -43,6 +43,12 @@
     bell: '<path d="M6 17h12l-1.5-2V11a4.5 4.5 0 0 0-9 0v4z"/><path d="M10 20h4"/>',
     check: '<path d="m5 12 5 5 9-10"/>',
     hold: '<rect x="7" y="3" width="10" height="18" rx="5"/><circle cx="12" cy="10" r="2.2"/>',
+    phone: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+    remote: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
+    keyboard: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
+    adb: '<path d="M4 17l6-6-6-6M12 19h8"/>',
+    kbd: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/>',
+    adbctl: '<path d="M4 17l6-6-6-6M12 19h8"/>',
     quick: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/>',
   };
   function ic(name) { return '<svg viewBox="0 0 24 24">' + (IC[name] || '') + '</svg>'; }
@@ -87,6 +93,8 @@
     sounds: { name: 'Звуки меню', desc: 'тихе клацання при русі по меню', type: 'toggle', on: function () { return ls('tv-sounds') !== '0'; } },
     perms: { name: 'Дозволи', desc: 'головний екран, спецможливості, сповіщення', type: 'act', val: function () { var p = permState(), ok = p.filter(function (x) { return x.ok; }).length; return ok + ' з ' + p.length; } },
     update: { name: 'Оновлення', desc: 'нові версії з tvhome.pichkur.com', type: 'act', val: function () { return legacy('update'); } },
+    kbd: { name: 'Клавіатура з телефону', desc: 'текст із телефону потрапляє в будь-яке поле на телевізорі', type: 'act', val: function () { var r = rinfo(); return r.imeCurrent ? 'увімкнено' : r.imeEnabled ? 'ОК — вибрати' : 'ОК — увімкнути'; } },
+    adbctl: { name: 'Стрілки в усіх програмах', desc: 'керувати YouTube, Lampa тощо з телефону (через налагодження по мережі)', type: 'act', val: function () { var a = rinfo().adb; return a === 'ok' ? 'працює' : a === 'asking' ? 'підтвердьте на екрані' : a === 'off' ? 'налагодження вимкнено' : 'ОК — перевірити'; } },
     android: { name: 'Налаштування Android', desc: 'мережа, звук, екран, програми', type: 'act' },
   };
   var SECTIONS = [
@@ -94,6 +102,7 @@
     { id: 'map', name: 'Карта', side: 'left', rows: ['maplayer', 'map3d', 'notchmap'] },
     { id: 'shelf', name: 'Полиця', apps: true },
     { id: 'data', name: 'Дані', rows: ['city', 'powerq', 'team'] },
+    { id: 'phone', name: 'Телефон', rows: ['kbd', 'adbctl'], remote: true },
     { id: 'system', name: 'Система', rows: ['speed', 'freemem', 'volui', 'sounds', 'perms', 'update', 'android'], about: true },
   ];
   function idxOf(list, f) { for (var i = 0; i < list.length; i++) if (f(list[i])) return i; return 0; }
@@ -160,6 +169,23 @@
     ];
     return '<div class="sv-about"><div class="sv-h">Про приставку</div><div class="sv-grid">' + cells.map(function (c) { return '<div><small>' + c[0] + '</small><b>' + c[1] + '</b></div>'; }).join('') + '</div></div>';
   }
+  function rinfo() { try { return JSON.parse(TV.remoteInfo()); } catch (e) { return {}; } }
+  function qrSvg(text) {
+    try {
+      var qr = qrcode(0, 'M'); qr.addData(text); qr.make();
+      var n = qr.getModuleCount(), d = '';
+      for (var y = 0; y < n; y++) for (var x = 0; x < n; x++) if (qr.isDark(y, x)) d += 'M' + x + ' ' + y + 'h1v1h-1z';
+      return '<svg viewBox="-2 -2 ' + (n + 4) + ' ' + (n + 4) + '" class="qr"><rect x="-2" y="-2" width="' + (n + 4) + '" height="' + (n + 4) + '" fill="#fff"/><path d="' + d + '" fill="#0b1017"/></svg>';
+    } catch (e) { return ''; }
+  }
+  function remoteHtml() {
+    var r = TV && TV.remoteInfo ? rinfo() : { url: 'http://192.168.1.18:8765/?pin=000000', ip: '192.168.1.18', port: 8765, pin: '000000' };
+    if (!r.url) return '<div class="sv-about"><div class="sv-h">Пульт з телефону</div><b>Немає мережі — підключіть приставку до Wi‑Fi</b></div>';
+    return '<div class="sv-remote">' + qrSvg(r.url) + '<div class="rm-t"><div class="sv-h">Пульт з телефону</div>' +
+      '<p>Наведіть камеру телефону на код — або відкрийте в браузері телефону:</p>' +
+      '<b class="rm-url">' + esc(r.ip) + ':' + r.port + '</b><p>код <b class="rm-pin">' + esc(String(r.pin).replace(/(\d{3})(\d{3})/, '$1 $2')) + '</b></p>' +
+      '<small>Телефон і приставка мають бути в одній мережі Wi‑Fi. Додайте сторінку на головний екран телефону — вийде окремий застосунок.</small></div></div>';
+  }
   function renderSettings() {
     if (!st.open) return;
     var sec = SECTIONS[st.sec], rows = rowsOf(sec);
@@ -170,11 +196,11 @@
       return '<div class="sv-nav-i' + (i === st.sec ? ' sel' : '') + (i === st.sec && st.area === 'nav' ? ' focus' : '') + '">' + ic(s.id) + '<span>' + s.name + '</span></div>';
     }).join('') + '<div class="sv-hint">▲ ▼ розділ · ▶ або ОК — увійти<br>Назад — закрити</div>';
     $('sv-title').innerHTML = esc(sec.name) + (sec.apps ? '<small>ОК — показати чи сховати · ◀ ▶ — порядок на полиці</small>' : '<small>▲ ▼ вибір · ◀ ▶ змінити · ОК · Назад — до розділів</small>');
-    $('sv-rows').innerHTML = rows.map(function (r, i) { return rowHtml(r, st.area === 'rows' && i === st.i); }).join('') + (sec.about && TV ? aboutHtml() : '');
+    $('sv-rows').innerHTML = (sec.remote ? remoteHtml() : '') + rows.map(function (r, i) { return rowHtml(r, st.area === 'rows' && i === st.i); }).join('') + (sec.about && TV ? aboutHtml() : '');
     var f = $('sv-rows').querySelector('.focus');
     if (f && f.scrollIntoView) f.scrollIntoView({ block: 'nearest' });
     clearTimeout(aboutT);
-    if (sec.about && TV) aboutT = setTimeout(renderSettings, 5000);
+    if ((sec.about || sec.remote) && TV) aboutT = setTimeout(renderSettings, sec.remote ? 2000 : 5000);
   }
   function settingsRowAct(dir) {
     var sec = SECTIONS[st.sec], rows = rowsOf(sec), r = rows[st.i];
@@ -205,13 +231,24 @@
       if (k === 'editor') { close(); if (window.TVC) TVC.open(); return; }
       if (k === 'wizard') { close(); wizard(); return; }
       if (k === 'perms') { close(); wizard('perms'); return; }
-      if (k === 'freemem') { freeMem(); }
+      if (k === 'kbd') { kbdSetup(); }
+      else if (k === 'adbctl') { if (TV && TV.adbProbe) TV.adbProbe(); toast('adb', 'Перевіряю налагодження', 'якщо з’явиться «Дозволити налагодження?» — «Завжди» й «ОК»'); }
+      else if (k === 'freemem') { freeMem(); }
       else if (k === 'speed') { H().act('speed', 0); var n = 0, iv = setInterval(function () { renderSettings(); if (++n > 30 || !/вимірюю/.test(legacy('net'))) { clearInterval(iv); renderSettings(); if (!/не вдалося/.test(legacy('net'))) toast('speed', 'Швидкість інтернету', legacy('net')); } }, 700); }
       else H().act(k, 0);
     }
     if (H().renderLegacy) H().renderLegacy();
     renderSettings();
     setTimeout(function () { if (H().renderLegacy) H().renderLegacy(); renderSettings(); }, 400);
+  }
+  // the phone keyboard: make it current if the app may; otherwise enable it / pick it in Android
+  function kbdSetup() {
+    if (!TV) return;
+    var r = rinfo();
+    if (r.imeCurrent) { toast('keyboard', 'Клавіатура з телефону вже увімкнена'); return; }
+    if (TV.useOurKeyboard && TV.useOurKeyboard()) { setTimeout(function () { if (rinfo().imeCurrent) toast('keyboard', 'Клавіатура з телефону увімкнена'); else if (!rinfo().imeEnabled) TV.openSettings('keyboard'); else TV.pickKeyboard(); }, 900); return; }
+    if (!r.imeEnabled) { toast('keyboard', 'Увімкніть «Вітальня: клавіатура з телефону»', 'потім натисніть «Назад» — і ще раз ОК тут'); TV.openSettings('keyboard'); }
+    else TV.pickKeyboard();
   }
   function freeMem() {
     if (!TV || !TV.freeMemory) return;
@@ -254,6 +291,7 @@
     r.push({ k: 'maplayer' }, { k: 'layout' }, { k: 'theme' }, { k: 'bgdim' }, { k: 'sounds' });
     var w = H().wifi ? H().wifi() : null;
     r.push({ k: 'wifi', name: 'Мережа', type: 'act', val: function () { return w ? (w.type === 'ethernet' ? 'Ethernet' : w.ssid || 'Wi‑Fi') : ''; } });
+    r.push({ k: 'phone', name: 'Пульт з телефону', type: 'act', val: function () { var x = TV && TV.remoteInfo ? rinfo() : {}; return x.ip ? x.ip + ':' + x.port : ''; } });
     r.push({ k: 'editor' }, { k: 'all', name: 'Усі налаштування', type: 'act', val: function () { return ''; } });
     return r;
   }
@@ -279,6 +317,7 @@
     if (r.k === 'vol') { var v = vol(); if (v) { TV.setVolume(v.cur + (dir || 1)); var n = vol(); toast('volui', 'Гучність ' + n.cur + ' / ' + n.max); } }
     else if (r.k === 'wifi') { if (!dir) { quickClose(); TV && TV.openSettings && TV.openSettings('wifi'); } return; }
     else if (r.k === 'editor') { if (!dir) { quickClose(); if (window.TVC) TVC.open(); } return; }
+    else if (r.k === 'phone') { if (!dir) { quickClose(); open(); st.sec = idxOf(SECTIONS, function (x) { return x.id === 'phone'; }); renderSettings(); } return; }
     else if (r.k === 'all') { if (!dir) { quickClose(); open(); } return; }
     else if (r.k === 'bgdim') { var l = [0, 20, 40, 60]; ls('tv-bgdim', String(l[(l.indexOf(bgDim()) + (dir || 1) + 4) % 4])); applyBgDim(); }
     else if (r.k === 'sounds') ls('tv-sounds', ls('tv-sounds') === '0' ? '1' : '0');
@@ -304,6 +343,7 @@
     p.push({ k: 'home', name: 'Головний екран', desc: 'кнопка «Додому» на пульті відкриває «Вітальню»', ok: !!(TV.isDefaultHome && TV.isDefaultHome()) || (!lite && !!(TV.a11yEnabled && TV.a11yEnabled())) });
     if (!lite) {
       p.push({ k: 'a11y', name: 'Спеціальні можливості', desc: 'тривога поверх фільмів, кнопка «Додому», гучність у «чубчику»', ok: !!(TV.a11yEnabled && TV.a11yEnabled()) });
+      p.push({ k: 'kbd', name: 'Клавіатура з телефону', desc: 'писати з телефону в будь-якому полі на телевізорі', ok: !!rinfo().imeCurrent });
       p.push({ k: 'notif', name: 'Доступ до сповіщень', desc: 'назва треку й кнопки в міні-плеєрі', ok: !!(TV.notifAccess && TV.notifAccess()) });
     }
     return p;
@@ -312,6 +352,7 @@
     if (k === 'home') { if (TV.chooseHome) TV.chooseHome(); wz.homeTried = true; }
     else if (k === 'a11y') TV.openSettings('accessibility');
     else if (k === 'notif') TV.openSettings('notifications');
+    else if (k === 'kbd') kbdSetup();
   }
 
   // ---------- wizard ----------

@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b1017">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<title>Пульт «Вітальні»</title>
+<style>
+@font-face { font-family: 'Fixel Display'; src: url(fonts/FixelDisplay-Medium.woff2) format('woff2'); font-weight: 500; }
+@font-face { font-family: 'Fixel Text'; src: url(fonts/FixelText-Regular.woff2) format('woff2'); font-weight: 400; }
+@font-face { font-family: 'Fixel Text'; src: url(fonts/FixelText-Medium.woff2) format('woff2'); font-weight: 500; }
+:root { --ink: #0b1017; --card: #131b26; --card2: #1a2431; --ivory: #f1ece2; --muted: #8f98a6; --dim: #5c6573; --amber: #f4a640; --soft: #ffd08c; --line: rgba(255,255,255,.08); --red: #ff6b5e; --green: #5fd38d; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--ink); color: var(--ivory); font-family: 'Fixel Text', system-ui, sans-serif; }
+body { padding: max(16px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); max-width: 520px; margin: 0 auto; user-select: none; -webkit-user-select: none; }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.top { display: flex; align-items: center; gap: 12px; margin: 4px 2px 14px; }
+.top h1 { font-family: 'Fixel Display', sans-serif; font-weight: 500; font-size: 24px; margin: 0; flex: 1; }
+.top h1 span { color: var(--amber); }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--dim); }
+.dot.on { background: var(--green); box-shadow: 0 0 0 4px rgba(95,211,141,.18); }
+.st { font-size: 13px; color: var(--muted); }
+.now { display: none; align-items: center; gap: 10px; padding: 10px 14px; margin-bottom: 12px; border-radius: 16px; background: var(--card); font-size: 14px; color: var(--muted); }
+.now.on { display: flex; }
+.now b { color: var(--ivory); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 24px; padding: 16px; margin-bottom: 14px; }
+.kb-h { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); margin: 0 4px 10px; min-height: 18px; }
+.kb-h.live { color: var(--green); }
+.kb-h.warn { color: var(--soft); }
+textarea { width: 100%; min-height: 92px; resize: none; border: 1px solid var(--line); border-radius: 16px; background: var(--ink); color: var(--ivory); font: inherit; font-size: 19px; line-height: 1.35; padding: 14px 16px; outline: none; user-select: text; -webkit-user-select: text; }
+textarea:focus { border-color: rgba(244,166,64,.6); }
+.kb-b { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 8px; margin-top: 10px; }
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; height: 50px; border-radius: 15px; background: var(--card2); font-size: 16px; font-weight: 500; transition: transform .12s, background .2s; }
+.btn:active { transform: scale(.96); background: #243142; }
+.btn.main { background: var(--amber); color: #1b1206; }
+.btn.main:active { background: #ffbe6a; }
+.pad { position: relative; width: min(78vw, 320px); aspect-ratio: 1; margin: 6px auto 16px; border-radius: 50%; background: radial-gradient(circle at 50% 40%, #1d2734, var(--card)); border: 1px solid var(--line); touch-action: none; }
+.pad .ar { position: absolute; width: 33%; height: 33%; display: grid; place-items: center; color: var(--muted); border-radius: 50%; }
+.pad .ar:active, .pad .ar.hit { color: var(--amber); background: rgba(244,166,64,.08); }
+.pad .ar svg { width: 30px; height: 30px; }
+.pad .u { left: 33.5%; top: 2%; } .pad .d { left: 33.5%; bottom: 2%; } .pad .l { left: 2%; top: 33.5%; } .pad .r { right: 2%; top: 33.5%; }
+.pad .ok { position: absolute; left: 31%; top: 31%; width: 38%; height: 38%; border-radius: 50%; background: var(--card2); border: 1px solid rgba(255,255,255,.1); display: grid; place-items: center; font-family: 'Fixel Display', sans-serif; font-weight: 500; font-size: 22px; transition: transform .12s, background .2s; }
+.pad .ok:active, .pad .ok.hit { transform: scale(.94); background: var(--amber); color: #1b1206; }
+.pad .sw { position: absolute; left: 0; right: 0; bottom: -22px; text-align: center; font-size: 12px; color: var(--dim); }
+.row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+.row.four { grid-template-columns: repeat(4, 1fr); }
+.row .btn { height: 56px; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+.row .btn svg { color: var(--ivory); }
+.vol { display: grid; grid-template-columns: 56px 1fr 56px; align-items: center; gap: 10px; }
+.vol .btn { height: 52px; }
+.vbar { height: 8px; border-radius: 4px; background: var(--card2); overflow: hidden; }
+.vbar i { display: block; height: 100%; width: 0; background: var(--amber); transition: width .2s; }
+.vlab { text-align: center; font-size: 12px; color: var(--muted); margin-top: 6px; }
+h2 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 6px 4px 10px; }
+.apps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.app { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px; border-radius: 16px; background: var(--card); font-size: 12px; color: var(--muted); }
+.app img { width: 100%; aspect-ratio: 16/9; object-fit: contain; border-radius: 10px; background: #0f151e; }
+.app span { max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app:active { transform: scale(.96); }
+.note { font-size: 13px; line-height: 1.45; color: var(--soft); background: rgba(244,166,64,.08); border: 1px solid rgba(244,166,64,.25); border-radius: 14px; padding: 10px 12px; margin: -4px 0 14px; display: none; }
+.note.on { display: block; }
+.pin { position: fixed; inset: 0; background: var(--ink); display: none; flex-direction: column; justify-content: center; padding: 32px; gap: 16px; }
+.pin.on { display: flex; }
+.pin h1 { font-family: 'Fixel Display', sans-serif; font-weight: 500; font-size: 30px; margin: 0; }
+.pin p { color: var(--muted); margin: 0; line-height: 1.5; }
+.pin input { height: 64px; border-radius: 18px; border: 1px solid var(--line); background: var(--card); color: var(--ivory); font-size: 30px; letter-spacing: .3em; text-align: center; outline: none; user-select: text; -webkit-user-select: text; }
+.toast { position: fixed; left: 50%; bottom: 24px; opacity: 0; transform: translate(-50%, 140%); background: #000; color: #fff; padding: 12px 20px; border-radius: 16px; font-size: 14px; transition: transform .3s; max-width: 90vw; text-align: center; }
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<div class="top"><span class="dot" id="dot"></span><h1>Пульт <span>«Вітальні»</span></h1><span class="st" id="st">підключаюсь…</span></div>
+<div class="now" id="now"><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><b id="nowT"></b></div>
+
+<section class="card">
+  <div class="kb-h" id="kbh">Виберіть поле на телевізорі (наприклад, пошук) — і пишіть тут</div>
+  <textarea id="txt" placeholder="Що написати на телевізорі?" autocomplete="off" autocorrect="off" spellcheck="false"></textarea>
+  <div class="kb-b">
+    <button class="btn" id="bs" aria-label="Стерти останню літеру"><svg viewBox="0 0 24 24"><path d="M21 5H9l-6 7 6 7h12z"/><path d="m16 9-5 6M11 9l5 6"/></svg></button>
+    <button class="btn" id="clr">Очистити</button>
+    <button class="btn main" id="go"><svg viewBox="0 0 24 24"><path d="M20 5v7a3 3 0 0 1-3 3H5"/><path d="m9 11-4 4 4 4"/></svg>Надіслати</button>
+  </div>
+</section>
+<div class="note" id="note"></div>
+
+<div class="pad" id="pad">
+  <button class="ar u" data-k="up" aria-label="Вгору"><svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg></button>
+  <button class="ar l" data-k="left" aria-label="Ліворуч"><svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button>
+  <button class="ar r" data-k="right" aria-label="Праворуч"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+  <button class="ar d" data-k="down" aria-label="Вниз"><svg viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+  <button class="ok" data-k="ok">ОК</button>
+  <div class="sw">можна й гортати пальцем по колу</div>
+</div>
+
+<div class="row four">
+  <button class="btn" data-k="back"><svg viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/></svg>Назад</button>
+  <button class="btn" data-k="home"><svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7v9H3z"/><path d="M9 20v-6h6v6"/></svg>Додому</button>
+  <button class="btn" data-k="menu"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Меню</button>
+  <button class="btn" data-k="sleep"><svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/></svg>Екран</button>
+</div>
+<div class="row">
+  <button class="btn" data-k="prev"><svg viewBox="0 0 24 24"><path d="M6 5v14M19 5 9 12l10 7z"/></svg>Попереднє</button>
+  <button class="btn" data-k="playpause"><svg viewBox="0 0 24 24"><path d="M7 5v14l11-7z"/></svg>Пауза</button>
+  <button class="btn" data-k="next"><svg viewBox="0 0 24 24"><path d="M18 5v14M5 5l10 7-10 7z"/></svg>Далі</button>
+</div>
+<section class="card">
+  <div class="vol">
+    <button class="btn" data-k="voldown" aria-label="Тихіше"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 12h4"/></svg></button>
+    <div><div class="vbar"><i id="vbar"></i></div><div class="vlab" id="vlab">гучність</div></div>
+    <button class="btn" data-k="volup" aria-label="Гучніше"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 12h4M19 10v4"/></svg></button>
+  </div>
+</section>
+
+<h2>Програми</h2>
+<div class="apps" id="apps"></div>
+
+<div class="pin" id="pinbox">
+  <h1>Код з телевізора</h1>
+  <p>На телевізорі: Налаштування → Система → «Пульт з телефону». Там шестизначний код і QR-код — його можна просто сфотографувати камерою.</p>
+  <input id="pinin" inputmode="numeric" maxlength="6" placeholder="••••••">
+  <button class="btn main" id="pingo">Підключитися</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var q = new URLSearchParams(location.search), pin = q.get('pin') || '';
+  try { if (pin) localStorage.setItem('vit-pin', pin); else pin = localStorage.getItem('vit-pin') || ''; } catch (e) {}
+  if (q.get('pin')) history.replaceState(null, '', location.pathname);
+  var state = {}, typing = 0, lastSent = null, lastField = null, toastT;
+
+  function api(path, opt) {
+    var sep = path.indexOf('?') >= 0 ? '&' : '?';
+    return fetch('/api/' + path + sep + 'pin=' + encodeURIComponent(pin), opt || {}).then(function (r) {
+      if (r.status === 403) { askPin(); throw new Error('pin'); }
+      return r.json();
+    });
+  }
+  function toast(t) { var e = $('toast'); e.textContent = t; e.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { e.classList.remove('on'); }, 2600); }
+  function buzz() { try { navigator.vibrate && navigator.vibrate(12); } catch (e) {} }
+  function askPin() { $('pinbox').classList.add('on'); }
+  $('pingo').onclick = function () { pin = $('pinin').value.trim(); try { localStorage.setItem('vit-pin', pin); } catch (e) {} $('pinbox').classList.remove('on'); poll(); loadApps(); };
+  if (!pin) askPin();
+
+  // ---------- keys ----------
+  var NOTE = {
+    asking: 'На телевізорі з’явилося «Дозволити налагодження?» — поставте галочку «Завжди дозволяти» й натисніть «ОК». Це потрібно один раз, щоб стрілки працювали в усіх програмах.',
+    off: 'Стрілки й ОК зараз працюють на головному екрані «Вітальні». Щоб керувати ними в YouTube, Lampa та інших програмах, увімкніть на приставці «Налагодження по мережі» (Налаштування → Параметри розробника).',
+  };
+  function key(k) {
+    buzz();
+    api('key?k=' + k, { method: 'POST' }).then(function (r) {
+      if (!r.ok && r.error === 'adb') showNote('off');
+      if (r.adb === 'asking') showNote('asking');
+    }).catch(function () {});
+  }
+  function showNote(kind) { var n = $('note'); n.textContent = NOTE[kind]; n.classList.add('on'); }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-k]'), function (b) {
+    b.addEventListener('click', function () { key(b.getAttribute('data-k')); });
+  });
+  // swipes on the pad: each swipe is one arrow; a long drag repeats
+  (function () {
+    var pad = $('pad'), x0, y0, moved, acc;
+    pad.addEventListener('touchstart', function (e) { var t = e.touches[0]; x0 = t.clientX; y0 = t.clientY; moved = false; acc = 0; }, { passive: true });
+    pad.addEventListener('touchmove', function (e) {
+      var t = e.touches[0], dx = t.clientX - x0, dy = t.clientY - y0;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) > 42) {
+        key(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+        x0 = t.clientX; y0 = t.clientY; moved = true;
+      }
+      e.preventDefault();
+    }, { passive: false });
+    pad.addEventListener('touchend', function (e) { if (moved) e.preventDefault(); }, { passive: false });
+  })();
+
+  // ---------- keyboard: the whole text is sent as you type (the TV field mirrors it) ----------
+  var txt = $('txt'), sendT = null;
+  function sendText() {
+    var v = txt.value;
+    if (v === lastSent) return;
+    lastSent = v;
+    api('text', { method: 'POST', body: JSON.stringify({ text: v }) }).then(function (r) {
+      if (!r.ok && r.error === 'ime') kbHint('warn', 'Увімкніть на телевізорі клавіатуру «Вітальня»: Налаштування → Система → Пульт з телефону → Клавіатура');
+      else if (!r.ok && r.error === 'no-field') kbHint('warn', 'Спершу виберіть поле вводу на телевізорі');
+    }).catch(function () {});
+  }
+  txt.addEventListener('input', function () { typing = Date.now(); clearTimeout(sendT); sendT = setTimeout(sendText, 140); });
+  txt.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('go').click(); } });
+  $('go').onclick = function () { buzz(); clearTimeout(sendT); sendText(); setTimeout(function () { api('enter', { method: 'POST' }).then(function () { toast('Надіслано на телевізор'); }).catch(function () {}); }, 160); };
+  $('clr').onclick = function () { buzz(); txt.value = ''; typing = Date.now(); sendText(); txt.focus(); };
+  $('bs').onclick = function () { buzz(); txt.value = txt.value.slice(0, -1); typing = Date.now(); sendText(); };
+  function kbHint(cls, t) { var h = $('kbh'); h.className = 'kb-h ' + cls; h.textContent = t; }
+
+  // ---------- state ----------
+  function poll() {
+    if (!pin) return;
+    api('state').then(function (s) {
+      state = s;
+      $('dot').classList.add('on');
+      $('st').textContent = s.model || 'підключено';
+      if (s.media && s.media.title) { $('now').classList.add('on'); $('nowT').textContent = (s.media.playing ? '▶ ' : '❚❚ ') + s.media.title + (s.media.app ? ' · ' + s.media.app : ''); } else $('now').classList.remove('on');
+      if (s.volMax) { $('vbar').style.width = Math.round((s.muted ? 0 : s.vol) / s.volMax * 100) + '%'; $('vlab').textContent = s.muted ? 'без звуку' : 'гучність ' + s.vol + ' / ' + s.volMax; }
+      if (s.adb === 'asking') showNote('asking'); else if (s.adb === 'ok') $('note').classList.remove('on');
+      if (!s.imeCurrent) kbHint('warn', 'Щоб писати з телефону, на телевізорі виберіть клавіатуру «Вітальня» (Налаштування → Система → Пульт з телефону)');
+      else if (s.editing) {
+        kbHint('live', '● Поле на телевізорі активне' + (s.fieldHint ? ': ' + s.fieldHint : ''));
+        // a newly focused field: start from what is already in it (unless you are typing right now)
+        if (s.fieldText != null && s.fieldText !== lastField && Date.now() - typing > 1500) { txt.value = s.fieldText; lastSent = s.fieldText; }
+        lastField = s.fieldText;
+      } else { kbHint('', 'Виберіть поле на телевізорі (наприклад, пошук) — і пишіть тут'); lastField = null; }
+    }).catch(function (e) { if (e.message !== 'pin') { $('dot').classList.remove('on'); $('st').textContent = 'немає зв’язку'; } });
+  }
+  function loadApps() {
+    if (!pin) return;
+    api('apps').then(function (r) {
+      if (!r.ok) return;
+      $('apps').innerHTML = '';
+      r.apps.forEach(function (a) {
+        var b = document.createElement('button');
+        b.className = 'app';
+        b.innerHTML = '<img loading="lazy" alt=""><span></span>';
+        b.querySelector('img').src = '/api/icon?pkg=' + encodeURIComponent(a.pkg) + '&pin=' + encodeURIComponent(pin);
+        b.querySelector('span').textContent = a.label;
+        b.onclick = function () { buzz(); api('launch?pkg=' + encodeURIComponent(a.pkg), { method: 'POST' }).then(function () { toast('Відкриваю ' + a.label); }).catch(function () {}); };
+        $('apps').appendChild(b);
+      });
+    }).catch(function () {});
+  }
+  poll(); loadApps();
+  setInterval(poll, 1200);
+})();
+</script>
+</body>
+</html>

@@ -1776,6 +1776,15 @@
     setTimeout(function () { poll(); paintWifi(); }, 700);
   };
   // Called by the launcher with Back while the drawer is open.
+  // keys from the phone remote (RemoteServer → MainActivity.webKey): the same path as the TV remote
+  window.tvKey = function (k) {
+    var map = { up: ['ArrowUp', 19], down: ['ArrowDown', 20], left: ['ArrowLeft', 21], right: ['ArrowRight', 22], ok: ['Enter', 23], menu: ['ContextMenu', 82] };
+    if (k === 'back') { if (!(window.tvBack && window.tvBack())) document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true })); return; }
+    var m = map[k];
+    if (!m) return;
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: m[0], keyCode: m[1], bubbles: true }));
+    document.dispatchEvent(new KeyboardEvent('keyup', { key: m[0], keyCode: m[1], bubbles: true }));
+  };
   window.tvBack = function () {
     if (!$('appmenu').hidden) { SOUND.back(); closeAppMenu(); return true; }
     if (moving) { moving = null; paintMoving(); SOUND.back(); return true; }
