@@ -4,7 +4,7 @@
 важливо в Україні просто зараз: карту повітряних тривог з шахедами й ракетами в реальному часі,
 лінію фронту, графік відключень світла, погоду, курси, новини — і полицю з вашими програмами.
 
-**Завантажити APK:** [tvhome.pichkur.com](https://tvhome.pichkur.com)
+**Завантажити APK:** [tvhome.pichkur.com](https://tvhome.pichkur.com) або [Releases](https://github.com/yevheniipichkur/tvhome-launcher/releases/latest) (повна й Lite)
 
 ![Головний екран](docs/screenshots/hero.jpg)
 
@@ -52,10 +52,14 @@ news and an app shelf. The UI is in Ukrainian. MIT licensed.*
 | | |
 |---|---|
 | ![Тривога у місті](docs/screenshots/alarm.jpg) Тривога у вашому місті | ![Лінія фронту](docs/screenshots/front.jpg) Лінія фронту DeepStateMAP і зміни за добу |
-| ![Світло і погода](docs/screenshots/power-weather.jpg) Відключення світла, сніг на фоні | ![Налаштування](docs/screenshots/settings.jpg) Налаштування і полиця програм |
-| ![Дзеркало](docs/screenshots/mirror.jpg) Макет «Дзеркало» | ![Картки](docs/screenshots/cards.jpg) Макет «Картки» |
-| ![Папір](docs/screenshots/paper.jpg) Тема «Папір» | ![Термінал](docs/screenshots/terminal.jpg) Тема «Термінал» |
-| ![Класика](docs/screenshots/classic.jpg) Макет «Класика» | ![Мінімал](docs/screenshots/minimal.jpg) Макет «Мінімал» |
+| ![Погода на карті](docs/screenshots/weather.jpg) Погода над Україною, дощ на фоні | ![Конструктор](docs/screenshots/builder.jpg) Екран із конструктора: стрілки, тиждень, відлік, календар |
+| ![Налаштування](docs/screenshots/settings.jpg) Налаштування з розділами — екран видно поруч | ![Швидкі налаштування](docs/screenshots/quick.jpg) Швидкі налаштування з полиці |
+| ![Пульт на телевізорі](docs/screenshots/phone-tv.jpg) Пульт з телефону: QR-код і код | ![Майстер](docs/screenshots/wizard.jpg) Перше налаштування |
+| ![Північне сяйво](docs/screenshots/cards.jpg) «Північне сяйво», макет «Картки» | ![Захід над Карпатами](docs/screenshots/sunset.jpg) «Захід над Карпатами» |
+| ![Сапфір і золото](docs/screenshots/mirror.jpg) «Сапфір і золото», макет «Дзеркало» | ![Неон](docs/screenshots/neon.jpg) «Неон» |
+| ![Графіт і мідь](docs/screenshots/copper.jpg) «Графіт і мідь» | ![Мінімал](docs/screenshots/minimal.jpg) Макет «Мінімал» |
+
+<img src="docs/screenshots/phone.jpg" alt="Пульт «Вітальні» на телефоні" width="300"> &nbsp; Пульт на телефоні: текст одразу з’являється в полі на телевізорі.
 
 ## Дві версії
 

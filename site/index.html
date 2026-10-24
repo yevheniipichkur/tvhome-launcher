@@ -7,7 +7,7 @@
 <meta name="description" content="Головний екран для Android TV: годинник, погода, повітряні тривоги по районах і шахеди на карті в реальному часі. Безкоштовно, без реклами.">
 <meta property="og:title" content="Вітальня — головний екран для Android TV">
 <meta property="og:description" content="Тривоги по районах, шахеди на карті, сповіщення поверх фільмів. Безкоштовно.">
-<meta property="og:image" content="img/hero.jpg">
+<meta property="og:image" content="img/hero.jpg?v=146">
 <meta name="theme-color" content="#0b1017">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='15' fill='%230b1017'/%3E%3Ccircle cx='16' cy='16' r='6' fill='%23f4a640'/%3E%3C/svg%3E">
 <style>
@@ -145,6 +145,9 @@ footer a { color: var(--muted); }
   .band { padding: 50px 22px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } .reveal { opacity: 1; transform: none; } }
+.phones { display: grid; grid-template-columns: 1.35fr .65fr; gap: 22px; align-items: end; }
+.phones .pm img { width: 100%; border-radius: 26px; border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0,0,0,.45); }
+@media (max-width: 760px) { .phones { grid-template-columns: 1fr; } .phones .pm { max-width: 300px; margin: 0 auto; } }
 </style>
 </head>
 <body>
@@ -169,7 +172,7 @@ footer a { color: var(--muted); }
     <div class="ver" id="ver">безкоштовно · без реклами · Android 7+</div>
     <div class="tv reveal">
       <div class="glow"></div>
-      <div class="screen"><img src="img/hero.jpg" alt="Головний екран Вітальні: годинник, погода, статус тривоги у Львові й карта тривог України з цілями" width="1600" height="900"></div>
+      <div class="screen"><img src="img/hero.jpg?v=146" alt="Головний екран Вітальні: годинник, погода, статус тривоги у Львові й карта тривог України з цілями" width="1600" height="900"></div>
       <div class="stand"></div>
     </div>
   </div>
@@ -188,7 +191,7 @@ footer a { color: var(--muted); }
         <ul><li>Тривоги по областях, районах і громадах</li><li>Цілі з напрямком польоту й лічильники по областях</li><li>3D-карта з нахилом, як в авіасимуляторі</li></ul>
         <div class="legend"><span><i style="background:var(--yellow)"></i>тривога</span><span><i style="background:#ef6a57"></i>загроза</span><span><i style="background:#8b2f28"></i>понад добу</span></div>
       </div>
-      <div class="shot"><img src="img/alarm.jpg" alt="Тривожний режим: червоне світіння по краях, карта наближена до Львівщини" loading="lazy" width="1600" height="900"></div>
+      <div class="shot"><img src="img/alarm.jpg?v=146" alt="Тривожний режим: червоне світіння по краях, карта наближена до Львівщини" loading="lazy" width="1600" height="900"></div>
     </div>
 
     <div class="feature flip reveal">
@@ -197,7 +200,7 @@ footer a { color: var(--muted); }
         <p>Дивитеся YouTube чи фільм у Lampa? Коли починається тривога у вашому місті, згори виїжджає компактна плашка з тихим сигналом. Відбій — зелена плашка.</p>
         <ul><li>Працює поверх будь-якої програми</li><li>Можна додати міні-карту регіону</li><li>Без голосу й без нав’язливих звуків</li></ul>
       </div>
-      <div class="shot crop"><img src="img/notch.jpg" alt="Плашка «Повітряна тривога · Львів» поверх фільму" loading="lazy" width="1600" height="900"></div>
+      <div class="shot crop"><img src="img/notch.jpg?v=146" alt="Плашка «Повітряна тривога · Львів» поверх фільму" loading="lazy" width="1600" height="900"></div>
     </div>
 
     <div class="feature reveal">
@@ -206,7 +209,29 @@ footer a { color: var(--muted); }
         <p>Великий годинник, «дуга дня» від світанку до заходу, погода й порада про парасолю, курси НБУ, головна новина й міні-плеєр з тим, що ви дивилися.</p>
         <ul><li>22 обласних центри й Київ</li><li>Полиця програм — ваш порядок</li><li>Кнопка «Додому» завжди повертає сюди</li></ul>
       </div>
-      <div class="shot"><img src="img/classic.jpg" alt="Класичний макет: годинник, погода, курси, плеєр і карта" loading="lazy" width="1600" height="900"></div>
+      <div class="shot"><img src="img/classic.jpg?v=146" alt="Класичний макет: годинник, погода, курси, плеєр і карта" loading="lazy" width="1600" height="900"></div>
+    </div>
+  </div>
+</section>
+
+<section id="phone" style="padding-top:40px">
+  <div class="wrap">
+    <div class="feature reveal">
+      <div>
+        <h3>Клавіатура й пульт — у телефоні</h3>
+        <p>Наведіть камеру телефону на QR-код у налаштуваннях — і пишіть з телефону в будь-якому полі на телевізорі: пошук YouTube чи Lampa, пароль Wi‑Fi. Кирилицею теж, без жодних застосунків.</p>
+        <ul><li>Текст з’являється на телевізорі одразу, поки ви пишете</li><li>Стрілки, ОК, «Назад», «Додому», пауза, гучність, запуск програм</li><li>Працює в домашній мережі, захищено шестизначним кодом</li></ul>
+      </div>
+      <div class="phones"><div class="shot"><img src="img/phone-tv.jpg?v=146" alt="Налаштування → Телефон: QR-код і код для підключення" loading="lazy" width="1600" height="900"></div><div class="pm"><img src="img/phone.jpg?v=146" alt="Пульт «Вітальні» на телефоні: поле для тексту, круглий джойстик, медіа й гучність" loading="lazy"></div></div>
+    </div>
+
+    <div class="feature flip reveal">
+      <div>
+        <h3>Свій екран — із конструктора</h3>
+        <p>Будь-який блок можна сховати, пересунути, зробити більшим. Додайте тиждень зі святами, футбол з емблемами, відлік днів, нотатку, фото дня чи другий годинник. Праворуч — карта, великий годинник, календар або фото.</p>
+        <ul><li>12 кольорів акценту, 4 шрифти</li><li>Годинник тонкий, жирний, табло, стрілки чи словами</li><li>«Скинути все» повертає як було</li></ul>
+      </div>
+      <div class="shot"><img src="img/builder.jpg?v=146" alt="Екран, зібраний у конструкторі: стрілочний годинник, тиждень, відлік днів, другий годинник і календар" loading="lazy" width="1600" height="900"></div>
     </div>
   </div>
 </section>
@@ -214,16 +239,22 @@ footer a { color: var(--muted); }
 <section id="looks" style="padding-top:40px">
   <div class="wrap">
     <div class="eyebrow reveal">Вигляд</div>
-    <h2 class="reveal">5 тем, 6 макетів, живі фони</h2>
-    <p class="sub reveal">Від «Кіно» з картою на весь екран до спокійного «Мінімалу». Фон — мапа вулиць вашого міста або силует Львова з живим небом за справжньою погодою.</p>
+    <h2 class="reveal">6 тем, 6 макетів, живі фони</h2>
+    <p class="sub reveal">Кожна тема — свій настрій для всього екрана: мапа вулиць, скло, карта й полиця в одній гамі. А ще лінія фронту DeepStateMAP і погода над усією Україною замість карти тривог.</p>
     <div class="gallery reveal">
-      <figure><img src="img/hero-s.jpg" alt="" loading="lazy"><figcaption><b>Кіно</b>карта на весь екран</figcaption></figure>
-      <figure><img src="img/minimal-s.jpg" alt="" loading="lazy"><figcaption><b>Мінімал</b>силует Львова й живе небо</figcaption></figure>
-      <figure><img src="img/cards-s.jpg" alt="" loading="lazy"><figcaption><b>Картки</b>фон «Сяйво»</figcaption></figure>
-      <figure><img src="img/mirror-s.jpg" alt="" loading="lazy"><figcaption><b>Дзеркало</b>карта ліворуч</figcaption></figure>
-      <figure><img src="img/terminal-s.jpg" alt="" loading="lazy"><figcaption><b>Термінал</b>зелений люмінофор</figcaption></figure>
-      <figure><img src="img/paper-s.jpg" alt="" loading="lazy"><figcaption><b>Папір</b>світла денна тема</figcaption></figure>
-      <figure><img src="img/settings-s.jpg" alt="" loading="lazy"><figcaption><b>Налаштування</b>усе з пульта</figcaption></figure>
+      <figure><img src="img/hero-s.jpg?v=146" alt="" loading="lazy"><figcaption><b>Вечірній Львів</b>стандартна тема, макет «Кіно»</figcaption></figure>
+      <figure><img src="img/cards-s.jpg?v=146" alt="" loading="lazy"><figcaption><b>Північне сяйво</b>макет «Картки»</figcaption></figure>
+      <figure><img src="img/sunset-s.jpg?v=146" alt="" loading="lazy"><figcaption><b>Захід над Карпатами</b>теплий вечір</figcaption></figure>
+      <figure><img src="img/mirror-s.jpg?v=146" alt="" loading="lazy"><figcaption><b>Сапфір і золото</b>макет «Дзеркало»</figcaption></figure>
+      <figure><img src="img/neon-s.jpg?v=146" alt="" loading="lazy"><figcaption><b>Неон</b>нічне місто</figcaption></figure>
+      <figure><img src="img/copper-s.jpg?v=146" alt="" loading="lazy"><figcaption><b>Графіт і мідь</b>спокійна й строга</figcaption></figure>
+      <figure><img src="img/minimal-s.jpg?v=146" alt="" loading="lazy"><figcaption><b>Мінімал</b>силует Львова й живе небо</figcaption></figure>
+      <figure><img src="img/front-s.jpg?v=146" alt="" loading="lazy"><figcaption><b>Лінія фронту</b>DeepStateMAP і зміни за добу</figcaption></figure>
+      <figure><img src="img/weather-s.jpg?v=146" alt="" loading="lazy"><figcaption><b>Погода на карті</b>дощ, сніг і температура</figcaption></figure>
+      <figure><img src="img/settings-s.jpg?v=146" alt="" loading="lazy"><figcaption><b>Налаштування</b>розділи, екран видно поруч</figcaption></figure>
+      <figure><img src="img/quick-s.jpg?v=146" alt="" loading="lazy"><figcaption><b>Швидкі налаштування</b>гучність, карта, тема</figcaption></figure>
+      <figure><img src="img/editor-s.jpg?v=146" alt="" loading="lazy"><figcaption><b>Конструктор</b>блоки, розміри, порядок</figcaption></figure>
+      <figure><img src="img/wizard-s.jpg?v=146" alt="" loading="lazy"><figcaption><b>Перше налаштування</b>місто, полиця, дозволи</figcaption></figure>
     </div>
     <div class="facts reveal">
       <div><b>~60 кадрів</b><span>на слабких приставках на кшталт Mi Box S</span></div>
@@ -241,7 +272,7 @@ footer a { color: var(--muted); }
     <div class="steps">
       <div class="step reveal"><div class="n">1</div><h3>Завантажте APK</h3><p>На телевізорі через браузер або «Downloader» за адресою <code>tvhome.pichkur.com</code>, або перекиньте файл з телефона на флешку.</p></div>
       <div class="step reveal"><div class="n">2</div><h3>Встановіть</h3><p>Дозвольте встановлення з цього джерела, коли Android спитає. Потім натисніть «Додому» й оберіть «Вітальня», або відкривайте її плиткою з програм.</p></div>
-      <div class="step reveal"><div class="n">3</div><h3>Пройдіть майстер</h3><p>Оберіть місто — і готово. У повній версії ще увімкніть «Вітальня» у Спеціальних можливостях, щоб тривоги з’являлися поверх фільмів.</p></div>
+      <div class="step reveal"><div class="n">3</div><h3>Пройдіть майстер</h3><p>Майстер сам визначить місто, запропонує програми для полиці й покаже, які дозволи що вмикають — з поясненням до кожного.</p></div>
     </div>
     <div class="band reveal" id="download">
       <h2>Зробіть вітальню розумнішою</h2>
