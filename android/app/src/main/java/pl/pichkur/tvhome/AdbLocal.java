@@ -140,7 +140,7 @@ final class AdbLocal {
                 }
                 throw new IOException("auth refused");
             }
-            s.setSoTimeout(6000);
+            s.setSoTimeout(Math.max(6000, waitAuthMs)); // long commands (pm install) may take a while
             int local = 1;
             send(out, A_OPEN, local, 0, ("shell:" + cmd + "\0").getBytes(StandardCharsets.UTF_8));
             ByteArrayOutputStream result = new ByteArrayOutputStream();

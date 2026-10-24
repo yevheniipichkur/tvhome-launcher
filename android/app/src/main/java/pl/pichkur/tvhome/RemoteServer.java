@@ -174,6 +174,18 @@ final class RemoteServer {
             }
             String[] parts = reqLine.split(" ");
             String method = parts[0], target = parts.length > 1 ? parts[1] : "/";
+            String ipAddr0 = sock.getInetAddress().getHostAddress();
+            if (target.startsWith("/api/install")) {
+                int qi = target.indexOf('?');
+                Map<String, String> a0 = parseQuery(qi >= 0 ? target.substring(qi + 1) : "");
+                OutputStream o0 = sock.getOutputStream();
+                if (!pinOk(ipAddr0, a0, o0)) return;
+                long total = 0;
+                try { total = Long.parseLong(headers.getOrDefault("content-length", "0")); } catch (Exception ignored) { }
+                sock.setSoTimeout(60_000);
+                json(o0, 200, install(in, total));
+                return;
+            }
             int len = 0;
             try { len = Math.min(65536, Integer.parseInt(headers.getOrDefault("content-length", "0"))); } catch (Exception ignored) { }
             byte[] body = new byte[len];
@@ -189,24 +201,21 @@ final class RemoteServer {
             if (path.matches("/fonts/[A-Za-z0-9-]+\\.woff2")) { sendAsset(out, "web" + path, "font/woff2"); return; }
             if (path.equals("/manifest.json")) { sendAsset(out, "web/remote-manifest.json", "application/manifest+json"); return; }
             if (!path.startsWith("/api/")) { send(out, 404, "text/plain", "not found".getBytes()); return; }
-            // the code: 10 wrong tries from one address → a minute's pause
-            synchronized (fails) {
-                long[] f = fails.get(ipAddr);
-                if (f != null && f[1] > SystemClock.elapsedRealtime()) { json(out, 429, err("wait")); return; }
-                if (!pin(app).equals(args.get("pin"))) {
-                    if (f == null) fails.put(ipAddr, f = new long[2]);
-                    if (++f[0] >= 10) { f[0] = 0; f[1] = SystemClock.elapsedRealtime() + 60_000; }
-                    json(out, 403, err("pin"));
-                    return;
-                }
-                fails.remove(ipAddr);
-            }
+            if (!pinOk(ipAddr, args, out)) return;
             String b = new String(body, StandardCharsets.UTF_8);
             switch (path) {
                 case "/api/state": { seen(ipAddr, args.get("name")); JSONObject st = state(); st.put("clients", clientList(ipAddr)); json(out, 200, st); return; }
                 case "/api/text": json(out, 200, text(new JSONObject(b.isEmpty() ? "{}" : b).optString("text", ""))); return;
                 case "/api/enter": json(out, 200, enter()); return;
                 case "/api/key": json(out, 200, key(args.getOrDefault("k", ""))); return;
+                case "/api/vol": {
+                    // the phone's volume slider: an exact level
+                    AudioManager am = (AudioManager) app.getSystemService(Context.AUDIO_SERVICE);
+                    int v = Integer.parseInt(args.getOrDefault("v", "-1"));
+                    if (am != null && v >= 0) { am.setStreamVolume(AudioManager.STREAM_MUSIC, Math.min(v, am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)), 0); HomeGuardService g = HomeGuardService.instance; if (g != null) g.showVolumeNow(); }
+                    json(out, 200, ok());
+                    return;
+                }
                 case "/api/launch": json(out, 200, launch(args.get("pkg"))); return;
                 case "/api/apps": json(out, 200, apps()); return;
                 case "/api/icon": icon(out, args.get("pkg")); return;
@@ -214,6 +223,84 @@ final class RemoteServer {
             }
         } catch (Exception ignored) {
         }
+    }
+
+    /** The code: 10 wrong tries from one address → a minute's pause. */
+    private static boolean pinOk(String ipAddr, Map<String, String> args, OutputStream out) throws Exception {
+        synchronized (fails) {
+            long[] f = fails.get(ipAddr);
+            if (f != null && f[1] > SystemClock.elapsedRealtime()) { json(out, 429, err("wait")); return false; }
+            if (!pin(app).equals(args.get("pin"))) {
+                if (f == null) fails.put(ipAddr, f = new long[2]);
+                if (++f[0] >= 10) { f[0] = 0; f[1] = SystemClock.elapsedRealtime() + 60_000; }
+                json(out, 403, err("pin"));
+                return false;
+            }
+            fails.remove(ipAddr);
+        }
+        return true;
+    }
+
+    // ---------- install an APK sent from the phone ----------
+    private static final Object installLock = new Object();
+
+    /** Saves the upload, then installs it: silently over the box's own debugging when allowed,
+     *  otherwise through Android's installer, which asks «Встановити?» on the TV. */
+    private static JSONObject install(InputStream in, long total) throws Exception {
+        if (total <= 0 || total > 700L * 1024 * 1024) return err("розмір файлу");
+        synchronized (installLock) {
+            java.io.File dir = app.getExternalCacheDir() != null ? app.getExternalCacheDir() : app.getCacheDir();
+            java.io.File f = new java.io.File(dir, "remote-install.apk");
+            try (java.io.FileOutputStream o = new java.io.FileOutputStream(f)) {
+                byte[] buf = new byte[65536];
+                long left = total;
+                while (left > 0) {
+                    int k = in.read(buf, 0, (int) Math.min(buf.length, left));
+                    if (k < 0) break;
+                    o.write(buf, 0, k);
+                    left -= k;
+                }
+                if (left > 0) return err("файл не дійшов повністю");
+            }
+            byte[] head = new byte[2];
+            try (java.io.FileInputStream fi = new java.io.FileInputStream(f)) { if (fi.read(head) != 2 || head[0] != 'P' || head[1] != 'K') { f.delete(); return err("це не APK"); } }
+            f.setReadable(true, false);
+            // 1) silent, if network debugging is allowed (the TV may ask «Allow?» once)
+            if (!adbState.equals("off")) {
+                try {
+                    String r = adb().shell("127.0.0.1", 5555, "pm install -r -g '" + f.getAbsolutePath() + "'", 120_000);
+                    adbState = "ok";
+                    if (r.contains("Success")) { f.delete(); JSONObject o = ok(); o.put("how", "silent"); return o; }
+                    if (r.contains("INSTALL_FAILED")) { f.delete(); return err(r.replaceAll("(?s).*(INSTALL_FAILED_[A-Z_]+).*", "$1")); }
+                } catch (java.net.ConnectException e) {
+                    adbState = "off";
+                } catch (Exception ignored) {
+                }
+            }
+            // 2) Android's installer: the confirmation dialog shows on the TV
+            android.content.pm.PackageInstaller pi = app.getPackageManager().getPackageInstaller();
+            android.content.pm.PackageInstaller.SessionParams sp = new android.content.pm.PackageInstaller.SessionParams(android.content.pm.PackageInstaller.SessionParams.MODE_FULL_INSTALL);
+            int id = pi.createSession(sp);
+            try (android.content.pm.PackageInstaller.Session session = pi.openSession(id)) {
+                try (java.io.FileInputStream fi = new java.io.FileInputStream(f); OutputStream so = session.openWrite("remote.apk", 0, f.length())) {
+                    byte[] buf = new byte[65536];
+                    for (int k; (k = fi.read(buf)) > 0; ) so.write(buf, 0, k);
+                    session.fsync(so);
+                }
+                Intent done = new Intent(app, UpdateReceiver.class);
+                android.app.PendingIntent pend = android.app.PendingIntent.getBroadcast(app, id, done, android.app.PendingIntent.FLAG_UPDATE_CURRENT);
+                session.commit(pend.getIntentSender());
+            }
+            f.delete();
+            JSONObject o = ok();
+            o.put("how", "confirm");
+            return o;
+        }
+    }
+
+    private static synchronized AdbLocal adb() throws Exception {
+        if (adb == null) adb = new AdbLocal(AdbLocal.loadOrCreate(app.getFilesDir()), "Vitalnia@" + android.os.Build.MODEL.replace(' ', '_'));
+        return adb;
     }
 
     private static String line(InputStream in) throws Exception {
@@ -397,10 +484,7 @@ final class RemoteServer {
     private static void adbAsync(String cmd) {
         adbQ.execute(() -> {
             try {
-                if (adb == null) {
-                    KeyPair kp = AdbLocal.loadOrCreate(app.getFilesDir());
-                    adb = new AdbLocal(kp, "Vitalnia@" + android.os.Build.MODEL.replace(' ', '_'));
-                }
+                adb();
                 boolean first = !adbState.equals("ok");
                 if (first) adbState = "asking";
                 adb.shell("127.0.0.1", 5555, cmd, first ? 45_000 : 4000);
