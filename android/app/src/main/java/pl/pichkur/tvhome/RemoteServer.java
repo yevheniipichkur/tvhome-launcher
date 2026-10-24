@@ -58,6 +58,44 @@ final class RemoteServer {
     private static volatile String adbState = "unknown"; // ok | asking | off | unknown
     private static AdbLocal adb;
     private static final Map<String, byte[]> iconCache = new HashMap<>();
+    // who uses the remote: address → {name, last seen}; a new phone gets a «Підключено: …» notch on the TV
+    private static final Map<String, Object[]> clients = new HashMap<>();
+
+    private static void seen(String ip, String name) {
+        if (name == null || name.trim().isEmpty()) name = "Телефон";
+        name = name.trim().replaceAll("[\\p{Cntrl}<>]", "");
+        if (name.length() > 32) name = name.substring(0, 32);
+        long now = SystemClock.elapsedRealtime();
+        boolean fresh;
+        synchronized (clients) {
+            Object[] c = clients.get(ip);
+            fresh = c == null || now - (long) c[1] > 10 * 60_000 || !name.equals(c[0]);
+            clients.put(ip, new Object[]{name, now});
+        }
+        if (fresh) announce("Підключено: " + name, "пульт з телефону");
+    }
+
+    private static void announce(String title, String sub) {
+        MainActivity main = MainActivity.instance;
+        if (HomeGuardService.homeInFront && main != null) { main.webToast("phone", title, sub); return; }
+        HomeGuardService g = HomeGuardService.instance;
+        if (g != null) g.showInfo(title, sub);
+    }
+
+    private static JSONArray clientList(String me) throws Exception {
+        JSONArray a = new JSONArray();
+        long now = SystemClock.elapsedRealtime();
+        synchronized (clients) {
+            for (Map.Entry<String, Object[]> e : clients.entrySet()) {
+                if (now - (long) e.getValue()[1] > 30_000) continue;
+                JSONObject c = new JSONObject();
+                c.put("name", e.getValue()[0]);
+                c.put("you", e.getKey().equals(me));
+                a.put(c);
+            }
+        }
+        return a;
+    }
 
     static synchronized void start(Context ctx) {
         if (running) return;
@@ -165,7 +203,7 @@ final class RemoteServer {
             }
             String b = new String(body, StandardCharsets.UTF_8);
             switch (path) {
-                case "/api/state": json(out, 200, state()); return;
+                case "/api/state": { seen(ipAddr, args.get("name")); JSONObject st = state(); st.put("clients", clientList(ipAddr)); json(out, 200, st); return; }
                 case "/api/text": json(out, 200, text(new JSONObject(b.isEmpty() ? "{}" : b).optString("text", ""))); return;
                 case "/api/enter": json(out, 200, enter()); return;
                 case "/api/key": json(out, 200, key(args.getOrDefault("k", ""))); return;

@@ -141,6 +141,22 @@ public class HomeGuardService extends AccessibilityService {
         return true;
     }
 
+    /** A quiet informational notch over any app (no chime): e.g. «Підключено: iPhone». */
+    void showInfo(String title, String sub) {
+        ui.post(() -> {
+            if (banner != null) return; // never cover an alert
+            NotchBanner notch = new NotchBanner(this, title, sub, "ПУЛЬТ", 0xFFF4A640);
+            WindowManager wm = (WindowManager) getSystemService(WINDOW_SERVICE);
+            try {
+                wm.addView(notch, NotchBanner.windowParams(this));
+            } catch (Exception e) {
+                return;
+            }
+            banner = notch;
+            notch.play(2600, () -> { if (banner == notch) hideBanner(false); });
+        });
+    }
+
     /** The volume notch with the current level (also used by the phone remote). */
     void showVolumeNow() {
         ui.post(this::showVolumeOnUi);

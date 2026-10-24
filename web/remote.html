@@ -67,12 +67,32 @@ h2 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: v
 .pin h1 { font-family: 'Fixel Display', sans-serif; font-weight: 500; font-size: 30px; margin: 0; }
 .pin p { color: var(--muted); margin: 0; line-height: 1.5; }
 .pin input { height: 64px; border-radius: 18px; border: 1px solid var(--line); background: var(--card); color: var(--ivory); font-size: 30px; letter-spacing: .3em; text-align: center; outline: none; user-select: text; -webkit-user-select: text; }
+.who { display: flex; flex-wrap: wrap; gap: 6px; margin: -4px 2px 12px; }
+.who span { font-size: 12px; padding: 5px 10px; border-radius: 999px; background: var(--card); color: var(--muted); }
+.who span.you { color: var(--ink); background: var(--soft); }
+.who button { font-size: 12px; padding: 5px 10px; border-radius: 999px; background: none; border: 1px dashed var(--line); color: var(--muted); }
+.mode { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 14px; background: var(--card); margin: 0 auto 14px; max-width: 320px; }
+.mode button { height: 38px; border-radius: 11px; font-size: 14px; color: var(--muted); }
+.mode button.on { background: var(--card2); color: var(--ivory); }
+.tp { display: none; position: relative; height: min(70vw, 340px); margin: 0 0 16px; border-radius: 26px; background: radial-gradient(120% 90% at 50% 0%, #1d2734, var(--card)); border: 1px solid var(--line); touch-action: none; overflow: hidden; }
+body.touch .tp { display: block; } body.touch .pad { display: none; }
+.tp .lg { position: absolute; left: 0; right: 0; bottom: 12px; text-align: center; font-size: 12px; line-height: 1.6; color: var(--dim); pointer-events: none; }
+.tp .fb { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); font-family: 'Fixel Display', sans-serif; font-weight: 500; font-size: 22px; color: var(--amber); opacity: 0; transition: opacity .25s; pointer-events: none; white-space: nowrap; }
+.tp .fb.on { opacity: 1; }
+.tp .dotp { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(244,166,64,.22); border: 1px solid rgba(244,166,64,.5); pointer-events: none; display: none; }
+.sheet { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: flex-end; }
+.sheet.on { display: flex; }
+.sheet > div { width: 100%; max-width: 520px; margin: 0 auto; background: var(--card); border-radius: 24px 24px 0 0; padding: 20px 18px max(20px, env(safe-area-inset-bottom)); }
+.sheet h3 { margin: 0 0 6px; font-family: 'Fixel Display', sans-serif; font-weight: 500; font-size: 22px; }
+.sheet p { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.sheet input { width: 100%; height: 54px; border-radius: 16px; border: 1px solid var(--line); background: var(--ink); color: var(--ivory); font: inherit; font-size: 18px; padding: 0 16px; outline: none; margin-bottom: 10px; user-select: text; -webkit-user-select: text; }
 .toast { position: fixed; left: 50%; bottom: 24px; opacity: 0; transform: translate(-50%, 140%); background: #000; color: #fff; padding: 12px 20px; border-radius: 16px; font-size: 14px; transition: transform .3s; max-width: 90vw; text-align: center; }
 .toast.on { opacity: 1; transform: translate(-50%, 0); }
 </style>
 </head>
 <body>
 <div class="top"><span class="dot" id="dot"></span><h1>Пульт <span>«Вітальні»</span></h1><span class="st" id="st">підключаюсь…</span></div>
+<div class="who" id="who"></div>
 <div class="now" id="now"><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg><b id="nowT"></b></div>
 
 <section class="card">
@@ -86,6 +106,9 @@ h2 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: v
 </section>
 <div class="note" id="note"></div>
 
+<div class="mode"><button id="m-pad" class="on">Кнопки</button><button id="m-tp">Тачпад</button></div>
+<div class="tp" id="tp"><div class="dotp" id="dotp"></div><div class="fb" id="fb"></div>
+  <div class="lg">гортайте — стрілки · дотик — ОК · утримання — меню<br>два пальці: дотик — назад · ↔ перемотка · ↕ гучність</div></div>
 <div class="pad" id="pad">
   <button class="ar u" data-k="up" aria-label="Вгору"><svg viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></svg></button>
   <button class="ar l" data-k="left" aria-label="Ліворуч"><svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button>
@@ -119,10 +142,11 @@ h2 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: v
 
 <div class="pin" id="pinbox">
   <h1>Код з телевізора</h1>
-  <p>На телевізорі: Налаштування → Система → «Пульт з телефону». Там шестизначний код і QR-код — його можна просто сфотографувати камерою.</p>
+  <p>На телевізорі: Налаштування → «Телефон». Там шестизначний код і QR-код — його можна просто сфотографувати камерою.</p>
   <input id="pinin" inputmode="numeric" maxlength="6" placeholder="••••••">
   <button class="btn main" id="pingo">Підключитися</button>
 </div>
+<div class="sheet" id="sheet"><div><h3>Як вас показати на телевізорі?</h3><p>Це ім’я з’явиться на екрані, коли ви підключаєтеся до пульта.</p><input id="nm" maxlength="32" placeholder="наприклад: Телефон Євгенія"><button class="btn main" id="nmok" style="width:100%">Зберегти</button></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -131,6 +155,21 @@ h2 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: v
   var q = new URLSearchParams(location.search), pin = q.get('pin') || '';
   try { if (pin) localStorage.setItem('vit-pin', pin); else pin = localStorage.getItem('vit-pin') || ''; } catch (e) {}
   if (q.get('pin')) history.replaceState(null, '', location.pathname);
+  function deviceName() {
+    var ua = navigator.userAgent, m;
+    if (/iPad/.test(ua)) return 'iPad';
+    if (/iPhone/.test(ua)) return 'iPhone';
+    if ((m = /Android [\d.]+; ([^;)]+?)(?: Build|\))/.exec(ua)) && !/^K$/.test(m[1])) return m[1].trim();
+    if (/Android/.test(ua)) return 'Android';
+    if (/Macintosh/.test(ua)) return 'Mac';
+    if (/Windows/.test(ua)) return 'Windows';
+    return 'Телефон';
+  }
+  var myName = '';
+  try { myName = localStorage.getItem('vit-name') || ''; } catch (e) {}
+  function nameParam() { return '&name=' + encodeURIComponent(myName || deviceName()); }
+  $('nmok').onclick = function () { myName = $('nm').value.trim(); try { localStorage.setItem('vit-name', myName); } catch (e) {} $('sheet').classList.remove('on'); poll(); };
+  $('sheet').onclick = function (e) { if (e.target === $('sheet')) $('sheet').classList.remove('on'); };
   var state = {}, typing = 0, lastSent = null, lastField = null, toastT;
 
   function api(path, opt) {
@@ -177,6 +216,52 @@ h2 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: v
     pad.addEventListener('touchend', function (e) { if (moved) e.preventDefault(); }, { passive: false });
   })();
 
+  // ---------- touchpad: swipes are arrows (a long drag repeats), tap = OK, hold = menu,
+  // two fingers: tap = back, sideways = rewind / fast-forward, up-down = volume ----------
+  function setMode(tp) {
+    document.body.classList.toggle('touch', tp);
+    $('m-tp').classList.toggle('on', tp); $('m-pad').classList.toggle('on', !tp);
+    try { localStorage.setItem('vit-mode', tp ? 'tp' : 'pad'); } catch (e) {}
+  }
+  $('m-tp').onclick = function () { setMode(true); }; $('m-pad').onclick = function () { setMode(false); };
+  try { setMode(localStorage.getItem('vit-mode') === 'tp'); } catch (e) {}
+  (function () {
+    var tp = $('tp'), dot = $('dotp'), fb = $('fb'), fbT, x0, y0, sx, sy, moved, fingers, hold, t0, two;
+    var STEP = 46, STEP2 = 60;
+    function flash(t) { fb.textContent = t; fb.classList.add('on'); clearTimeout(fbT); fbT = setTimeout(function () { fb.classList.remove('on'); }, 450); }
+    function pos(e) { var r = tp.getBoundingClientRect(), t = e.touches[0] || e.changedTouches[0]; return [t.clientX - r.left, t.clientY - r.top]; }
+    tp.addEventListener('touchstart', function (e) {
+      fingers = Math.max(fingers || 0, e.touches.length);
+      if (e.touches.length === 1) { var p = pos(e); x0 = sx = p[0]; y0 = sy = p[1]; moved = false; two = false; t0 = Date.now(); fingers = 1;
+        dot.style.display = 'block'; dot.style.left = p[0] + 'px'; dot.style.top = p[1] + 'px';
+        clearTimeout(hold); hold = setTimeout(function () { if (!moved && fingers === 1) { key('menu'); flash('меню'); moved = true; } }, 600); }
+      if (e.touches.length === 2) { two = true; clearTimeout(hold); var a = e.touches[0], b = e.touches[1]; x0 = (a.clientX + b.clientX) / 2; y0 = (a.clientY + b.clientY) / 2; }
+      e.preventDefault();
+    }, { passive: false });
+    tp.addEventListener('touchmove', function (e) {
+      if (two && e.touches.length >= 2) {
+        var a = e.touches[0], b = e.touches[1], cx = (a.clientX + b.clientX) / 2, cy = (a.clientY + b.clientY) / 2, dx = cx - x0, dy = cy - y0;
+        if (Math.abs(dx) > STEP2 && Math.abs(dx) > Math.abs(dy)) { key(dx > 0 ? 'ff' : 'rew'); flash(dx > 0 ? '⏩' : '⏪'); x0 = cx; y0 = cy; moved = true; }
+        else if (Math.abs(dy) > STEP2 * .7) { key(dy < 0 ? 'volup' : 'voldown'); flash(dy < 0 ? 'гучніше' : 'тихіше'); x0 = cx; y0 = cy; moved = true; }
+      } else if (!two) {
+        var p = pos(e), dx2 = p[0] - x0, dy2 = p[1] - y0;
+        dot.style.left = p[0] + 'px'; dot.style.top = p[1] + 'px';
+        if (Math.max(Math.abs(dx2), Math.abs(dy2)) > STEP) {
+          var k = Math.abs(dx2) > Math.abs(dy2) ? (dx2 > 0 ? 'right' : 'left') : (dy2 > 0 ? 'down' : 'up');
+          key(k); flash({ right: '→', left: '←', up: '↑', down: '↓' }[k]); x0 = p[0]; y0 = p[1]; moved = true; clearTimeout(hold);
+        }
+      }
+      e.preventDefault();
+    }, { passive: false });
+    tp.addEventListener('touchend', function (e) {
+      if (e.touches.length) return;
+      clearTimeout(hold); dot.style.display = 'none';
+      if (!moved && Date.now() - t0 < 600) { if (two) { key('back'); flash('назад'); } else { key('ok'); flash('ОК'); } }
+      fingers = 0; two = false;
+      e.preventDefault();
+    }, { passive: false });
+  })();
+
   // ---------- keyboard: the whole text is sent as you type (the TV field mirrors it) ----------
   var txt = $('txt'), sendT = null;
   function sendText() {
@@ -184,7 +269,7 @@ h2 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: v
     if (v === lastSent) return;
     lastSent = v;
     api('text', { method: 'POST', body: JSON.stringify({ text: v }) }).then(function (r) {
-      if (!r.ok && r.error === 'ime') kbHint('warn', 'Увімкніть на телевізорі клавіатуру «Вітальня»: Налаштування → Система → Пульт з телефону → Клавіатура');
+      if (!r.ok && r.error === 'ime') kbHint('warn', 'Увімкніть на телевізорі клавіатуру «Вітальня»: Налаштування → Телефон → Клавіатура з телефону');
       else if (!r.ok && r.error === 'no-field') kbHint('warn', 'Спершу виберіть поле вводу на телевізорі');
     }).catch(function () {});
   }
@@ -198,14 +283,18 @@ h2 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: v
   // ---------- state ----------
   function poll() {
     if (!pin) return;
-    api('state').then(function (s) {
+    api('state?x=1' + nameParam()).then(function (s) {
+      var w = $('who'), html = '';
+      (s.clients || []).forEach(function (c) { html += '<span class="' + (c.you ? 'you' : '') + '">' + (c.you ? 'ви · ' : '') + String(c.name).replace(/[<>&]/g, '') + '</span>'; });
+      w.innerHTML = html + '<button id="rename">змінити ім’я</button>';
+      $('rename').onclick = function () { $('nm').value = myName || deviceName(); $('sheet').classList.add('on'); setTimeout(function () { $('nm').focus(); }, 100); };
       state = s;
       $('dot').classList.add('on');
       $('st').textContent = s.model || 'підключено';
       if (s.media && s.media.title) { $('now').classList.add('on'); $('nowT').textContent = (s.media.playing ? '▶ ' : '❚❚ ') + s.media.title + (s.media.app ? ' · ' + s.media.app : ''); } else $('now').classList.remove('on');
       if (s.volMax) { $('vbar').style.width = Math.round((s.muted ? 0 : s.vol) / s.volMax * 100) + '%'; $('vlab').textContent = s.muted ? 'без звуку' : 'гучність ' + s.vol + ' / ' + s.volMax; }
       if (s.adb === 'asking') showNote('asking'); else if (s.adb === 'ok') $('note').classList.remove('on');
-      if (!s.imeCurrent) kbHint('warn', 'Щоб писати з телефону, на телевізорі виберіть клавіатуру «Вітальня» (Налаштування → Система → Пульт з телефону)');
+      if (!s.imeCurrent) kbHint('warn', 'Щоб писати з телефону, на телевізорі виберіть клавіатуру «Вітальня» (Налаштування → Телефон)');
       else if (s.editing) {
         kbHint('live', '● Поле на телевізорі активне' + (s.fieldHint ? ': ' + s.fieldHint : ''));
         // a newly focused field: start from what is already in it (unless you are typing right now)

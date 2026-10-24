@@ -70,6 +70,12 @@ public class MainActivity extends Activity {
     private WebView web;
     static volatile MainActivity instance;
 
+    /** A notch toast on the home screen (setup.js TVS.toast). */
+    void webToast(String icon, String title, String sub) {
+        org.json.JSONArray args = new org.json.JSONArray().put(icon).put(title).put(sub);
+        ui.post(() -> { if (web != null) web.evaluateJavascript("window.TVS && TVS.toast.apply(null, " + args + ")", null); });
+    }
+
     /** A key from the phone remote while the home screen is in front: same path as the TV remote. */
     void webKey(String k) {
         ui.post(() -> { if (web != null) web.evaluateJavascript("window.tvKey && tvKey('" + k.replaceAll("[^a-z]", "") + "')", null); });
