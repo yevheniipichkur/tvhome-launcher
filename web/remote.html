@@ -177,7 +177,7 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
 .inst .tx { flex: 1; min-width: 0; }
 .inst .tx b { display: block; font-weight: 500; font-size: 15.5px; }
 .inst .tx small { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
-.inst .btn { flex: none; padding: 0 18px; height: 46px; }
+.inst .btn { flex: none; padding: 0 18px; height: 46px; cursor: pointer; }
 .prog { display: none; margin-top: 14px; }
 .prog.on { display: block; animation: rise .4s var(--out) both; }
 .prog .bar { position: relative; height: 10px; border-radius: 5px; background: rgba(5,8,13,.55); overflow: hidden; }
@@ -274,8 +274,9 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
     <div class="inst" style="margin-top:0">
       <span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M5 21h14"/></svg></span>
       <span class="tx"><b>Встановити програму</b><small>APK-файл з телефону — на приставку</small></span>
-      <button class="btn" id="pick">Вибрати</button>
-      <input type="file" id="apk" accept=".apk,application/vnd.android.package-archive" hidden>
+      <label class="btn" id="pick" for="apk">Вибрати</label>
+      <!-- no "accept" filter: phones often don't know the APK type and grey such files out; the box checks the file itself -->
+      <input type="file" id="apk" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
     </div>
     <div class="prog" id="prog"><div class="bar"><i id="pbar"></i></div><div class="pl"><b id="pname"></b><span id="pstat"></span></div></div>
   </section>
@@ -486,10 +487,10 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
   function kbHint(cls, t) { var h = $('kbh'); h.className = 'kb-h ' + cls; h.textContent = t; $('kb').classList.toggle('live', cls === 'live'); }
 
   // ---------- install an APK: upload with progress, then the box installs it ----------
-  $('pick').onclick = function () { $('apk').click(); };
   $('apk').onchange = function () {
     var f = $('apk').files[0];
     if (!f) return;
+    if (!/\.apk$/i.test(f.name) && !/android\.package-archive/.test(f.type)) { toast('Це не APK-файл: ' + f.name, '!'); $('apk').value = ''; return; }
     var pr = $('prog'), bar = $('pbar');
     pr.className = 'prog on'; bar.style.width = '0'; $('pname').textContent = f.name; $('pstat').textContent = 'надсилаю…';
     var x = new XMLHttpRequest();
