@@ -490,7 +490,6 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
   $('apk').onchange = function () {
     var f = $('apk').files[0];
     if (!f) return;
-    if (!/\.apk$/i.test(f.name) && !/android\.package-archive/.test(f.type)) { toast('Це не APK-файл: ' + f.name, '!'); $('apk').value = ''; return; }
     var pr = $('prog'), bar = $('pbar');
     pr.className = 'prog on'; bar.style.width = '0'; $('pname').textContent = f.name; $('pstat').textContent = 'надсилаю…';
     var x = new XMLHttpRequest();
