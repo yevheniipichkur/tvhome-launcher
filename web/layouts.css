@@ -17,7 +17,6 @@ body.layout-cinema .left { position: relative; z-index: 2; width: 720px; height:
 body.layout-cinema .arc { width: 720px; }
 body.layout-cinema .status { background: rgba(0,0,0,.25); }
 body.layout-cinema .dock { background: rgba(0,0,0,.35); }
-body.theme-paper.layout-cinema .status, body.theme-paper.layout-cinema .dock { background: rgba(255,255,255,.55); }
 
 /* ======================= «Дзеркало» — map left, life right ======================= */
 body.layout-mirror .layout { grid-template-columns: 1fr 790px; }
@@ -47,8 +46,6 @@ body.layout-cards .weather { border-radius: 0 0 22px 22px; border-top: 0; paddin
 body.layout-cards .status { height: 64px; }
 body.layout-cards .info { border-radius: 22px; padding: 14px 22px; }
 body.layout-cards .sky { border-radius: 26px; }
-body.theme-paper.layout-cards .kicker, body.theme-paper.layout-cards .hero, body.theme-paper.layout-cards .arc,
-body.theme-paper.layout-cards .weather, body.theme-paper.layout-cards .info { background: #f6f2ea; }
 
 /* ======================= «Мінімал» — a calm clock, no map ======================= */
 body.layout-minimal .layout { grid-template-columns: 1fr; }
@@ -71,7 +68,6 @@ body.layout-cinema .layout, body.layout-cinema .dock { position: relative; z-ind
 body.layout-cinema .map .raion:not(.alert):not(.red):not(.long),
 body.layout-cinema .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill: rgba(8,14,28,.5); stroke: rgba(255,255,255,.12); }
 body.layout-cinema .map .oblast { stroke: rgba(255,255,255,.28); stroke-width: 1.4; }
-body.theme-paper.layout-cinema #stage::before { background: linear-gradient(90deg, rgba(236,230,218,.9) 0%, rgba(236,230,218,.75) 30%, rgba(236,230,218,0) 60%); }
 body.layout-cinema .wx-next { font-size: 16px; white-space: nowrap; }
 body.layout-cinema .wx-now b { font-size: 27px; }
 
@@ -80,8 +76,6 @@ body.layout-cinema .wx-now b { font-size: 27px; }
 body.bg-streets .map .raion:not(.alert):not(.red):not(.long),
 body.bg-streets .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill: #0f1828; stroke: rgba(255,255,255,.08); }
 body.bg-streets .map .oblast { stroke: rgba(255,255,255,.34); stroke-width: 1.4; }
-body.theme-paper .map .halo path { fill: #e6dfd2; stroke: rgba(31,29,26,.7); }
-body.theme-terminal .map .halo path { fill: #071209; stroke: rgba(61,255,138,.7); }
 
 /* «Кіно» alarm zoom: the map area becomes the whole screen (one repaint at screen size) */
 body.layout-cinema.map-zoomed .map-clip { left: 0; right: 0; top: 0; bottom: 0; }

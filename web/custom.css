@@ -115,7 +115,6 @@ body.shelf-rows2 .dock .track > .sys + .sys { margin-left: 0; }
 
 /* ---------- panels ---------- */
 body.panels-solid .player, body.panels-solid .dock, body.panels-solid .power, body.panels-solid .xblk, body.panels-solid .sky { background: #111821 !important; }
-body.panels-solid.theme-paper .player, body.panels-solid.theme-paper .dock, body.panels-solid.theme-paper .power, body.panels-solid.theme-paper .xblk, body.panels-solid.theme-paper .sky { background: #f4efe5 !important; }
 body.panels-none .player, body.panels-none .dock, body.panels-none .power, body.panels-none .xblk, body.panels-none .sky { background: transparent !important; box-shadow: none !important; }
 body.panels-none:not(.no-border) .player, body.panels-none:not(.no-border) .dock, body.panels-none:not(.no-border) .xblk, body.panels-none:not(.no-border) .power { border-color: rgba(255,255,255,.14); }
 body.rad-soft .status, body.rad-soft .power, body.rad-soft .player, body.rad-soft .dock, body.rad-soft .sky, body.rad-soft .xblk, body.rad-soft .tile, body.rad-soft .map-clip { border-radius: 12px !important; }
@@ -175,3 +174,17 @@ body.layout-cinema.right-photo .sky-alt::after { content: ''; position: absolute
   background: linear-gradient(90deg, rgba(4,7,14,.86) 0%, rgba(4,7,14,.72) 32%, rgba(4,7,14,.2) 55%, rgba(4,7,14,0) 70%), linear-gradient(0deg, rgba(4,7,14,.7) 0%, rgba(4,7,14,0) 30%); }
 body.layout-cinema.right-photo .sky-alt .ph-cap { z-index: 1; }
 .ck-words small { font-family: 'Fixel Text', sans-serif; font-weight: 400; letter-spacing: 0; }
+
+/* compact editor (was ~80% of the screen): a narrow panel in the corner, the screen stays visible */
+.ed-panel { top: auto; bottom: 36px; right: 36px; width: 500px; max-height: 720px; height: 720px; padding: 18px 16px 12px; border-radius: 24px; }
+.ed-title { font-size: 22px; margin: 0 6px 8px; }
+.ed-title small { font-size: 13px; margin-top: 4px; }
+.ed-head { font-size: 11px; margin: 10px 4px 4px; }
+.ed-panel .ed-row { height: 44px; margin-top: 4px; padding: 0 14px; border-radius: 12px; font-size: 17px; gap: 10px; }
+.ed-panel .ed-row b, .ed-panel .ed-row i { font-size: 15px; }
+.ed-panel .ed-row i { opacity: .6; }
+.ed-sw { width: 14px; height: 14px; margin-right: 8px; }
+.ed-pop { left: 12px; right: 12px; bottom: 12px; padding: 14px; border-radius: 18px; }
+.ed-pt { font-size: 19px; margin-bottom: 6px; }
+.ed-in { height: 32px; font-size: 16px; }
+.ed-pop .am-hint { font-size: 12px; margin-top: 8px; }

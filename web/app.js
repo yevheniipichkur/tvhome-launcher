@@ -1105,12 +1105,14 @@
   // ---------- launcher settings: city, shelf, map size ----------
   var THEMES = [
     { id: 'lviv', name: 'Вечірній Львів' },
-    { id: 'oled', name: 'Північ' },
-    { id: 'forest', name: 'Карпати' },
-    { id: 'paper', name: 'Папір' },
-    { id: 'terminal', name: 'Термінал' },
+    { id: 'aurora', name: 'Північне сяйво' },
+    { id: 'sunset', name: 'Захід над Карпатами' },
+    { id: 'sapphire', name: 'Сапфір і золото' },
+    { id: 'neon', name: 'Неон' },
+    { id: 'copper', name: 'Графіт і мідь' },
   ];
-  function themeId() { try { return localStorage.getItem('tv-theme') || 'lviv'; } catch (e) { return 'lviv'; } }
+  // themes removed in 1.44 (Північ, Карпати, Папір, Термінал) fall back to the default
+  function themeId() { try { var t = localStorage.getItem('tv-theme') || 'lviv'; return THEMES.some(function (x) { return x.id === t; }) ? t : 'lviv'; } catch (e) { return 'lviv'; } }
   function applyTheme(id) {
     THEMES.forEach(function (t) { document.body.classList.remove('theme-' + t.id); });
     if (id !== 'lviv') document.body.classList.add('theme-' + id);

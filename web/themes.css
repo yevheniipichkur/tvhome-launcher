@@ -1,7 +1,8 @@
-/* Home screen themes. The default («Вечірній Львів») lives in style.css; each theme here is a
-   body class set from the launcher settings (localStorage "tv-theme"). Same GPU rules: flat
-   colours, no blur, nothing animated full-screen. Alert colours (yellow/red on the map, the red
-   Lviv status) stay the same in every theme — they carry meaning. */
+/* Home screen themes. The default («Вечірній Львів») lives in style.css; each theme here keeps the
+   living background (street map / city / sky) and recolours everything around it together: the
+   palette, a soft static glow, tinted streets, glass panels, the map and the «Кіно» scrim.
+   GPU rules as before: static gradients, no blur, nothing animated full-screen. Alert colours
+   (yellow/red on the map, the red status) stay the same in every theme — they carry meaning. */
 
 @font-face { font-family: 'JBM'; src: url(fonts/jbm-cyrillic-200.woff2) format('woff2'); font-weight: 200; unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
 @font-face { font-family: 'JBM'; src: url(fonts/jbm-latin-200.woff2) format('woff2'); font-weight: 200; }
@@ -12,98 +13,129 @@
 
 #arc-g stop { stop-color: var(--amber); }
 
-/* shared: themes with their own flat background hide the time-of-day sky */
-body.theme-paper .sky-bg, body.theme-oled .sky-bg, body.theme-forest .sky-bg .layer,
-body.theme-forest .sky-bg .stars, body.theme-terminal .sky-bg { display: none; }
 
-/* ================= «Північ» — OLED black, white, one cold cyan ================= */
-body.theme-oled { --bg: #000; --ivory: #f5f5f5; --muted: #8a8f98; --dim: #4c5058; --amber: #5ac8fa; --amber-soft: #a6e3ff; --line: rgba(255,255,255,.07); background: #000; }
-body.theme-oled .sky { background: #000; border-color: #16181c; box-shadow: none; }
-body.theme-oled .map .raion:not(.alert):not(.red):not(.long) { fill: #15181d; stroke: #0a0b0d; }
-body.theme-oled .map .oblast { stroke: #000; }
-body.theme-oled .dock { background: #07080a; border-color: #16181c; }
-body.theme-oled .player, body.theme-oled .status:not(.on) { background: #07080a; }
-body.theme-oled .tile { background-color: #0c0e11; }
+/* ================= «Північне сяйво» ================= */
+body.theme-aurora { --bg: #04121a; --ivory: #eaf7f4; --ink: #eaf7f4; --muted: #86a3a8; --dim: #4f6b72; --amber: #5ee6c8; --clay: #5ee6c8; --amber-soft: #b8f7e8; --clay-soft: #b8f7e8; --line: rgba(180,255,240,.09); background: #04121a; }
+body.theme-aurora .aurora { display: block; position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(60% 45% at 72% 0%, rgba(46,214,170,.24), transparent 70%), radial-gradient(48% 40% at 28% 0%, rgba(120,90,255,.20), transparent 70%), radial-gradient(70% 50% at 50% 110%, rgba(10,80,90,.25), transparent 70%); }
+body.theme-aurora .aurora i { display: none; }
+html body.theme-aurora .sky-bg .scene .sc-streets { filter: hue-rotate(140deg) saturate(1.15) brightness(.95); }
+html body.theme-aurora.bg-streets[data-sun="night"] .sky-bg .scene .sc-streets, html body.theme-aurora.bg-streets[data-sun="dusk"] .sky-bg .scene .sc-streets { filter: hue-rotate(140deg) saturate(2) brightness(1.7); }
+body.theme-aurora .sky-bg::after { background: radial-gradient(140% 120% at 35% 35%, transparent 50%, #04121a 120%); }
+body.theme-aurora .sky { background: linear-gradient(180deg, rgba(4,20,26,.50), rgba(4,20,26,.68)); border-color: rgba(180,255,240,.10); }
+body.theme-aurora .dock, body.theme-aurora .player { background: linear-gradient(180deg, rgba(180,255,240,.075), rgba(180,255,240,.03)); border-color: rgba(180,255,240,.10); }
+body.theme-aurora .tile, body.theme-aurora .pl-art, body.theme-aurora .am-ic { background-color: #0b1d24; }
+body.theme-aurora .sys { background: rgba(180,255,240,.06); border-color: rgba(180,255,240,.14); }
+body.theme-aurora .settings, body.theme-aurora .drawer, body.theme-aurora .wizard { background: rgba(4,20,26,.96); }
+body.theme-aurora .am-box, body.theme-aurora .ed-panel { background: rgba(4,20,26,.97); }
+body.theme-aurora .ed-pop { background: #0b1d24; }
+html body.theme-aurora .map .raion:not(.alert):not(.red):not(.long), html body.theme-aurora .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill: #0c2129; stroke: #071419; }
+html body.theme-aurora.layout-cinema .map .raion:not(.alert):not(.red):not(.long), html body.theme-aurora.layout-cinema .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill: #0c2129; fill-opacity: .72; stroke: #071419; }
+html body.theme-aurora .map .oblast { stroke: rgba(190,255,240,.28); }
+html body.theme-aurora .map .halo path { fill: #071a21; stroke: rgba(184,247,232,.7); }
+html body.theme-aurora .map .labels text { fill: #eaf7f4; stroke: #04121a; }
+html body.theme-aurora.map-alt .map .raion.alert, html body.theme-aurora.map-alt .map .raion.red, html body.theme-aurora.map-alt .map .raion.long { fill: #0c2129; stroke: #071419; }
+html body.theme-aurora.layout-cinema #stage::before { background: linear-gradient(90deg, rgba(4,20,26,.82) 0%, rgba(4,20,26,.68) 30%, rgba(4,20,26,.25) 48%, rgba(4,20,26,0) 62%); }
+body.theme-aurora .xblk { background: rgba(180,255,240,.045); border-color: rgba(180,255,240,.10); }
+body.theme-aurora .sky-count b, body.theme-aurora .clock-digital .clock { color: var(--amber); }
 
-/* ================= «Карпати» — night forest, mist, sage ================= */
-body.theme-forest { --bg: #0c1712; --ivory: #ecf0e4; --muted: #8fa394; --dim: #577061; --amber: #b5dc7a; --amber-soft: #d6efb0; --line: rgba(220,240,210,.09);
-  background: radial-gradient(110% 80% at 70% 0%, #17301f 0%, transparent 60%), radial-gradient(90% 70% at 0% 100%, #102419 0%, transparent 60%), #0c1712; }
-body.theme-forest .sky { background: linear-gradient(180deg, rgba(16,34,25,.94), rgba(11,24,18,.94)); }
-body.theme-forest .map .raion:not(.alert):not(.red):not(.long) { fill: #1d3326; stroke: #142419; }
-body.theme-forest .map .oblast { stroke: #0c1712; }
-body.theme-forest .dock { background: linear-gradient(180deg, rgba(220,240,210,.07), rgba(220,240,210,.03)); }
-body.theme-forest .tile { background-color: #13241b; }
-body.theme-forest .pl-art { background-color: #13241b; }
+/* ================= «Захід над Карпатами» ================= */
+body.theme-sunset { --bg: #170c17; --ivory: #fbefe9; --ink: #fbefe9; --muted: #b39aa3; --dim: #6f5662; --amber: #ff8f66; --clay: #ff8f66; --amber-soft: #ffc6a8; --clay-soft: #ffc6a8; --line: rgba(255,220,210,.09); background: #170c17; }
+body.theme-sunset .aurora { display: block; position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(75% 50% at 50% 118%, rgba(255,110,80,.30), transparent 70%), radial-gradient(60% 45% at 88% 0%, rgba(170,60,150,.26), transparent 70%), radial-gradient(50% 40% at 5% 30%, rgba(90,40,120,.22), transparent 70%); }
+body.theme-sunset .aurora i { display: none; }
+html body.theme-sunset .sky-bg .scene .sc-streets { filter: hue-rotate(-28deg) saturate(1.35) brightness(.92); }
+html body.theme-sunset.bg-streets[data-sun="night"] .sky-bg .scene .sc-streets, html body.theme-sunset.bg-streets[data-sun="dusk"] .sky-bg .scene .sc-streets { filter: hue-rotate(-28deg) saturate(2.4) brightness(1.7); }
+body.theme-sunset .sky-bg::after { background: radial-gradient(140% 120% at 35% 35%, transparent 50%, #170c17 120%); }
+body.theme-sunset .sky { background: linear-gradient(180deg, rgba(28,12,26,.50), rgba(28,12,26,.68)); border-color: rgba(255,220,210,.10); }
+body.theme-sunset .dock, body.theme-sunset .player { background: linear-gradient(180deg, rgba(255,220,210,.075), rgba(255,220,210,.03)); border-color: rgba(255,220,210,.10); }
+body.theme-sunset .tile, body.theme-sunset .pl-art, body.theme-sunset .am-ic { background-color: #22111f; }
+body.theme-sunset .sys { background: rgba(255,220,210,.06); border-color: rgba(255,220,210,.14); }
+body.theme-sunset .settings, body.theme-sunset .drawer, body.theme-sunset .wizard { background: rgba(28,12,26,.96); }
+body.theme-sunset .am-box, body.theme-sunset .ed-panel { background: rgba(28,12,26,.97); }
+body.theme-sunset .ed-pop { background: #22111f; }
+html body.theme-sunset .map .raion:not(.alert):not(.red):not(.long), html body.theme-sunset .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill: #2a1528; stroke: #1b0c19; }
+html body.theme-sunset.layout-cinema .map .raion:not(.alert):not(.red):not(.long), html body.theme-sunset.layout-cinema .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill: #2a1528; fill-opacity: .72; stroke: #1b0c19; }
+html body.theme-sunset .map .oblast { stroke: rgba(255,214,200,.26); }
+html body.theme-sunset .map .halo path { fill: #1d0d1c; stroke: rgba(255,198,168,.7); }
+html body.theme-sunset .map .labels text { fill: #fbefe9; stroke: #170c17; }
+html body.theme-sunset.map-alt .map .raion.alert, html body.theme-sunset.map-alt .map .raion.red, html body.theme-sunset.map-alt .map .raion.long { fill: #2a1528; stroke: #1b0c19; }
+html body.theme-sunset.layout-cinema #stage::before { background: linear-gradient(90deg, rgba(28,12,26,.82) 0%, rgba(28,12,26,.68) 30%, rgba(28,12,26,.25) 48%, rgba(28,12,26,0) 62%); }
+body.theme-sunset .xblk { background: rgba(255,220,210,.045); border-color: rgba(255,220,210,.10); }
+body.theme-sunset .sky-count b, body.theme-sunset .clock-digital .clock { color: var(--amber); }
 
-/* ================= «Папір» — warm daylight paper, ink, brick ================= */
-body.theme-paper { --bg: #ece6da; --ivory: #1f1d1a; --ink: #1f1d1a; --muted: #6d665c; --dim: #9b9488; --amber: #b8441f; --amber-soft: #9a3a1a; --green: #2f8a55; --line: rgba(0,0,0,.09);
-  background: #ece6da; }
-body.theme-paper .clock, body.theme-paper .wx-now b, body.theme-paper .st-text, body.theme-paper .pl-title,
-body.theme-paper .rate b, body.theme-paper .st-sky b { color: #1f1d1a; }
-body.theme-paper .headline .news { color: #3a3631; }
-body.theme-paper #wx-icon { stroke: #1f1d1a; }
-body.theme-paper #wx-icon .cloud { fill: #d9d1c3; stroke: #1f1d1a; }
-body.theme-paper #wx-icon .moon { fill: #3a3631; }
-body.theme-paper .arc-horizon, body.theme-paper .arc-base { stroke: rgba(0,0,0,.18); }
-body.theme-paper .arc.night .arc-sun { fill: #3a3631; }
-body.theme-paper .status { background: rgba(47,138,85,.1); border-color: rgba(47,138,85,.3); }
-body.theme-paper .status.on .st-text { color: #8f1d12; }
-body.theme-paper .sky { background: #f6f2ea; border-color: rgba(0,0,0,.08); box-shadow: 0 20px 50px rgba(60,40,10,.12); }
-body.theme-paper .map .raion:not(.alert):not(.red):not(.long) { fill: #d8d0c1; stroke: #cbc2b2; }
-body.theme-paper .map .oblast { stroke: #f6f2ea; }
-body.theme-paper .map .labels text { fill: #3a3631; stroke: rgba(246,242,234,.6); }
-body.theme-paper .fly .t path { fill: #1f1d1a; stroke: #f6f2ea; }
-body.theme-paper .fly .trail { background: #1f1d1a; }
-body.theme-paper .fly .badge { background: #1f1d1a; color: #f6f2ea; }
-body.theme-paper .legend { color: #1f1d1a; }
-body.theme-paper .legend svg path { fill: #1f1d1a; stroke: #f6f2ea; }
-body.theme-paper .player { background: #f6f2ea; border-color: rgba(0,0,0,.08); }
-body.theme-paper .pl-art { background-color: #e2dacd; }
-body.theme-paper .pl-btn { color: #1f1d1a; background: rgba(0,0,0,.05); border-color: rgba(0,0,0,.1); }
-body.theme-paper .pl-btn.focus { background: #1f1d1a; color: #f6f2ea; }
-body.theme-paper .dock { background: #f6f2ea; border-color: rgba(0,0,0,.08); }
-body.theme-paper .tile { background-color: #e2dacd; border-color: rgba(0,0,0,.06); color: #1f1d1a; box-shadow: 0 8px 18px rgba(60,40,10,.12); }
-body.theme-paper .tile.focus { border-color: #1f1d1a; box-shadow: 0 0 0 3px rgba(31,29,26,.75), 0 10px 22px rgba(60,40,10,.2); }
-body.theme-paper .sys { color: #1f1d1a; background: rgba(0,0,0,.05); border-color: rgba(0,0,0,.1); }
-body.theme-paper .sys.focus { background: #1f1d1a; color: #f6f2ea; }
-body.theme-paper .net-ico { fill: #1f1d1a; }
-body.theme-paper .drawer, body.theme-paper .settings { background: rgba(236,230,218,.98); }
-body.theme-paper .set-row { background: rgba(0,0,0,.04); }
-body.theme-paper .set-row.focus { background: #1f1d1a; color: #f6f2ea; }
-body.theme-paper .set-row.focus b { color: #f0b49a; }
+/* ================= «Сапфір і золото» ================= */
+body.theme-sapphire { --bg: #060b1d; --ivory: #f3efe4; --ink: #f3efe4; --muted: #8e97b3; --dim: #525c7c; --amber: #e9c46a; --clay: #e9c46a; --amber-soft: #f6e2a9; --clay-soft: #f6e2a9; --line: rgba(210,220,255,.09); background: #060b1d; }
+body.theme-sapphire .aurora { display: block; position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(80% 60% at 78% 0%, rgba(60,95,230,.30), transparent 70%), radial-gradient(60% 50% at 0% 100%, rgba(30,50,150,.32), transparent 70%), radial-gradient(40% 30% at 30% 0%, rgba(233,196,106,.08), transparent 70%); }
+body.theme-sapphire .aurora i { display: none; }
+html body.theme-sapphire .sky-bg .scene .sc-streets { filter: hue-rotate(185deg) saturate(1.25) brightness(.95); }
+html body.theme-sapphire.bg-streets[data-sun="night"] .sky-bg .scene .sc-streets, html body.theme-sapphire.bg-streets[data-sun="dusk"] .sky-bg .scene .sc-streets { filter: hue-rotate(185deg) saturate(2.2) brightness(1.7); }
+body.theme-sapphire .sky-bg::after { background: radial-gradient(140% 120% at 35% 35%, transparent 50%, #060b1d 120%); }
+body.theme-sapphire .sky { background: linear-gradient(180deg, rgba(8,14,36,.50), rgba(8,14,36,.68)); border-color: rgba(210,220,255,.10); }
+body.theme-sapphire .dock, body.theme-sapphire .player { background: linear-gradient(180deg, rgba(210,220,255,.075), rgba(210,220,255,.03)); border-color: rgba(210,220,255,.10); }
+body.theme-sapphire .tile, body.theme-sapphire .pl-art, body.theme-sapphire .am-ic { background-color: #0e1838; }
+body.theme-sapphire .sys { background: rgba(210,220,255,.06); border-color: rgba(210,220,255,.14); }
+body.theme-sapphire .settings, body.theme-sapphire .drawer, body.theme-sapphire .wizard { background: rgba(8,14,36,.96); }
+body.theme-sapphire .am-box, body.theme-sapphire .ed-panel { background: rgba(8,14,36,.97); }
+body.theme-sapphire .ed-pop { background: #0e1838; }
+html body.theme-sapphire .map .raion:not(.alert):not(.red):not(.long), html body.theme-sapphire .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill: #111d42; stroke: #0a1230; }
+html body.theme-sapphire.layout-cinema .map .raion:not(.alert):not(.red):not(.long), html body.theme-sapphire.layout-cinema .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill: #111d42; fill-opacity: .72; stroke: #0a1230; }
+html body.theme-sapphire .map .oblast { stroke: rgba(246,226,169,.30); }
+html body.theme-sapphire .map .halo path { fill: #0b1533; stroke: rgba(246,226,169,.7); }
+html body.theme-sapphire .map .labels text { fill: #f3efe4; stroke: #060b1d; }
+html body.theme-sapphire.map-alt .map .raion.alert, html body.theme-sapphire.map-alt .map .raion.red, html body.theme-sapphire.map-alt .map .raion.long { fill: #111d42; stroke: #0a1230; }
+html body.theme-sapphire.layout-cinema #stage::before { background: linear-gradient(90deg, rgba(8,14,36,.82) 0%, rgba(8,14,36,.68) 30%, rgba(8,14,36,.25) 48%, rgba(8,14,36,0) 62%); }
+body.theme-sapphire .xblk { background: rgba(210,220,255,.045); border-color: rgba(210,220,255,.10); }
+body.theme-sapphire .sky-count b, body.theme-sapphire .clock-digital .clock { color: var(--amber); }
 
-/* ================= «Термінал» — green phosphor, monospace ================= */
-body.theme-terminal { --bg: #040805; --ivory: #b9f6c7; --ink: #b9f6c7; --muted: #5f9c6e; --dim: #3c6748; --amber: #3dff8a; --amber-soft: #8affb8; --line: rgba(61,255,138,.14);
-  background: radial-gradient(120% 90% at 50% 40%, #07140b 0%, #030604 80%); }
-body.theme-terminal, body.theme-terminal .clock, body.theme-terminal .date, body.theme-terminal .st-text, body.theme-terminal .wx-now b,
-body.theme-terminal .pl-title, body.theme-terminal .rate b, body.theme-terminal .sky-count b, body.theme-terminal .set-head,
-body.theme-terminal .drawer-head, body.theme-terminal .map .labels text, body.theme-terminal .arc-t, body.theme-terminal .arc-mid { font-family: 'JBM', monospace; }
-body.theme-terminal .clock { font-weight: 200; font-size: 150px; color: #c9ffd6; text-shadow: 0 0 18px rgba(61,255,138,.35); }
-body.theme-terminal .clock .slot { width: .6em; }
-body.theme-terminal .clock .slot.colon { width: .6em; }
-body.theme-terminal .wx-now b, body.theme-terminal .st-text, body.theme-terminal .pl-title, body.theme-terminal .rate b, body.theme-terminal .st-sky b { color: #c9ffd6; }
-body.theme-terminal .headline .news { color: #9fe0ae; }
-body.theme-terminal #wx-icon { stroke: #b9f6c7; }
-body.theme-terminal #wx-icon .cloud { fill: #0b1d10; stroke: #b9f6c7; }
-body.theme-terminal .status { border-radius: 6px; background: rgba(61,255,138,.06); border-color: rgba(61,255,138,.3); }
-body.theme-terminal .sky, body.theme-terminal .player, body.theme-terminal .dock { border-radius: 8px; background: rgba(4,12,6,.9); border-color: rgba(61,255,138,.22); box-shadow: none; }
-body.theme-terminal .map .raion:not(.alert):not(.red):not(.long) { fill: #0c1f12; stroke: #17351f; }
-body.theme-terminal .map .oblast { stroke: #2a5c37; stroke-width: 1.2; }
-body.theme-terminal .map .labels text { fill: #7fd897; stroke: none; }
-body.theme-terminal .fly .t path { fill: #c9ffd6; stroke: #040805; }
-body.theme-terminal .fly .badge { background: #3dff8a; color: #040805; border-radius: 3px; }
-body.theme-terminal .tile { border-radius: 6px; background-color: #071009; border-color: rgba(61,255,138,.18); }
-body.theme-terminal .tile.focus { border-color: #3dff8a; box-shadow: 0 0 0 2px #3dff8a, 0 0 30px rgba(61,255,138,.35); }
-body.theme-terminal .sys { border-radius: 8px; color: #b9f6c7; }
-body.theme-terminal .sys.focus { background: #3dff8a; color: #040805; }
-body.theme-terminal .pl-btn { border-radius: 6px; color: #b9f6c7; }
-body.theme-terminal .pl-btn.focus { background: #3dff8a; color: #040805; }
-body.theme-terminal .set-row { border-radius: 6px; }
-body.theme-terminal .set-row.focus { background: #3dff8a; color: #040805; }
-body.theme-terminal .drawer, body.theme-terminal .settings { background: rgba(3,7,4,.98); }
-body.theme-paper .tile.cont { background-color: #e2dacd; }
-body.theme-paper .tile.cont .cont-shade { background: linear-gradient(90deg, rgba(246,242,234,.95), rgba(246,242,234,.7) 60%, rgba(246,242,234,.3)); }
-body.theme-paper .tile.cont .cont-title { color: #1f1d1a; }
-body.theme-paper .tile.cont .cont-tag { color: #b8441f; }
+/* ================= «Неон» ================= */
+body.theme-neon { --bg: #08050f; --ivory: #f6f0ff; --ink: #f6f0ff; --muted: #9b8fb5; --dim: #5b5175; --amber: #ff4fd8; --clay: #ff4fd8; --amber-soft: #ffb0ef; --clay-soft: #ffb0ef; --line: rgba(230,200,255,.09); background: #08050f; }
+body.theme-neon .aurora { display: block; position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(50% 45% at 86% 8%, rgba(255,60,200,.22), transparent 70%), radial-gradient(55% 50% at 8% 92%, rgba(60,200,255,.20), transparent 70%), radial-gradient(40% 35% at 45% 50%, rgba(120,60,255,.10), transparent 70%); }
+body.theme-neon .aurora i { display: none; }
+html body.theme-neon .sky-bg .scene .sc-streets { filter: hue-rotate(245deg) saturate(2) brightness(1.05); }
+html body.theme-neon.bg-streets[data-sun="night"] .sky-bg .scene .sc-streets, html body.theme-neon.bg-streets[data-sun="dusk"] .sky-bg .scene .sc-streets { filter: hue-rotate(245deg) saturate(3) brightness(1.8); }
+body.theme-neon .sky-bg::after { background: radial-gradient(140% 120% at 35% 35%, transparent 50%, #08050f 120%); }
+body.theme-neon .sky { background: linear-gradient(180deg, rgba(14,8,26,.50), rgba(14,8,26,.68)); border-color: rgba(230,200,255,.10); }
+body.theme-neon .dock, body.theme-neon .player { background: linear-gradient(180deg, rgba(230,200,255,.075), rgba(230,200,255,.03)); border-color: rgba(230,200,255,.10); }
+body.theme-neon .tile, body.theme-neon .pl-art, body.theme-neon .am-ic { background-color: #160d29; }
+body.theme-neon .sys { background: rgba(230,200,255,.06); border-color: rgba(230,200,255,.14); }
+body.theme-neon .settings, body.theme-neon .drawer, body.theme-neon .wizard { background: rgba(14,8,26,.96); }
+body.theme-neon .am-box, body.theme-neon .ed-panel { background: rgba(14,8,26,.97); }
+body.theme-neon .ed-pop { background: #160d29; }
+html body.theme-neon .map .raion:not(.alert):not(.red):not(.long), html body.theme-neon .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill: #1a1030; stroke: #0d0819; }
+html body.theme-neon.layout-cinema .map .raion:not(.alert):not(.red):not(.long), html body.theme-neon.layout-cinema .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill: #1a1030; fill-opacity: .72; stroke: #0d0819; }
+html body.theme-neon .map .oblast { stroke: rgba(110,220,255,.50); }
+html body.theme-neon .map .halo path { fill: #120a22; stroke: rgba(90,225,255,.85); }
+html body.theme-neon .map .labels text { fill: #f6f0ff; stroke: #08050f; }
+html body.theme-neon.map-alt .map .raion.alert, html body.theme-neon.map-alt .map .raion.red, html body.theme-neon.map-alt .map .raion.long { fill: #1a1030; stroke: #0d0819; }
+html body.theme-neon.layout-cinema #stage::before { background: linear-gradient(90deg, rgba(14,8,26,.82) 0%, rgba(14,8,26,.68) 30%, rgba(14,8,26,.25) 48%, rgba(14,8,26,0) 62%); }
+body.theme-neon .xblk { background: rgba(230,200,255,.045); border-color: rgba(230,200,255,.10); }
+body.theme-neon .sky-count b, body.theme-neon .clock-digital .clock { color: var(--amber); }
 
-/* backgrounds also work in «Північ», «Карпати» and «Термінал» only when chosen explicitly (not auto) */
+/* ================= «Графіт і мідь» ================= */
+body.theme-copper { --bg: #0d0e10; --ivory: #f2ece6; --ink: #f2ece6; --muted: #9a948e; --dim: #5e5954; --amber: #e38b5b; --clay: #e38b5b; --amber-soft: #f4c3a2; --clay-soft: #f4c3a2; --line: rgba(255,240,230,.09); background: #0d0e10; }
+body.theme-copper .aurora { display: block; position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(80% 60% at 82% 0%, rgba(227,139,91,.14), transparent 70%), radial-gradient(60% 50% at 0% 100%, rgba(80,80,90,.20), transparent 70%); }
+body.theme-copper .aurora i { display: none; }
+html body.theme-copper .sky-bg .scene .sc-streets { filter: grayscale(1) brightness(1.1) contrast(1.05); }
+html body.theme-copper.bg-streets[data-sun="night"] .sky-bg .scene .sc-streets, html body.theme-copper.bg-streets[data-sun="dusk"] .sky-bg .scene .sc-streets { filter: sepia(.6) saturate(1.6) hue-rotate(-12deg) brightness(1.7); }
+body.theme-copper .sky-bg::after { background: radial-gradient(140% 120% at 35% 35%, transparent 50%, #0d0e10 120%); }
+body.theme-copper .sky { background: linear-gradient(180deg, rgba(16,16,18,.50), rgba(16,16,18,.68)); border-color: rgba(255,240,230,.10); }
+body.theme-copper .dock, body.theme-copper .player { background: linear-gradient(180deg, rgba(255,240,230,.075), rgba(255,240,230,.03)); border-color: rgba(255,240,230,.10); }
+body.theme-copper .tile, body.theme-copper .pl-art, body.theme-copper .am-ic { background-color: #18191c; }
+body.theme-copper .sys { background: rgba(255,240,230,.06); border-color: rgba(255,240,230,.14); }
+body.theme-copper .settings, body.theme-copper .drawer, body.theme-copper .wizard { background: rgba(16,16,18,.96); }
+body.theme-copper .am-box, body.theme-copper .ed-panel { background: rgba(16,16,18,.97); }
+body.theme-copper .ed-pop { background: #18191c; }
+html body.theme-copper .map .raion:not(.alert):not(.red):not(.long), html body.theme-copper .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill: #1c1d20; stroke: #111214; }
+html body.theme-copper.layout-cinema .map .raion:not(.alert):not(.red):not(.long), html body.theme-copper.layout-cinema .map .raions.base .raion:not(.alert):not(.red):not(.long) { fill: #1c1d20; fill-opacity: .72; stroke: #111214; }
+html body.theme-copper .map .oblast { stroke: rgba(255,235,220,.26); }
+html body.theme-copper .map .halo path { fill: #151619; stroke: rgba(244,195,162,.6); }
+html body.theme-copper .map .labels text { fill: #f2ece6; stroke: #0d0e10; }
+html body.theme-copper.map-alt .map .raion.alert, html body.theme-copper.map-alt .map .raion.red, html body.theme-copper.map-alt .map .raion.long { fill: #1c1d20; stroke: #111214; }
+html body.theme-copper.layout-cinema #stage::before { background: linear-gradient(90deg, rgba(16,16,18,.82) 0%, rgba(16,16,18,.68) 30%, rgba(16,16,18,.25) 48%, rgba(16,16,18,0) 62%); }
+body.theme-copper .xblk { background: rgba(255,240,230,.045); border-color: rgba(255,240,230,.10); }
+body.theme-copper .sky-count b, body.theme-copper .clock-digital .clock { color: var(--amber); }
+
+body.theme-neon .tile.focus { box-shadow: 0 0 0 3px #ff4fd8, 0 0 40px rgba(255,79,216,.55), 0 18px 40px rgba(0,0,0,.6); }
+body.theme-neon .sys.focus { box-shadow: 0 0 0 3px #ff4fd8, 0 0 30px rgba(255,79,216,.5); }
+body.theme-neon .clock { text-shadow: 0 0 28px rgba(255,79,216,.35); }
+body.theme-aurora .clock { text-shadow: 0 0 30px rgba(94,230,200,.22); }
+body.theme-sapphire .date, body.theme-sapphire .sky-count b { color: #f6e2a9; }
