@@ -3,6 +3,7 @@
   'use strict';
   var TV = window.TV, phone = !!window.cinemaApi, panel, state, busy = false, timer, previousFocus;
   var renderKey = '', previous = [], revisit = '', resetAsked = false, reopenAfterPin = false, revision = 0;
+  var filterDraft = null, filterMenu = '', controlsKey = '', savedFilterKey = '';
   var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var ICON = {
     film: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 4v16M16 4v16M3 9h5M3 15h5M16 9h5M16 15h5"/>',
@@ -49,9 +50,61 @@
     if (!panel) return;
     panel.querySelector('.cn-notice').textContent = text;
   }
+  function catalogMeta() { return state.catalogMeta || { loading: false, hasMore: false }; }
+  function joinDisabled() { return state.names.length >= 2 || !state.catalog.length || (!state.round && catalogMeta().loading); }
+  function filterOptions(field) {
+    var year = new Date().getFullYear();
+    if (field === 'genre') return (state.genres || []).map(function (g) { return { value: g.id, label: g.name }; });
+    if (field === 'rating') return [0,5,6,7,8,9].map(function (v) { return { value: v, label: v ? 'Від ' + v + ' / 10' : 'Будь-який' }; });
+    if (field === 'sort') return [{ value: 'popularity.desc', label: 'Популярні' }, { value: 'vote_average.desc', label: 'Найкращі оцінки' }, { value: 'primary_release_date.desc', label: 'Найновіші' }];
+    var periods = [{ value: '1900-' + year, label: 'Усі роки' }];
+    for (var y = year; y > year - 5; y--) periods.push({ value: y + '-' + y, label: String(y) });
+    periods.push({ value: '2020-' + year, label: '2020 — ' + year });
+    [2010,2000,1990,1980].forEach(function (d) { periods.push({ value: d + '-' + (d + 9), label: d + ' — ' + (d + 9) }); });
+    periods.push({ value: '1900-1979', label: 'До 1980 року' }); return periods;
+  }
+  function filterValue(field) { return field === 'period' ? filterDraft.fromYear + '-' + filterDraft.toYear : filterDraft[field]; }
+  function filterLabel(field) { var value = String(filterValue(field)), option = filterOptions(field).filter(function (v) { return String(v.value) === value; })[0]; return option ? option.label : value; }
+  function renderCatalogControls(force) {
+    var box = panel.querySelector('.cn-catalog');
+    if (!state.filters || !state.catalogMeta) { box.hidden = true; return; }
+    box.hidden = false;
+    var meta = catalogMeta(), filterKey = JSON.stringify(state.filters);
+    if (filterKey !== savedFilterKey) { filterDraft = Object.assign({}, state.filters); savedFilterKey = filterKey; filterMenu = ''; }
+    var key = JSON.stringify([meta, state.round, filterDraft, filterMenu, state.catalog.length]);
+    if (!force && key === controlsKey) return;
+    controlsKey = key;
+    var status = meta.source === 'tmdb' ? 'Каталог TMDB' : 'Офлайн-добірка';
+    if (meta.cached && meta.source === 'tmdb') status += ' · збережена копія';
+    if (meta.updatedAt) status += ' · ' + new Date(meta.updatedAt).toLocaleDateString('uk-UA');
+    status += ' · ' + state.catalog.length + ' фільмів';
+    var html = '<div class="cn-catalog-status" role="status">' + esc(meta.loading ? 'Завантажуємо фільми з TMDB…' : status) + '</div>';
+    if (!meta.loading && !state.catalog.length) html += '<p class="cn-filter-summary">За цими фільтрами фільмів немає. Спробуйте інший жанр, роки чи рейтинг.</p>';
+    if (meta.error) html += '<p class="cn-catalog-error">' + esc(meta.error) + (state.catalog.length ? ' Збережені фільми доступні.' : '') + '</p>';
+    if (!state.round) {
+      var names = { genre: 'Жанр', period: 'Роки', rating: 'Рейтинг', sort: 'Порядок' };
+      html += '<div class="cn-filters">' + Object.keys(names).map(function (field) {
+        return '<button class="cn-filter" data-cn="filter:' + field + '"' + (meta.loading ? ' disabled' : '') + '><small>' + names[field] + '</small><b>' + esc(filterLabel(field)) + '</b></button>';
+      }).join('') + '<button class="cn-primary" data-cn="apply-filters"' + (meta.loading ? ' disabled' : '') + '>Застосувати</button>' + (meta.error ? '<button class="cn-quiet" data-cn="refresh"' + (meta.loading ? ' disabled' : '') + '>Повторити</button>' : '') + '</div>';
+      if (filterMenu) html += '<div class="cn-picker" role="group" aria-label="' + names[filterMenu] + '">' + filterOptions(filterMenu).map(function (option, i) {
+        return '<button data-cn="pick-filter:' + i + '" class="' + (String(filterValue(filterMenu)) === String(option.value) ? 'chosen' : '') + '">' + esc(option.label) + '</button>';
+      }).join('') + '<button data-cn="close-filter">Готово</button></div>';
+    } else html += '<p class="cn-filter-summary">' + esc(filterLabel('genre')) + ' · ' + esc(filterLabel('period')) + (filterDraft.rating ? ' · рейтинг від ' + filterDraft.rating : '') + '. Фільтри спільні для обох глядачів.</p>';
+    box.innerHTML = html;
+  }
+  function moreButton() {
+    var m = catalogMeta();
+    return m.hasMore ? '<button class="cn-quiet cn-more" data-cn="more"' + (m.loading ? ' disabled' : '') + '>' + (m.loading ? 'Завантажуємо…' : 'Ще фільми') + '</button>' : '';
+  }
+  function movieMeta(f) {
+    var parts = []; if (f.year) parts.push(f.year); if (f.minutes) parts.push(f.minutes + ' хв');
+    if (typeof f.rating === 'number' && f.votes) parts.push('TMDB ' + f.rating.toFixed(1) + ' / 10');
+    if (f.genre) parts.push(f.genre); return esc(parts.join(' · '));
+  }
+
   function update(s) {
     if (!panel) return;
-    if (state && s.round !== state.round) { previous = []; revisit = ''; }
+    if (state && s.round !== state.round) { previous = []; revisit = ''; savedFilterKey = ''; }
     state = s;
     var key = JSON.stringify(s);
     if (key === renderKey) return;
@@ -63,6 +116,7 @@
     }).join('');
     if (state.names.length < 2) people += '<div class="cn-person cn-wait"><span>Чекаємо ' + (state.names.length ? 'другий' : 'перший') + ' телефон</span><b>' + (state.names.length + 1) + '</b></div>';
     panel.querySelector('.cn-people').innerHTML = people;
+    renderCatalogControls(false);
     if (phone) renderPhone(); else renderTV();
     if (focused) {
       var same = Array.prototype.find.call(panel.querySelectorAll('[data-cn]'), function (b) { return b.getAttribute('data-cn') === focused; });
@@ -105,12 +159,12 @@
       if (area.querySelector('.cn-invite')) {
         var oldMatches = area.querySelector('.cn-matches'); if (oldMatches) oldMatches.remove();
         area.insertAdjacentHTML('afterbegin', matches());
-        area.querySelector('[data-cn="join"]').disabled = state.names.length >= 2;
+        area.querySelector('[data-cn="join"]').disabled = joinDisabled();
         return;
       }
       area.innerHTML = matches() + '<div class="cn-invite"><div class="cn-orbit">' + icon('film') + '</div><h2>Один вечір.<br>Два «так».</h2><p>Листайте фільми на своїх телефонах. На телевізорі з’являться лише ваші спільні вподобання.</p><label for="cn-name">Ваше ім’я</label><input id="cn-name" autocomplete="given-name" maxlength="32" placeholder="Як вас звати?"><button class="cn-primary" data-cn="join">Приєднатися</button><small>Два телефони · одна мережа Wi-Fi</small></div>';
       panel.querySelector('#cn-name').value = window.cinemaName ? window.cinemaName() : '';
-      panel.querySelector('[data-cn="join"]').disabled = state.names.length >= 2;
+      panel.querySelector('[data-cn="join"]').disabled = joinDisabled();
       return;
     }
     var pending = state.catalog.filter(function (f) { return !Object.prototype.hasOwnProperty.call(state.mine, f.id); });
@@ -118,11 +172,11 @@
     var n = Object.keys(state.mine).length;
     if (!f) {
       var allDone = state.progress.length === 2 && state.progress.every(function (p) { return p >= state.catalog.length; });
-      area.innerHTML = '<div class="cn-finished">' + icon('check') + '<h2>Ваш вибір готовий</h2><p>' + (allDone ? state.matches.length ? 'Залишилося обрати один зі спільних фільмів.' : 'Сьогодні смаки розійшлися. Можна змінити останній голос або почати новий вечір на телевізорі.' : 'Поки інший глядач обирає, ваші вподобання вже збережені на приставці.') + '</p><button class="cn-quiet" data-cn="undo">Змінити останній голос</button></div>' + matches();
+      area.innerHTML = moreButton() + '<div class="cn-finished">' + icon('check') + '<h2>Ваш вибір готовий</h2><p>' + (allDone ? state.matches.length ? 'Залишилося обрати один зі спільних фільмів.' : 'Сьогодні смаки розійшлися. Можна змінити останній голос або почати новий вечір на телевізорі.' : 'Поки інший глядач обирає, ваші вподобання вже збережені на приставці.') + '</p><button class="cn-quiet" data-cn="undo">Змінити останній голос</button></div>' + matches();
       return;
     }
     area.innerHTML = '<div class="cn-progress"><span>' + (revisit ? 'Змінити голос' : 'Ваш вибір') + '</span><b>' + n + ' / ' + state.catalog.length + '</b></div><progress class="cn-track" max="' + state.catalog.length + '" value="' + n + '" aria-label="Переглянуто фільмів"></progress>' +
-      '<article class="cn-film" data-film="' + f.id + '"><div class="cn-film-art" data-genre="' + esc(f.genre) + '">' + (f.poster ? '<img src="https://image.tmdb.org/t/p/w500' + esc(f.poster) + '" alt="" referrerpolicy="no-referrer">' : '') + '<span class="cn-film-word">' + esc(f.genre) + '</span><span class="cn-film-no">' + ('0' + (state.catalog.indexOf(f) + 1)).slice(-2) + '</span></div><div class="cn-film-info"><div class="cn-meta">' + f.year + ' · ' + f.minutes + ' хв · ' + esc(f.genre) + '</div><h2>' + esc(f.title) + '</h2><p>' + esc(f.description) + '</p></div></article>' +
+      '<article class="cn-film" data-film="' + f.id + '"><div class="cn-film-art" data-genre="' + esc(f.genre) + '">' + (f.poster ? '<img src="https://image.tmdb.org/t/p/w500' + esc(f.poster) + '" alt="" referrerpolicy="no-referrer">' : '') + '<span class="cn-film-word">' + esc(f.genre) + '</span><span class="cn-film-no">' + ('0' + (state.catalog.indexOf(f) + 1)).slice(-2) + '</span></div><div class="cn-film-info"><div class="cn-meta">' + movieMeta(f) + '</div><h2>' + esc(f.title) + '</h2><p>' + esc(f.description || 'Опис поки недоступний.') + '</p></div></article>' +
       '<div class="cn-vote"><button class="cn-no" data-cn="no:' + f.id + '">' + icon('close') + 'Іншим разом</button><button class="cn-yes" data-cn="yes:' + f.id + '">' + icon('heart') + 'Хочу дивитися</button></div><button class="cn-undo" data-cn="undo"' + (n ? '' : ' disabled') + '>' + icon('back') + 'Повернути попередній</button>' + matches();
     var img = area.querySelector('.cn-film-art img');
     if (img) img.onerror = function () { this.remove(); };
@@ -147,14 +201,14 @@
     try { r = JSON.parse(TV.remoteInfo()); } catch (e) {}
     var url = r.url ? r.url + '&cinema=1' : '';
     var allDone = state.progress.length === 2 && state.progress.every(function (p) { return p >= state.catalog.length; });
-    panel.querySelector('.cn-content').innerHTML = '<div class="cn-tv-grid"><section class="cn-connect"><h2>Наведіть камери<br>обох телефонів</h2>' + (url ? qr(url) + '<p>Одна мережа Wi-Fi з приставкою</p><div class="cn-address">' + esc(r.ip) + ':' + esc(r.port) + '</div>' : '<p>Підключіть приставку до Wi-Fi, потім відкрийте кіновечір знову.</p>') + '<p>Оберіть «Кіновечір» у пульті.<br>Після двох «так» фільм з’явиться тут.</p></section><section class="cn-results">' + (state.matches.length ? matches() : '<div class="cn-empty">' + icon('heart') + '<h2>' + (allDone ? 'Цього разу без збігів' : 'Ваш спільний вибір — тут') + '</h2><p>' + (allDone ? 'Можна змінити голоси на телефонах або почати новий вечір.' : 'Кожен обирає сам. Тут з’являться лише фільми, які сподобалися вам обом.') + '</p></div>') + '<div class="cn-reset">' + (resetAsked ? '<p>Очистити голоси обох глядачів?</p><button class="cn-primary" data-cn="reset-confirm">Почати новий вечір</button><button class="cn-quiet" data-cn="reset-cancel">Залишити цей</button>' : '<button class="cn-quiet" data-cn="reset">Новий вечір</button>') + '</div></section></div>';
+    panel.querySelector('.cn-content').innerHTML = '<div class="cn-tv-grid"><section class="cn-connect"><h2>Наведіть камери<br>обох телефонів</h2>' + (url ? qr(url) + '<p>Одна мережа Wi-Fi з приставкою</p><div class="cn-address">' + esc(r.ip) + ':' + esc(r.port) + '</div>' : '<p>Підключіть приставку до Wi-Fi, потім відкрийте кіновечір знову.</p>') + '<p>Оберіть «Кіновечір» у пульті.<br>Після двох «так» фільм з’явиться тут.</p></section><section class="cn-results">' + (state.matches.length ? matches() : '<div class="cn-empty">' + icon('heart') + '<h2>' + (allDone ? 'Цього разу без збігів' : 'Ваш спільний вибір — тут') + '</h2><p>' + (allDone ? 'Можна змінити голоси на телефонах або почати новий вечір.' : 'Кожен обирає сам. Тут з’являться лише фільми, які сподобалися вам обом.') + '</p></div>') + '<div class="cn-reset">' + moreButton() + (resetAsked ? '<p>Очистити голоси обох глядачів?</p><button class="cn-primary" data-cn="reset-confirm">Почати новий вечір</button><button class="cn-quiet" data-cn="reset-cancel">Залишити цей</button>' : '<button class="cn-quiet" data-cn="reset">Новий вечір</button>') + '</div></section></div>';
   }
   function open() {
     if (panel) return;
     revision++; previousFocus = document.activeElement;
     panel = document.createElement('section'); panel.className = 'cn-panel ' + (phone ? 'cn-phone' : 'cn-tv');
     panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-modal', 'true'); panel.setAttribute('aria-labelledby', 'cn-title');
-    panel.innerHTML = '<div class="cn-shell"><header class="cn-head"><div><h1 id="cn-title">Що дивимось?</h1><p>Кіновечір удвох</p></div><button class="cn-close" data-cn="close" aria-label="Закрити">' + icon('close') + '</button></header><div class="cn-people"></div><div class="cn-notice" role="status" aria-live="polite"></div><div class="cn-content"><p class="cn-loading">З’єднуємось із приставкою…</p></div><footer class="cn-credit">Авторська добірка · назви й обкладинки TMDB<br>Відкриття фільму залежить від вашої версії Lampa</footer></div>';
+    panel.innerHTML = '<div class="cn-shell"><header class="cn-head"><div><h1 id="cn-title">Що дивимось?</h1><p>Кіновечір удвох</p></div><button class="cn-close" data-cn="close" aria-label="Закрити">' + icon('close') + '</button></header><div class="cn-catalog" hidden></div><div class="cn-people"></div><div class="cn-notice" role="status" aria-live="polite"></div><div class="cn-content"><p class="cn-loading">З’єднуємось із приставкою…</p></div><footer class="cn-credit"><img class="cn-tmdb-logo" src="tmdb-logo.svg" alt="TMDB">This product uses the TMDB API but is not endorsed or certified by TMDB.<br>Відкриття фільму залежить від вашої версії Lampa</footer></div>';
     (phone ? document.body : document.getElementById('stage') || document.body).appendChild(panel);
     if (phone) document.body.classList.add('cn-phone-open');
     {
@@ -166,6 +220,18 @@
       var a = b.getAttribute('data-cn').split(':'), type = a[0], id = a[1];
       if (type === 'close') { close(); return; }
       if (!state) { poll(); return; }
+      if (type === 'filter') { filterMenu = filterMenu === id ? '' : id; renderCatalogControls(true); var pick = panel.querySelector('.cn-picker button.chosen') || panel.querySelector('.cn-picker button'); if (pick) pick.focus(); return; }
+      if (type === 'close-filter') { filterMenu = ''; renderCatalogControls(true); var firstFilter = panel.querySelector('.cn-filter'); if (firstFilter) firstFilter.focus(); return; }
+      if (type === 'pick-filter') {
+        var option = filterOptions(filterMenu)[+id]; if (!option) return;
+        var field = filterMenu;
+        if (field === 'period') { var years = String(option.value).split('-'); filterDraft.fromYear = +years[0]; filterDraft.toYear = +years[1]; }
+        else filterDraft[field] = option.value;
+        filterMenu = ''; renderCatalogControls(true); var chosenField = panel.querySelector('[data-cn="filter:' + field + '"]'); if (chosenField) chosenField.focus(); return;
+      }
+      if (type === 'apply-filters') { mutate('configure', { filters: filterDraft }); return; }
+      if (type === 'refresh') { mutate('refresh'); return; }
+      if (type === 'more') { mutate('more', { round: state.round || '' }); return; }
       if (type === 'join') { mutate('join', { name: panel.querySelector('#cn-name').value.trim() }); return; }
       if (type === 'yes' || type === 'no') { mutate('vote', { round: state.round, id: id, yes: type === 'yes' }); return; }
       if (type === 'play') { mutate('play', { round: state.round, id: id }); return; }
@@ -178,7 +244,7 @@
       if (type === 'reset-confirm') { mutate('reset'); return; }
       if (!phone) panel.querySelector('.cn-reset button').focus();
     });
-    renderKey = ''; state = null; resetAsked = false; panel.querySelector('.cn-close').focus();
+    renderKey = ''; controlsKey = ''; savedFilterKey = ''; filterDraft = null; filterMenu = ''; state = null; resetAsked = false; panel.querySelector('.cn-close').focus();
     poll(); timer = setInterval(poll, 1500);
   }
   function close() {

@@ -4,7 +4,21 @@
 set -eu
 T=$(cat ~/.config/workopus/codemagic-token); APP=6ada4ecfb42a6cfaaa2d5735
 ID=${BUILD_ID:-}
-[ -n "$ID" ] || ID=$(curl -s -X POST -H "x-auth-token: $T" -H "Content-Type: application/json" -d "{\"appId\":\"$APP\",\"workflowId\":\"tvhome-apk\",\"branch\":\"main\"}" https://api.codemagic.io/builds | python3 -c "import json,sys;print(json.load(sys.stdin)['buildId'])")
+if [ -z "$ID" ]; then
+  BODY_FILE=$(mktemp)
+  trap 'rm -f "$BODY_FILE"' EXIT
+  python3 - "$BODY_FILE" <<'PYBODY'
+from pathlib import Path
+import json,sys
+key_file=Path.home()/'.config/tvhome/tmdb-api-key'
+key=key_file.read_text().strip() if key_file.exists() else ''
+if not key: raise SystemExit('Set ~/.config/tvhome/tmdb-api-key before starting a catalogue build')
+Path(sys.argv[1]).write_text(json.dumps({'appId':'6ada4ecfb42a6cfaaa2d5735','workflowId':'tvhome-apk','branch':'main','environment':{'variables':{'TVHOME_TMDB_KEY':key}}}))
+PYBODY
+  ID=$(curl -sf -X POST -H "x-auth-token: $T" -H "Content-Type: application/json" --data-binary @"$BODY_FILE" https://api.codemagic.io/builds | python3 -c "import json,sys;print(json.load(sys.stdin)['buildId'])")
+  rm -f "$BODY_FILE"
+  trap - EXIT
+fi
 for i in $(seq 1 360); do S=$(curl -s -H "x-auth-token: $T" https://api.codemagic.io/builds/$ID | python3 -c "import json,sys;print(json.load(sys.stdin).get('build',{}).get('status','?'))"); case $S in finished|failed|canceled|timeout) break;; esac; sleep 10; done
 echo "build $S"; [ "$S" = finished ] || exit 1
 D=~/tvhome/dist

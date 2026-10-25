@@ -214,6 +214,7 @@ final class RemoteServer {
             String ipAddr = sock.getInetAddress().getHostAddress();
 
             if (path.equals("/") || path.equals("/index.html")) { sendAsset(out, "web/remote.html", "text/html; charset=utf-8"); return; }
+            if (path.equals("/tmdb-logo.svg")) { sendAsset(out, "web/tmdb-logo.svg", "image/svg+xml"); return; }
             if (path.equals("/cinema.js")) { sendAsset(out, "web/cinema.js", "application/javascript"); return; }
             if (path.equals("/cinema.css")) { sendAsset(out, "web/cinema.css", "text/css"); return; }
             if (path.matches("/fonts/[A-Za-z0-9-]+\\.woff2")) { sendAsset(out, "web" + path, "font/woff2"); return; }

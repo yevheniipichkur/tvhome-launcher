@@ -61,5 +61,13 @@ final class CinemaRoom {
         p.votes.put(id, yes); // Retries are idempotent; undo/change never inflates progress.
         return state(client, now);
     }
+    synchronized void replaceDeck(List<String> ids, long now) {
+        expire(now);
+        if (round != null) throw new IllegalArgumentException("Спочатку почніть новий вечір.");
+        deck.clear(); deck.addAll(new LinkedHashSet<>(ids));
+    }
+    synchronized void appendDeck(List<String> ids) {
+        for (String id : ids) if (!deck.contains(id)) deck.add(id);
+    }
     synchronized void reset() { round = null; players.clear(); }
 }

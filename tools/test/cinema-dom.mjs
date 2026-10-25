@@ -8,6 +8,7 @@ const root = path.resolve(import.meta.dirname, '../..');
 const script=fs.readFileSync(path.join(root,'web/cinema.js'),'utf8');
 const catalog=JSON.parse(fs.readFileSync(path.join(root,'web/cinema-catalog.json')));
 let round=null, players=new Map(), fail=false, pinFail=false, launched=null;
+let dynamic=false, dynLoading=false, dynFilters=null, extraFilms=[];
 function api(action,body={}){
   if(pinFail) return Promise.reject(new Error('pin'));
   const id=body.client||'';
@@ -21,9 +22,14 @@ function api(action,body={}){
     players.get(id).votes[body.id]=body.yes;
   }
   if(action==='reset'){round=null;players.clear();}
+  if(action==='configure'){assert.equal(round,null);dynFilters=body.filters;dynLoading=true;}
+  if(action==='more'){extraFilms=[{id:'999999',title:'Новий фільм',year:2025,genre:'Бойовик',description:'Нова сторінка',poster:'',rating:8.2,votes:1000,minutes:null}];}
+
   const matches=catalog.filter(f=>players.size===2&&[...players.values()].every(p=>p.votes[f.id]===true)).map(f=>f.id);
   if(action==='play'){assert(matches.includes(body.id));launched=body.id;}
-  return structuredClone({ok:true,round,names:[...players.values()].map(p=>p.name),progress:[...players.values()].map(p=>Object.keys(p.votes).length),matches,mine:players.get(id)?.votes||{},joined:players.has(id),catalog});
+  const out={ok:true,round,names:[...players.values()].map(p=>p.name),progress:[...players.values()].map(p=>Object.keys(p.votes).length),matches,mine:players.get(id)?.votes||{},joined:players.has(id),catalog};
+  if(dynamic){out.filters=dynFilters;out.genres=[{id:0,name:'Усі жанри'},{id:28,name:'Бойовик'},{id:35,name:'Комедія'}];out.catalogMeta={source:'tmdb',cached:false,updatedAt:Date.now(),loading:dynLoading,error:'',hasMore:!extraFilms.length};out.catalog=catalog.concat(extraFilms).map(f=>({...f,minutes:null,rating:8.2,votes:1000}));}
+  return structuredClone(out);
 }
 const windows=[];
 function make(phone=true){
@@ -84,6 +90,24 @@ try{
   }
   assert.equal(new Set(catalog.map(f=>f.id)).size,catalog.length);assert.equal(catalog.length,24);
   for(const f of catalog){assert(/^\d+$/.test(f.id));assert(f.title&&f.description&&f.minutes>0);}
+  // New online controls: loading, shared filters, frozen ballots and appended pages.
+  dynamic=true;dynLoading=true;dynFilters={genre:0,fromYear:1900,toYear:new Date().getFullYear(),rating:0,sort:'popularity.desc'};
+  const online=make();await flush();assert(select(online,'[data-cn="join"]').disabled,'wait for first online batch');
+  dynLoading=false;online.document.dispatchEvent(new online.Event('visibilitychange'));await flush();
+  click(online,'filter:genre');click(online,'pick-filter:1');
+  click(online,'filter:rating');click(online,'pick-filter:3');
+  click(online,'apply-filters');await flush();
+  assert.equal(dynFilters.genre,28);assert.equal(dynFilters.rating,7);assert(select(online,'[data-cn="join"]').disabled);
+  dynLoading=false;online.document.dispatchEvent(new online.Event('visibilitychange'));await flush();
+  select(online,'#cn-name').value='Online viewer';click(online,'join');await flush();
+  assert.equal(online.document.querySelectorAll('.cn-filter').length,0,'shared filters locked after joining');
+  assert(select(online,'.cn-meta').textContent.includes('TMDB 8.2 / 10'));
+  assert(!select(online,'.cn-meta').textContent.includes('null'),'runtime is never fabricated');
+  for(const player of players.values())for(const f of catalog)player.votes[f.id]=false;
+  online.document.dispatchEvent(new online.Event('visibilitychange'));await flush();
+  click(online,'more');await flush();assert.equal(select(online,'.cn-film').dataset.film,'999999','new page extends shared deck');
+  assert(Object.keys([...players.values()][0].votes).length===24,'old ballots preserved during load more');
+  click(online,'close');api('reset');dynamic=false;
   // Regression: the actual home screen must expose the entry before even a very long app shelf.
   const home = new Window({url:'http://tvhome.test/',settings:{disableJavaScriptFileLoading:true,disableCSSFileLoading:true}});windows.push(home);
   home.document.body.innerHTML=fs.readFileSync(path.join(root,'web/index.html'),'utf8').match(/<body[^>]*>([\s\S]*)<\/body>/)[1];

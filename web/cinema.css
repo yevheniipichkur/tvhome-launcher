@@ -125,3 +125,37 @@
 body.shelf-s .tile.cinema-shortcut { gap: 6px; }
 body.shelf-s .tile.cinema-shortcut svg { width: 27px; height: 27px; }
 body.shelf-s .tile.cinema-shortcut .cinema-label { font-size: 18px; }
+/* Shared catalogue controls: changes apply to a whole room, never one private ballot. */
+.cn-catalog { margin: 0 0 22px; }
+.cn-catalog-status { color: var(--cn-muted); font-size: 19px; line-height: 1.4; margin-bottom: 12px; }
+.cn-catalog-error { color: #ffb4a6; font-size: 18px; line-height: 1.5; margin: 8px 0 14px; }
+.cn-filters { display: flex; gap: 12px; flex-wrap: wrap; align-items: stretch; }
+.cn-filter { text-align: left; min-width: 180px; padding: 10px 16px !important; border-radius: 12px; background: var(--cn-surface) !important; }
+.cn-filter small { display: block; font-size: 15px; color: var(--cn-muted); margin-bottom: 5px; }
+.cn-filter b { display: block; font-size: 21px; font-weight: 500; }
+.cn-picker { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; max-height: 300px; overflow: auto; padding: 12px 6px; margin-top: 12px; }
+.cn-picker button { min-height: 56px; padding: 12px; border-radius: 10px; background: var(--cn-surface); font-size: 21px; text-align: left; }
+.cn-picker button.chosen { background: var(--cn-accent); color: #211507; }
+.cn-filter-summary { font-size: 18px; color: var(--cn-muted); line-height: 1.4; margin: 0; }
+.cn-more { margin: 8px 0; }
+.cn-tmdb-logo { display: inline-block; width: 72px; height: auto; vertical-align: middle; margin-right: 12px; }
+.cn-tv .cn-shell { padding: 36px 64px; }
+.cn-tv .cn-head { margin-bottom: 20px; }
+.cn-tv .cn-tv-grid { margin-top: 24px; grid-template-columns: 480px minmax(0,1fr); gap: 64px; }
+.cn-tv .cn-qr { width: 210px !important; height: 210px !important; }
+.cn-tv .cn-connect h2 { font-size: 32px; }
+.cn-tv .cn-connect p { font-size: 20px; margin: 16px 0; }
+.cn-tv .cn-results { min-height: 440px; }
+.cn-tv .cn-credit { font-size: 14px; margin-top: 20px; }
+.cn-phone .cn-catalog { margin-bottom: 18px; }
+.cn-phone .cn-catalog-status { font-size: 13px; margin-bottom: 10px; }
+.cn-phone .cn-catalog-error { font-size: 13px; }
+.cn-phone .cn-filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cn-phone .cn-filter { min-width: 0; padding: 10px 12px !important; min-height: 62px; }
+.cn-phone .cn-filter small { font-size: 11px; }
+.cn-phone .cn-filter b { font-size: 14px; }
+.cn-phone .cn-filters>.cn-primary { grid-column: 1 / -1; min-height: 48px; font-size: 14px; }
+.cn-phone .cn-picker { grid-template-columns: 1fr 1fr; padding: 8px 4px; max-height: 280px; }
+.cn-phone .cn-picker button { font-size: 14px; min-height: 48px; }
+.cn-phone .cn-filter-summary { font-size: 12px; }
+.cn-phone .cn-tmdb-logo { width: 54px; margin-right: 8px; }

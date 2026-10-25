@@ -30,6 +30,10 @@ android {
         }
     }
     buildFeatures { buildConfig = true }
+    defaultConfig {
+        val tmdbKey = (System.getenv("TVHOME_TMDB_KEY") ?: "").replace("\\", "\\\\").replace("\"", "\\\"")
+        buildConfigField("String", "TMDB_KEY", "\"" + tmdbKey + "\"")
+    }
     defaultConfig { buildConfigField("String", "UPDATE_URL", "\"https://tvhome.pichkur.com/api/public/\"") }
     // full: everything (accessibility Home guard + alert notch, media listener) — for own boxes.
     // lite: without the accessibility service and the notification listener, which Google Play Protect
