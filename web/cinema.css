@@ -182,7 +182,7 @@ body.shelf-s .tile.cinema-shortcut .cinema-label { font-size: 18px; }
 .cn-celebration-extra { min-height: 28px; font-size: 18px; color: var(--cn-muted); margin: 24px 0 0; }
 .cn-celebration-notice { font-size: 21px; line-height: 1.4; color: #ffb4a6; margin-top: 12px; }
 @media (prefers-reduced-motion: reduce) {
-  .cn-celebration,.cn-celebration-poster,.cn-celebration-copy { transition: opacity 160ms ease; }
+  .cn-celebration,.cn-celebration-poster,.cn-celebration-copy { transition: none; }
   .cn-celebration-poster,.cn-celebration-copy,.cn-celebration.is-visible .cn-celebration-copy { transform: none; transition-delay: 0ms; }
 }
 

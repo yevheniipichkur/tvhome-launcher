@@ -47,7 +47,7 @@ document.getElementById('stage').style.zoom=Math.min(document.documentElement.cl
    await page.screenshot({path:path.join(captures,'celebration-'+width+'.png'),fullPage:true});
    await page.emulateMedia({reducedMotion:'reduce'});
    assert.equal(await page.locator('.cn-celebration-copy').evaluate(e=>getComputedStyle(e).transitionDelay),'0s');
-   assert.equal(await page.locator('.cn-celebration-copy').evaluate(e=>getComputedStyle(e).transitionDuration),'0.16s');
+   assert.equal(await page.locator('.cn-celebration-copy').evaluate(e=>getComputedStyle(e).transitionDuration),'0s');
    await page.keyboard.press('ArrowLeft');assert.equal(await page.locator('[data-cn^="celebrate-play:"]').evaluate(b=>b===document.activeElement),true);
    await page.keyboard.press('Escape');await page.keyboard.press('Escape');await page.waitForTimeout(260);assert.equal(await page.locator('.cn-celebration').count(),0);
    assert.equal(await page.locator('.cn-panel').count(),1);
