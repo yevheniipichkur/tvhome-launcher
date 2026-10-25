@@ -6,3 +6,5 @@ scratch-data/
 dist/
 backups/
 tools/streets-raw/
+.ci-web/
+.impeccable/review/

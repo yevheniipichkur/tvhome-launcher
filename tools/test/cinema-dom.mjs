@@ -7,7 +7,7 @@ const { Window } = await import(process.env.HAPPY_DOM_PATH ? pathToFileURL(proce
 const root = path.resolve(import.meta.dirname, '../..');
 const script=fs.readFileSync(path.join(root,'web/cinema.js'),'utf8');
 const catalog=JSON.parse(fs.readFileSync(path.join(root,'web/cinema-catalog.json')));
-let round=null, players=new Map(), fail=false, pinFail=false, launched=null;
+let round=null, players=new Map(), fail=false, pinFail=false, launched=null, playFail=false;
 let dynamic=false, dynLoading=false, dynFilters=null, extraFilms=[];
 function api(action,body={}){
   if(pinFail) return Promise.reject(new Error('pin'));
@@ -26,7 +26,7 @@ function api(action,body={}){
   if(action==='more'){extraFilms=[{id:'999999',title:'Новий фільм',year:2025,genre:'Бойовик',description:'Нова сторінка',poster:'',rating:8.2,votes:1000,minutes:null}];}
 
   const matches=catalog.filter(f=>players.size===2&&[...players.values()].every(p=>p.votes[f.id]===true)).map(f=>f.id);
-  if(action==='play'){assert(matches.includes(body.id));launched=body.id;}
+  if(action==='play'){if(playFail)return {ok:false,error:'Lampa не встановлена'};assert(matches.includes(body.id));launched=body.id;}
   const out={ok:true,round,names:[...players.values()].map(p=>p.name),progress:[...players.values()].map(p=>Object.keys(p.votes).length),matches,mine:players.get(id)?.votes||{},joined:players.has(id),catalog};
   if(dynamic){out.filters=dynFilters;out.genres=[{id:0,name:'Усі жанри'},{id:28,name:'Бойовик'},{id:35,name:'Комедія'}];out.catalogMeta={source:'tmdb',cached:false,updatedAt:Date.now(),loading:dynLoading,error:'',hasMore:!extraFilms.length};out.catalog=catalog.concat(extraFilms).map(f=>({...f,minutes:null,rating:8.2,votes:1000}));}
   return structuredClone(out);
@@ -108,6 +108,40 @@ try{
   click(online,'more');await flush();assert.equal(select(online,'.cn-film').dataset.film,'999999','new page extends shared deck');
   assert(Object.keys([...players.values()][0].votes).length===24,'old ballots preserved during load more');
   click(online,'close');api('reset');dynamic=false;
+  // TV match reveal: fresh only, stable under polling, accurate revocation and two-button focus.
+  const celebrate=make(false);celebrate.Cinema.openTV();await flush();
+  const sync=async()=>{celebrate.document.dispatchEvent(new celebrate.Event('visibilitychange'));await flush();};
+  const ballot=(id,yes=true)=>{for(const client of ['aaaaaaaaaaaaaaaaaaaa','bbbbbbbbbbbbbbbbbbbb'])api('vote',{client,round,id,yes});};
+  api('join',{client:'aaaaaaaaaaaaaaaaaaaa',name:'Євгеній'});api('join',{client:'bbbbbbbbbbbbbbbbbbbb',name:'Олена'});
+  ballot('157336');await sync();
+  const reveal=select(celebrate,'.cn-celebration');
+  assert(select(celebrate,'#cn-celebration-title').textContent.includes('Інтерстеллар'));
+  assert.equal(celebrate.document.activeElement.dataset.cn,'celebrate-continue','safe initial focus');
+  assert(select(celebrate,'.cn-shell').inert);assert.equal(select(celebrate,'.cn-panel').getAttribute('aria-labelledby'),'cn-celebration-title');
+  await sync();assert.equal(select(celebrate,'.cn-celebration'),reveal,'poll does not remount or restart animation');
+  const poster=select(celebrate,'.cn-celebration-poster img');poster.dispatchEvent(new celebrate.Event('error'));assert(poster.hidden,'missing poster falls back to film symbol');
+  ballot('120467');await sync();assert.equal(select(celebrate,'.cn-celebration'),reveal,'another match does not replace the film being read');
+  assert(select(celebrate,'.cn-celebration-extra').textContent.includes('1'));
+  celebrate.dispatchEvent(new celebrate.KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true}));
+  assert.equal(celebrate.document.activeElement.dataset.cn,'celebrate-play:157336','D-pad remains inside reveal actions');
+  assert(celebrate.tvBack());assert(celebrate.tvBack()); // rapid repeated Back must not cancel cleanup.
+  await new Promise(resolve=>setTimeout(resolve,250));await flush();
+  assert(!celebrate.document.querySelector('.cn-celebration'));assert(select(celebrate,'.cn-panel'));assert.equal(select(celebrate,'.cn-shell').inert,false);
+  await sync();assert(!celebrate.document.querySelector('.cn-celebration'),'dismissed matches do not replay');
+  ballot('157336',false);await sync();ballot('157336');await sync();assert(!celebrate.document.querySelector('.cn-celebration'),'undo/revote does not replay a seen film');
+  ballot('313369');await sync();assert(select(celebrate,'.cn-celebration'));ballot('313369',false);await sync();
+  assert(!celebrate.document.querySelector('.cn-celebration'),'revoked match immediately leaves reveal');
+  ballot('77338');await sync();assert(select(celebrate,'.cn-celebration-placeholder'));
+  assert(!celebrate.document.querySelector('.cn-celebration img'),'posterless match remains usable');
+  playFail=true;click(celebrate,'celebrate-play:77338');await flush();assert(select(celebrate,'.cn-celebration-notice').textContent.includes('Lampa не встановлена'));
+  assert(!select(celebrate,'[data-cn="celebrate-continue"]').disabled,'failed launch leaves controls usable');
+  playFail=false;click(celebrate,'celebrate-play:77338');await flush();assert.equal(launched,'77338');assert(!celebrate.document.querySelector('.cn-celebration'));
+  click(celebrate,'close');celebrate.Cinema.openTV();await flush();assert(!celebrate.document.querySelector('.cn-celebration'),'reopening skips historical matches');
+  api('reset');await sync();api('join',{client:'aaaaaaaaaaaaaaaaaaaa',name:'A'});api('join',{client:'bbbbbbbbbbbbbbbbbbbb',name:'B'});ballot('157336');await sync();
+  assert(select(celebrate,'.cn-celebration'),'same film can celebrate in a new room');
+  api('reset');await sync();assert(!celebrate.document.querySelector('.cn-celebration'),'room reset cancels reveal');
+  assert(celebrate.document.activeElement.isConnected && celebrate.document.activeElement.tagName==='BUTTON' && select(celebrate,'.cn-shell').contains(celebrate.document.activeElement),'reset restores focus to a room button');
+  click(celebrate,'close');
   // Regression: the actual home screen must expose the entry before even a very long app shelf.
   const home = new Window({url:'http://tvhome.test/',settings:{disableJavaScriptFileLoading:true,disableCSSFileLoading:true}});windows.push(home);
   home.document.body.innerHTML=fs.readFileSync(path.join(root,'web/index.html'),'utf8').match(/<body[^>]*>([\s\S]*)<\/body>/)[1];

@@ -22,5 +22,12 @@ workflows:
         script: |
           chmod +x gradlew
           ./gradlew :app:assembleFullRelease :app:assembleLiteRelease
+      - name: Check TV match screen
+        script: |
+          set -eu
+          npm install --prefix "$CM_BUILD_DIR/.ci-web" --ignore-scripts playwright@1.62.1
+          "$CM_BUILD_DIR/.ci-web/node_modules/.bin/playwright" install chromium
+          PLAYWRIGHT_PATH="$CM_BUILD_DIR/.ci-web/node_modules/playwright" node tools/test/cinema-celebration-ui.cjs
     artifacts:
       - android/app/build/outputs/apk/*/release/*.apk
+      - .impeccable/review/celebration-*.png

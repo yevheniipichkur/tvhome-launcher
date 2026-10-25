@@ -3,6 +3,8 @@
   'use strict';
   var TV = window.TV, phone = !!window.cinemaApi, panel, state, busy = false, timer, previousFocus;
   var renderKey = '', previous = [], revisit = '', resetAsked = false, reopenAfterPin = false, revision = 0;
+  var celebration = null, celebrationId = '', celebrationClosing = false, celebrationTimer, celebrationReturn, celebrationScroll = 0;
+  var watchingMatches = false, watchedRound = null, seenMatches = Object.create(null);
   var filterDraft = null, filterMenu = '', controlsKey = '', savedFilterKey = '';
   var esc = function (v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
   var ICON = {
@@ -48,7 +50,7 @@
   }
   function notice(text) {
     if (!panel) return;
-    panel.querySelector('.cn-notice').textContent = text;
+    (celebration ? celebration.querySelector('.cn-celebration-notice') : panel.querySelector('.cn-notice')).textContent = text;
   }
   function catalogMeta() { return state.catalogMeta || { loading: false, hasMore: false }; }
   function joinDisabled() { return state.names.length >= 2 || !state.catalog.length || (!state.round && catalogMeta().loading); }
@@ -102,6 +104,76 @@
     if (f.genre) parts.push(f.genre); return esc(parts.join(' · '));
   }
 
+  function celebrationScope() { return celebration || panel; }
+  function dismissCelebration(immediate, restoreFocus) {
+    if (!celebration) return;
+    if (!immediate && celebrationClosing) return;
+    var node = celebration;
+    clearTimeout(celebrationTimer);
+    function finish() {
+      if (celebration !== node) return;
+      node.remove(); celebration = null; celebrationId = ''; celebrationClosing = false;
+      if (!panel) return;
+      var shell = panel.querySelector('.cn-shell'); shell.inert = false; shell.removeAttribute('aria-hidden');
+      panel.classList.remove('cn-has-celebration'); panel.setAttribute('aria-labelledby', 'cn-title');
+      panel.scrollTop = celebrationScroll;
+      if (restoreFocus !== false) {
+        var target = Array.prototype.find.call(shell.querySelectorAll('[data-cn]'), function (b) { return b.getAttribute('data-cn') === celebrationReturn; });
+        (target || shell.querySelector('.cn-close')).focus();
+      }
+    }
+    if (immediate) { finish(); return; }
+    if (celebrationClosing) return;
+    celebrationClosing = true; node.classList.remove('is-visible');
+    Array.prototype.forEach.call(node.querySelectorAll('button'), function (b) { b.disabled = true; });
+    celebrationTimer = setTimeout(finish, 220);
+  }
+  function showCelebration(id) {
+    var f = film(id); if (!f || !panel || phone) return;
+    celebrationId = id; celebrationClosing = false;
+    celebrationReturn = document.activeElement && document.activeElement.getAttribute('data-cn');
+    celebrationScroll = panel.scrollTop;
+    var shell = panel.querySelector('.cn-shell'); shell.inert = true; shell.setAttribute('aria-hidden', 'true');
+    panel.scrollTop = 0; panel.classList.add('cn-has-celebration'); panel.setAttribute('aria-labelledby', 'cn-celebration-title');
+    var node = document.createElement('section'); node.className = 'cn-celebration';
+    node.setAttribute('role', 'region'); node.setAttribute('aria-labelledby', 'cn-celebration-title');
+    node.innerHTML = '<div class="cn-celebration-inner"><div class="cn-celebration-poster"><span class="cn-celebration-placeholder">' + icon('film') + '</span>' +
+      (f.poster ? '<img src="https://image.tmdb.org/t/p/w500' + esc(f.poster) + '" alt="" referrerpolicy="no-referrer">' : '') +
+      '</div><div class="cn-celebration-copy"><p class="cn-celebration-confirm">' + icon('heart') + 'Вам обом подобається</p>' +
+      '<h2 id="cn-celebration-title"' + (f.title.length > 75 ? ' class="cn-celebration-long"' : '') + '>' + esc(f.title) + '</h2>' +
+      '<p class="cn-celebration-people">' + esc(state.names.join(' та ')) + ' обрали цей фільм</p>' +
+      '<p class="cn-celebration-meta">' + movieMeta(f) + '</p><p class="cn-celebration-description">' + esc(f.description || 'Опис поки недоступний.') + '</p>' +
+      '<div class="cn-celebration-actions"><button class="cn-primary" data-cn="celebrate-play:' + esc(id) + '">' + icon('play') + 'Відкрити в Lampa</button><button class="cn-quiet" data-cn="celebrate-continue">Продовжити вибір</button></div>' +
+      '<p class="cn-celebration-extra" aria-live="polite"></p><div class="cn-celebration-notice" role="status" aria-live="polite"></div></div></div>';
+    celebration = node; panel.appendChild(node);
+    var img = node.querySelector('img'); if (img) img.addEventListener('error', function () { this.hidden = true; });
+    // One layout + one frame, never a continuous JS loop on the Mi Box.
+    node.getBoundingClientRect();
+    requestAnimationFrame(function () { if (celebration === node && !celebrationClosing) node.classList.add('is-visible'); });
+    node.querySelector('[data-cn="celebrate-continue"]').focus();
+  }
+  function syncCelebration() {
+    if (phone) return;
+    var matches = state.matches || [];
+    if (!watchingMatches) {
+      watchingMatches = true; watchedRound = state.round; seenMatches = Object.create(null);
+      matches.forEach(function (id) { seenMatches[id] = true; });
+      return; // Opening an existing room never replays its historical matches.
+    }
+    if (watchedRound !== state.round) {
+      dismissCelebration(true, true); watchedRound = state.round; seenMatches = Object.create(null);
+    }
+    if (celebration && matches.indexOf(celebrationId) === -1) dismissCelebration(true, true);
+    var fresh = matches.filter(function (id) { return !seenMatches[id]; });
+    fresh.forEach(function (id) { seenMatches[id] = true; });
+    if (!celebration && fresh.length) showCelebration(fresh[0]);
+    // Further matches update the list quietly; never replace the film currently being read.
+    if (celebration) {
+      var other = matches.filter(function (id) { return id !== celebrationId; }).length;
+      celebration.querySelector('.cn-celebration-extra').textContent = other ? 'Ще спільних фільмів у списку: ' + other : '';
+    }
+  }
+
   function update(s) {
     if (!panel) return;
     if (state && s.round !== state.round) { previous = []; revisit = ''; savedFilterKey = ''; }
@@ -122,6 +194,7 @@
       var same = Array.prototype.find.call(panel.querySelectorAll('[data-cn]'), function (b) { return b.getAttribute('data-cn') === focused; });
       if (same) same.focus();
     }
+    syncCelebration();
   }
   function failure(e) {
     if (phone && e.message === 'pin') { reopenAfterPin = true; busy = false; close(); return; }
@@ -132,16 +205,17 @@
     var version = revision;
     request('state').then(function (s) { if (version !== revision || busy) return; notice(''); update(s); }).catch(function (e) { if (version === revision) failure(e); });
   }
-  function mutate(action, data) {
+  function mutate(action, data, onSuccess) {
     if (busy) return;
     revision++; busy = true; panel.setAttribute('aria-busy', 'true');
-    Array.prototype.forEach.call(panel.querySelectorAll('.cn-vote button'), function (b) { b.disabled = true; });
+    Array.prototype.forEach.call(panel.querySelectorAll('.cn-vote button,.cn-celebration button'), function (b) { b.disabled = true; });
     request(action, data).then(function (s) {
       if (action === 'vote') { previous.push(data.id); revisit = ''; }
       resetAsked = false; renderKey = ''; notice(''); update(s);
+      if (onSuccess) onSuccess();
     }).catch(function (e) {
       failure(e);
-      if (panel) Array.prototype.forEach.call(panel.querySelectorAll('.cn-vote button'), function (b) { b.disabled = false; });
+      if (panel) Array.prototype.forEach.call(panel.querySelectorAll('.cn-vote button,.cn-celebration button'), function (b) { b.disabled = false; });
     }).then(function () { busy = false; if (panel) panel.removeAttribute('aria-busy'); });
   }
   function film(id) { return state.catalog.filter(function (f) { return f.id === id; })[0]; }
@@ -218,6 +292,8 @@
     panel.addEventListener('click', function (e) {
       var b = e.target.closest('[data-cn]'); if (!b || busy || b.disabled) return;
       var a = b.getAttribute('data-cn').split(':'), type = a[0], id = a[1];
+      if (type === 'celebrate-continue') { dismissCelebration(false, true); return; }
+      if (type === 'celebrate-play') { mutate('play', { round: state.round, id: id }, function () { dismissCelebration(true, true); }); return; }
       if (type === 'close') { close(); return; }
       if (!state) { poll(); return; }
       if (type === 'filter') { filterMenu = filterMenu === id ? '' : id; renderCatalogControls(true); var pick = panel.querySelector('.cn-picker button.chosen') || panel.querySelector('.cn-picker button'); if (pick) pick.focus(); return; }
@@ -244,11 +320,13 @@
       if (type === 'reset-confirm') { mutate('reset'); return; }
       if (!phone) panel.querySelector('.cn-reset button').focus();
     });
+    watchingMatches = false; seenMatches = Object.create(null);
     renderKey = ''; controlsKey = ''; savedFilterKey = ''; filterDraft = null; filterMenu = ''; state = null; resetAsked = false; panel.querySelector('.cn-close').focus();
     poll(); timer = setInterval(poll, 1500);
   }
   function close() {
     if (!panel || busy) return;
+    dismissCelebration(true, false); watchingMatches = false;
     revision++; clearInterval(timer); panel.remove(); panel = null; state = null; renderKey = '';
     document.body.classList.remove('cn-phone-open');
     Array.prototype.forEach.call(document.querySelectorAll('[data-cn-inert]'), function (child) { child.inert = child.getAttribute('data-cn-inert') === '1'; child.removeAttribute('data-cn-inert'); });
@@ -260,12 +338,12 @@
     var back = key === 'Escape' || key === 'GoBack' || code === 4;
     var arrow = /^Arrow/.test(key) || [19, 20, 21, 22].indexOf(code) >= 0;
     var enter = key === 'Enter' || code === 23;
-    if (back) { e.preventDefault(); close(); }
+    if (back) { e.preventDefault(); if (celebration) { if (!busy) dismissCelebration(false, true); } else close(); }
     else if (!phone && (arrow || key === 'Tab')) {
       e.preventDefault();
-      var buttons = Array.prototype.filter.call(panel.querySelectorAll('button'), function (b) { return !b.disabled; });
+      var buttons = Array.prototype.filter.call(celebrationScope().querySelectorAll('button'), function (b) { return !b.disabled; });
       var i = buttons.indexOf(document.activeElement), dir = key === 'ArrowUp' || key === 'ArrowLeft' || code === 19 || code === 21 || e.shiftKey ? -1 : 1;
-      buttons[(i + dir + buttons.length) % buttons.length].focus();
+      if (buttons.length) buttons[(i + dir + buttons.length) % buttons.length].focus();
     } else if (!phone && enter) { e.preventDefault(); if (!e.repeat && document.activeElement) document.activeElement.click(); }
     else if (phone && key === 'Tab') {
       var fields = panel.querySelectorAll('button:not(:disabled),input'), first = fields[0], last = fields[fields.length - 1];
@@ -276,7 +354,7 @@
   }, true);
   window.addEventListener('keyup', function (e) { if (panel) e.stopImmediatePropagation(); }, true);
   var oldBack = window.tvBack;
-  if (!phone) window.tvBack = function () { if (panel) { close(); return true; } return oldBack ? oldBack() : false; };
+  if (!phone) window.tvBack = function () { if (celebration) { if (!busy) dismissCelebration(false, true); return true; } if (panel) { close(); return true; } return oldBack ? oldBack() : false; };
   function motion() {
     var off = false; try { off = localStorage.getItem('tv-world-motion') === '0'; } catch (e) {}
     document.body.classList.toggle('world-still', off);

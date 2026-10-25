@@ -159,3 +159,31 @@ body.shelf-s .tile.cinema-shortcut .cinema-label { font-size: 18px; }
 .cn-phone .cn-picker button { font-size: 14px; min-height: 48px; }
 .cn-phone .cn-filter-summary { font-size: 12px; }
 .cn-phone .cn-tmdb-logo { width: 54px; margin-right: 8px; }
+/* A single rare success moment, inside the existing TV dialog. No blur, particles or animation loop. */
+.cn-panel.cn-has-celebration { overflow: hidden; }
+.cn-celebration { position: absolute; inset: 0; z-index: 4; display: flex; align-items: center; justify-content: center; padding: 80px 96px; overflow: auto; background: var(--cn-bg); opacity: 0; transition: opacity 220ms var(--ease-out,cubic-bezier(.23,1,.32,1)); }
+.cn-celebration.is-visible { opacity: 1; }
+.cn-celebration-inner { display: grid; grid-template-columns: 320px minmax(0,1fr); gap: 96px; width: 100%; max-width: 1480px; align-items: center; }
+.cn-celebration-poster { position: relative; width: 320px; height: 480px; border-radius: 16px; overflow: hidden; background: #211d17; box-shadow: 0 24px 50px rgba(0,0,0,.36); opacity: 0; transform: translateY(12px) scale(.97); transition: opacity 220ms var(--ease-out,cubic-bezier(.23,1,.32,1)),transform 220ms var(--ease-out,cubic-bezier(.23,1,.32,1)); }
+.cn-celebration-poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.cn-celebration-placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: var(--cn-accent); }
+.cn-celebration-placeholder svg { width: 80px; height: 80px; stroke-width: 1.2; }
+.cn-celebration-copy { min-width: 0; opacity: 0; transform: translateY(12px); transition: opacity 220ms var(--ease-out,cubic-bezier(.23,1,.32,1)),transform 220ms var(--ease-out,cubic-bezier(.23,1,.32,1)); }
+.cn-celebration.is-visible .cn-celebration-poster,.cn-celebration.is-visible .cn-celebration-copy { opacity: 1; transform: none; }
+.cn-celebration.is-visible .cn-celebration-copy { transition-delay: 60ms; }
+.cn-celebration-confirm { display: flex; align-items: center; gap: 14px; font-size: 28px; color: var(--cn-accent); margin: 0 0 20px; }
+.cn-celebration-confirm svg { width: 32px; height: 32px; }
+.cn-celebration h2 { font-size: 64px; line-height: 1.08; letter-spacing: -.03em; margin: 0 0 18px; overflow-wrap: break-word; overflow-wrap: anywhere; }
+.cn-celebration h2.cn-celebration-long { font-size: 44px; }
+.cn-celebration-people,.cn-celebration-meta { font-size: 22px; line-height: 1.4; color: var(--cn-muted); margin: 0 0 12px; overflow-wrap: anywhere; }
+.cn-celebration-description { font-size: 23px; line-height: 1.55; color: var(--cn-ink); margin: 24px 0 32px; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+.cn-celebration-actions { display: flex; flex-wrap: wrap; gap: 16px; }
+.cn-celebration-actions button { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 64px; padding: 16px 24px; font-size: 23px; }
+.cn-celebration-extra { min-height: 28px; font-size: 18px; color: var(--cn-muted); margin: 24px 0 0; }
+.cn-celebration-notice { font-size: 21px; line-height: 1.4; color: #ffb4a6; margin-top: 12px; }
+@media (prefers-reduced-motion: reduce) {
+  .cn-celebration,.cn-celebration-poster,.cn-celebration-copy { transition: opacity 160ms ease; }
+  .cn-celebration-poster,.cn-celebration-copy,.cn-celebration.is-visible .cn-celebration-copy { transform: none; transition-delay: 0ms; }
+}
+
+.cn-celebration-actions button:focus { outline: 3px solid var(--cn-ink); outline-offset: 5px; }
