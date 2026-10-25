@@ -49,7 +49,12 @@ final class CinemaService {
             CinemaRoom.Snapshot s=room.state(client,now);
             switch(action) {
                 case "join":
-                    if(s.round==null && provider.status().loading)throw new IllegalArgumentException("Завантажуємо спільну добірку. Зачекайте трохи.");
+                    if(s.round==null) {
+                        if(provider.status().loading)throw new IllegalArgumentException("Завантажуємо спільну добірку. Зачекайте трохи.");
+                        // A worker can finish between the initial adoption and this join check.
+                        // Bind its ready batch before the first participant freezes the deck.
+                        adopt();
+                    }
                     if(current.items.length()==0)throw new IllegalArgumentException("Немає фільмів. Змініть фільтри або повторіть завантаження.");
                     room.join(client,body.optString("name"),now);break;
                 case "vote":
