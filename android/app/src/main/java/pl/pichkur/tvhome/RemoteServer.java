@@ -231,6 +231,10 @@ final class RemoteServer {
                 json(out, 200, CinemaService.request(app, action, input)); return;
             }
             switch (path) {
+                case "/api/volume/setup": {
+                    if (!method.equals("POST")) { json(out, 405, err("POST required")); return; }
+                    VolumeSupport.openSettings(app); json(out, 200, ok()); return;
+                }
                 case "/api/state": { seen(ipAddr, args.get("name")); JSONObject st = state(); st.put("clients", clientList(ipAddr)); json(out, 200, st); return; }
                 case "/api/text": json(out, 200, text(new JSONObject(b.isEmpty() ? "{}" : b).optString("text", ""))); return;
                 case "/api/enter": json(out, 200, enter()); return;
@@ -398,6 +402,7 @@ final class RemoteServer {
         o.put("imeCurrent", inf.optBoolean("imeCurrent"));
         o.put("adb", adbState);
         o.put("home", HomeGuardService.homeInFront);
+        o.put("volumeControl", VolumeSupport.state(app));
         AudioManager am = (AudioManager) app.getSystemService(Context.AUDIO_SERVICE);
         JSONObject volume = MediaVolume.snapshot(app);
         for (String field : new String[]{"vol", "volMax", "muted", "volFixed", "volPercent"}) if (volume.has(field)) o.put(field, volume.get(field));

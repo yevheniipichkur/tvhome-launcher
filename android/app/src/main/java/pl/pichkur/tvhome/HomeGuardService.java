@@ -64,12 +64,23 @@ public class HomeGuardService extends AccessibilityService {
     protected void onServiceConnected() {
         super.onServiceConnected();
         instance = this;
+        refreshVolumeKeyFilter();
         RemoteServer.start(this); // phone remote keeps working while other apps are in front
         if (!polling) {
             polling = true;
             ui.post(this::poll);
         }
     }
+
+    // Some TV firmware restores a running service after upgrade with stale runtime flags.
+    // Request the capability explicitly as well as in XML; never disable another service.
+    void refreshVolumeKeyFilter() {
+        try {
+            android.accessibilityservice.AccessibilityServiceInfo info = getServiceInfo();
+            if (info != null) { info.flags |= android.accessibilityservice.AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS; setServiceInfo(info); }
+        } catch (Exception ignored) { }
+    }
+    volatile int volumeKeysReceived, volumeKeysHandled;
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
@@ -114,7 +125,12 @@ public class HomeGuardService extends AccessibilityService {
     // Physical keys and phone/settings commands share the same stream controller and native view.
     private final MediaVolume.Keys volumeKeys = new MediaVolume.Keys();
     private VolumeOverlay volumeOverlay;
-    private boolean onVolumeKey(KeyEvent event) { return volumeKeys.handle(this, event); }
+    private boolean onVolumeKey(KeyEvent event) {
+        if (event.getAction() == KeyEvent.ACTION_DOWN) volumeKeysReceived++;
+        boolean handled = volumeKeys.handle(this, event);
+        if (handled && event.getAction() == KeyEvent.ACTION_DOWN) volumeKeysHandled++;
+        return handled;
+    }
 
     /** A quiet informational notch over any app (no chime): e.g. «Підключено: iPhone». */
     void showInfo(String title, String sub) {

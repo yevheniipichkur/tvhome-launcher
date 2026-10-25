@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="guard_description">Повертає «Вітальню» замість стандартного лаунчера після кнопки «Додому».</string>
+    <string name="guard_description">Повертає «Вітальню» після кнопки «Додому», обробляє кнопки гучності звичайного пульта й показує власну панель поверх програм.</string>
 </resources>

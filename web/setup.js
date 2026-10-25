@@ -93,6 +93,9 @@
     speed: { name: 'Швидкість інтернету', desc: 'завантаження й пінг (Cloudflare)', type: 'act', val: function () { return legacy('net'); } },
     freemem: { name: 'Звільнити пам’ять', desc: 'закрити фонові програми, якщо приставка гальмує', type: 'act', val: function () { return lastFree || ''; } },
     volui: { name: 'Панель гучності «Вітальні»', desc: 'єдина шкала на ТВ і в пульті; поверх програм потрібна служба «Вітальня»', type: 'toggle', full: true, on: function () { return !!(TV && TV.pref && TV.pref('vol_ui')); } },
+    volumekeys: { name: 'Звичайний пульт: панель гучності', desc: 'Перевірте службу «Вітальня»; інша служба може забирати кнопки', type: 'act', full: true, val: function () {
+      try { var v = JSON.parse(TV.volumeSupport()); if (!v.uiEnabled) return 'Панель вимкнена'; if (!v.connected) return 'Увімкніть службу'; if (v.otherKeyFilters && v.otherKeyFilters.length) return 'Можливий конфлікт служб'; return v.filterRequested && v.filterCapable ? 'Служба підключена' : 'Перезапустіть службу'; } catch (e) { return 'Відкрити перевірку'; }
+    } },
     sounds: { name: 'Звуки меню', desc: 'тихе клацання при русі по меню', type: 'toggle', on: function () { return ls('tv-sounds') !== '0'; } },
     perms: { name: 'Дозволи', desc: 'головний екран, спецможливості, сповіщення', type: 'act', val: function () { var p = permState(), ok = p.filter(function (x) { return x.ok; }).length; return ok + ' з ' + p.length; } },
     update: { name: 'Оновлення', desc: 'нові версії з tvhome.pichkur.com', type: 'act', val: function () { return legacy('update'); } },
@@ -106,7 +109,7 @@
     { id: 'shelf', name: 'Полиця', apps: true },
     { id: 'data', name: 'Дані', rows: ['city', 'powerq', 'team'] },
     { id: 'phone', name: 'Телефон', rows: ['cinema', 'kbd', 'adbctl'], remote: true },
-    { id: 'system', name: 'Система', rows: ['speed', 'freemem', 'volui', 'sounds', 'perms', 'update', 'android'], about: true },
+    { id: 'system', name: 'Система', rows: ['speed', 'freemem', 'volui', 'volumekeys', 'sounds', 'perms', 'update', 'android'], about: true },
   ];
   function idxOf(list, f) { for (var i = 0; i < list.length; i++) if (f(list[i])) return i; return 0; }
   function rowVisible(k) { var r = ROWS[k]; if (r.full && (lite || !TV)) return false; if (k === 'volui') { var v = vol(); if (v && v.fixed) return false; } return true; }
@@ -236,7 +239,8 @@
       if (k === 'editor') { close(); if (window.TVC) TVC.open(); return; }
       if (k === 'wizard') { close(); wizard(); return; }
       if (k === 'perms') { close(); wizard('perms'); return; }
-      if (k === 'kbd') { kbdSetup(); }
+      if (k === 'volumekeys') TV.openSettings('accessibility');
+      else if (k === 'kbd') { kbdSetup(); }
       else if (k === 'adbctl') { if (TV && TV.adbProbe) TV.adbProbe(); toast('adb', 'Перевіряю налагодження', 'якщо з’явиться «Дозволити налагодження?» — «Завжди» й «ОК»'); }
       else if (k === 'freemem') { freeMem(); }
       else if (k === 'speed') { H().act('speed', 0); var n = 0, iv = setInterval(function () { renderSettings(); if (++n > 30 || !/вимірюю/.test(legacy('net'))) { clearInterval(iv); renderSettings(); if (!/не вдалося/.test(legacy('net'))) toast('speed', 'Швидкість інтернету', legacy('net')); } }, 700); }
@@ -347,7 +351,7 @@
     if (!TV) return p;
     p.push({ k: 'home', name: 'Головний екран', desc: 'кнопка «Додому» на пульті відкриває «Вітальню»', ok: !!(TV.isDefaultHome && TV.isDefaultHome()) || (!lite && !!(TV.a11yEnabled && TV.a11yEnabled())) });
     if (!lite) {
-      p.push({ k: 'a11y', name: 'Спеціальні можливості', desc: 'тривога поверх фільмів, кнопка «Додому», гучність у «чубчику»', ok: !!(TV.a11yEnabled && TV.a11yEnabled()) });
+      p.push({ k: 'a11y', name: 'Спеціальні можливості', desc: 'кнопки звичайного пульта, наша панель гучності й тривоги поверх програм', ok: !!(TV.a11yEnabled && TV.a11yEnabled()) });
       p.push({ k: 'kbd', name: 'Клавіатура з телефону', desc: 'писати з телефону в будь-якому полі на телевізорі', ok: !!rinfo().imeCurrent });
       p.push({ k: 'notif', name: 'Доступ до сповіщень', desc: 'назва треку й кнопки в міні-плеєрі', ok: !!(TV.notifAccess && TV.notifAccess()) });
     }

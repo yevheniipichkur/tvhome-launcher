@@ -198,27 +198,25 @@ body.touch .tp { display: block; animation: rise .5s var(--out) both; } body.tou
 .row .btn svg { color: var(--ivory); width: 23px; height: 23px; }
 .row .btn.big svg { width: 28px; height: 28px; }
 
-/* One media-volume language shared with the native TV panel. */
-.volume-panel { background: #17202c; padding: 20px; border-radius: 16px; margin-top: 18px; }
-.volume-head { display: flex; align-items: center; gap: 12px; }
-.volume-mute { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: #273341; flex-shrink: 0; }
-.volume-mute svg { width: 25px; height: 25px; }
-.volume-title { flex: 1; min-width: 0; font-weight: 500; font-size: 16px; }
-.volume-state { display: block; color: #b1bac8; font-size: 12px; font-weight: 400; line-height: 1.4; margin-top: 3px; }
-.volume-panel output { font-size: 28px; font-family: 'Fixel Display', sans-serif; font-variant-numeric: tabular-nums; }
-.volume-controls { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
-.volume-step { width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; border-radius: 12px; background: #273341; }
-.volume-step svg { width: 20px; height: 20px; }
+/* Compact media strip, matching the TV indicator without competing with the remote. */
+.volume-panel { background: #17202c; padding: 8px 10px; border-radius: 12px; margin-top: 16px; }
+.volume-controls { display: flex; align-items: center; gap: 6px; }
+.volume-mute,.volume-step { width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; border-radius: 10px; }
+.volume-mute svg { width: 22px; height: 22px; }
+.volume-step svg { width: 18px; height: 18px; }
+.volume-panel output { width: 48px; flex-shrink: 0; text-align: right; font-size: 20px; font-family: 'Fixel Display', sans-serif; font-variant-numeric: tabular-nums; }
+.volume-state { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.volume-panel.is-fixed .volume-state { position: static; width: auto; height: auto; clip-path: none; white-space: normal; display: block; color: #b1bac8; font-size: 12px; margin: 2px 4px 6px; }
 .volume-range { --volume-fill: 0%; -webkit-appearance: none; appearance: none; flex: 1; width: 0; min-width: 0; height: 44px; margin: 0; background: transparent; cursor: pointer; touch-action: pan-y; }
-.volume-range::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, #f4a640 var(--volume-fill), #465363 var(--volume-fill)); }
-.volume-range::-moz-range-track { height: 6px; border-radius: 3px; background: #465363; }
-.volume-range::-moz-range-progress { height: 6px; border-radius: 3px; background: #f4a640; }
-.volume-range::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -9px; border: 0; border-radius: 50%; background: #f3eee4; box-shadow: 0 2px 6px #0005; }
-.volume-range::-moz-range-thumb { width: 24px; height: 24px; border: 0; border-radius: 50%; background: #f3eee4; box-shadow: 0 2px 6px #0005; }
-.volume-panel button:focus-visible,.volume-range:focus-visible { outline: 2px solid #f3eee4; outline-offset: 3px; }
+.volume-range::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, #f4a640 var(--volume-fill), #465363 var(--volume-fill)); }
+.volume-range::-moz-range-track { height: 4px; border-radius: 2px; background: #465363; }
+.volume-range::-moz-range-progress { height: 4px; border-radius: 2px; background: #f4a640; }
+.volume-range::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -7px; border: 0; border-radius: 50%; background: #f3eee4; box-shadow: 0 2px 6px #0005; }
+.volume-range::-moz-range-thumb { width: 18px; height: 18px; border: 0; border-radius: 50%; background: #f3eee4; box-shadow: 0 2px 6px #0005; }
+.volume-panel button:focus-visible,.volume-range:focus-visible { outline: 2px solid #f3eee4; outline-offset: 1px; }
 .volume-panel button:not(:disabled):active { background: #34404e; }
 .volume-panel button:disabled,.volume-range:disabled { opacity: .4; cursor: default; }
-.volume-message { margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: #ffb4a6; }
+.volume-message { margin: 6px 4px 4px; font-size: 13px; line-height: 1.45; color: #ffb4a6; }
 .volume-message:empty { display: none; }
 .volume-panel.is-muted .volume-mute { color: #f4a640; }
 
@@ -322,16 +320,14 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
     <button class="btn" data-k="next"><svg viewBox="0 0 24 24"><path d="M18 5v14M5 5l10 7-10 7z"/></svg>Далі</button>
   </div>
   <section class="volume-panel" id="volume" aria-label="Гучність приставки">
-    <div class="volume-head">
-      <button class="volume-mute" data-volume="mute" aria-label="Вимкнути звук" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3z"/><path d="M16 8a5 5 0 0 1 0 8m3-11a9 9 0 0 1 0 14"/></svg></button>
-      <div class="volume-title">Гучність<span class="volume-state">Підключення…</span></div>
-      <output aria-hidden="true">—</output>
-    </div>
     <div class="volume-controls">
+      <button class="volume-mute" data-volume="mute" aria-label="Вимкнути звук" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3z"/><path d="M16 8a5 5 0 0 1 0 8m3-11a9 9 0 0 1 0 14"/></svg></button>
       <button class="volume-step" data-volume="voldown" aria-label="Тихіше" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
       <input class="volume-range" type="range" min="0" max="15" value="0" step="1" aria-label="Гучність приставки" disabled>
       <button class="volume-step" data-volume="volup" aria-label="Гучніше" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
+      <output aria-hidden="true">—</output>
     </div>
+    <span class="volume-state">Підключення…</span>
     <p class="volume-message" role="status" aria-live="polite"></p>
   </section>
 

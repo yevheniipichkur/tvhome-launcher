@@ -269,6 +269,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         HomeGuardService.homeInFront = true;
+        if (HomeGuardService.instance != null) HomeGuardService.instance.refreshVolumeKeyFilter();
         if (web != null) { web.resumeTimers(); web.onResume(); web.evaluateJavascript("document.body.classList.remove('bg-paused')", null); }
         hideSystemUi();
         // The page is bundled in the APK and its data comes from DataService, so there is nothing to
@@ -666,6 +667,9 @@ public class MainActivity extends Activity {
             String s = Settings.Secure.getString(getContentResolver(), "enabled_notification_listeners");
             return s != null && s.contains(getPackageName());
         }
+
+        @JavascriptInterface
+        public String volumeSupport() { return VolumeSupport.state(MainActivity.this).toString(); }
 
         @JavascriptInterface
         public String volume() {

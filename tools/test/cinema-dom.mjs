@@ -147,7 +147,8 @@ try{
   home.document.body.innerHTML=fs.readFileSync(path.join(root,'web/index.html'),'utf8').match(/<body[^>]*>([\s\S]*)<\/body>/)[1];
   const manyApps=Array.from({length:20},(_,i)=>({pkg:'test.app.'+i,label:'App '+i,tv:true}));
   home.TV_CONFIG={favorites:manyApps.map(a=>a.pkg),hidden:[]};
-  home.TV={apps:()=>JSON.stringify(manyApps),appsVersion:()=>1,watchNext:()=> '[]',media:()=> '{}',wifi:()=>'{"type":"wifi","level":3}',isLite:()=>true,updateInfo:()=> '{}',isDefaultHome:()=>true,a11yEnabled:()=>true,launch:()=>{},sound:()=>{}};
+  const openedSettings=[];
+  home.TV={volume:()=>JSON.stringify({cur:8,max:15,fixed:false}),pref:()=>true,volumeSupport:()=>JSON.stringify({connected:false,uiEnabled:true}),openSettings:what=>openedSettings.push(what),apps:()=>JSON.stringify(manyApps),appsVersion:()=>1,watchNext:()=> '[]',media:()=> '{}',wifi:()=>'{"type":"wifi","level":3}',isLite:()=>false,updateInfo:()=> '{}',isDefaultHome:()=>true,a11yEnabled:()=>true,launch:()=>{},sound:()=>{}};
   home.XMLHttpRequest=class {open(){}send(){}setRequestHeader(){}};
   home.fetch=()=>Promise.reject(new Error('offline fixture'));
   home.eval(fs.readFileSync(path.join(root,'web/app.js'),'utf8'));
@@ -163,5 +164,9 @@ try{
   for(let i=0;i<4;i++)key('ArrowDown');key('ArrowRight');
   assert(select(home,'.sv-row.focus').textContent.includes('Кіновечір удвох'),'settings > phone exposes movie night');
   key('Enter');assert.equal(openings,2,'settings shortcut opens cinema');
+  home.TVS.open();key('ArrowDown');key('ArrowRight');for(let i=0;i<3;i++)key('ArrowDown');
+  assert(select(home,'.sv-row.focus').textContent.includes('Звичайний пульт'),'system settings exposes physical-volume service status');
+  assert(select(home,'.sv-row.focus').textContent.includes('Увімкніть службу'));
+  key('Enter');assert.equal(openedSettings.at(-1),'accessibility','physical-volume action opens Android service settings');
   console.log('DOM behavior passed: private selection UI, two phones, name/focus retention, error retry, match, undo, reconnect, third viewer, PIN recovery, reset confirmation, TV navigation/back, motion preference, 3 scene assets, 24 unique films. No visual/layout claims.');
 }finally{await Promise.all(windows.map(w=>w.happyDOM.abort()));}

@@ -32,10 +32,10 @@ final class VolumePill extends View {
     static WindowManager.LayoutParams windowParams(Context c, boolean global, IBinder token) {
         float d = c.getResources().getDisplayMetrics().scaledDensity;
         float physical = c.getResources().getDisplayMetrics().density;
-        int width = Math.min((int)(360*d), c.getResources().getDisplayMetrics().widthPixels-(int)(48*physical));
-        WindowManager.LayoutParams p = new WindowManager.LayoutParams(width, (int)(104*d), global ? WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY : WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
+        int width = Math.min((int)(288*d), c.getResources().getDisplayMetrics().widthPixels-(int)(48*physical));
+        WindowManager.LayoutParams p = new WindowManager.LayoutParams(width, (int)(56*d), global ? WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY : WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN, PixelFormat.TRANSLUCENT);
-        p.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL; p.y = (int)(28*physical); p.token = token; p.setTitle("Вітальня · Гучність"); return p;
+        p.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL; p.y = (int)(20*physical); p.token = token; p.setTitle("Вітальня · Гучність"); return p;
     }
     private boolean motion() { return Settings.Global.getFloat(getContext().getContentResolver(), Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0; }
     void setLevel(int current, int max, boolean muted) {
@@ -64,22 +64,20 @@ final class VolumePill extends View {
     @Override protected void onDraw(Canvas c) {
         if (reveal <= 0) return;
         float w = getWidth()/d;
-        c.save(); c.translate(0,(1-reveal)*10*d); c.saveLayerAlpha(0,0,getWidth(),getHeight(),Math.round(reveal*255));
-        color(0xF517202C); rect.set(0,0,getWidth(),96*d); c.drawRoundRect(rect,16*d,16*d,paint);
+        c.save(); c.translate(0,(1-reveal)*6*d); c.saveLayerAlpha(0,0,getWidth(),getHeight(),Math.round(reveal*255));
+        color(0xF517202C); rect.set(0,0,getWidth(),48*d); c.drawRoundRect(rect,12*d,12*d,paint);
         color(0xFFF3EEE4); paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(1.8f); paint.setStrokeCap(Paint.Cap.ROUND); paint.setStrokeJoin(Paint.Join.ROUND);
-        c.save(); c.translate(22*d,22*d); c.scale(d,d);
+        c.save(); c.translate(16*d,14*d); c.scale(.8f*d,.8f*d);
         speaker.reset(); speaker.moveTo(2,8); speaker.lineTo(6,8); speaker.lineTo(12,3); speaker.lineTo(12,21); speaker.lineTo(6,16); speaker.lineTo(2,16); speaker.close(); c.drawPath(speaker,paint);
         // Canvas was scaled to density; keep the icon stroke at 1.8 logical pixels.
         paint.setStrokeWidth(1.8f);
         if (quiet) { c.drawLine(17,8,23,16,paint); c.drawLine(23,8,17,16,paint); }
         else { rect.set(12,6,22,18); c.drawArc(rect,-55,110,false,paint); if (percent>50) { rect.set(11,2,29,22); c.drawArc(rect,-50,100,false,paint); } }
         c.restore();
-        text(c,"Гучність",62,31,16,true,Paint.Align.LEFT,0xFFF3EEE4);
-        text(c,quiet ? "Без звуку" : "Приставка",62,49,12,false,Paint.Align.LEFT,0xFFB1BAC8);
-        text(c,percent+"%",w-22,39,24,true,Paint.Align.RIGHT,0xFFF3EEE4);
-        float x=22*d,y=70*d,bw=getWidth()-44*d;
-        color(0xFF34404E);rect.set(x,y,x+bw,y+6*d);c.drawRoundRect(rect,3*d,3*d,paint);
-        if (shown>0) { color(quiet ? 0xFFB1BAC8 : 0xFFF4A640);rect.set(x,y,x+bw*shown,y+6*d);c.drawRoundRect(rect,3*d,3*d,paint); }
+        text(c,percent+"%",w-16,31,18,true,Paint.Align.RIGHT,0xFFF3EEE4);
+        float x=52*d,y=23*d,bw=getWidth()-120*d;
+        color(0xFF34404E);rect.set(x,y,x+bw,y+4*d);c.drawRoundRect(rect,2*d,2*d,paint);
+        if (shown>0) { color(quiet ? 0xFFB1BAC8 : 0xFFF4A640);rect.set(x,y,x+bw*shown,y+4*d);c.drawRoundRect(rect,2*d,2*d,paint); }
         c.restore();c.restore();
     }
 }

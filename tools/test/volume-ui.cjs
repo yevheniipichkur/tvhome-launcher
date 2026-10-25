@@ -31,7 +31,8 @@ const root=path.resolve(__dirname,'../..'),shots=path.join(root,'.impeccable/rev
   await page.waitForFunction(()=>document.querySelector('#volume output').textContent==='53%');
   await page.evaluate(()=>document.fonts.ready);await panel.scrollIntoViewIfNeeded();
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no horizontal page overflow');
-  const b=await panel.boundingBox();assert(b.x>=0&&b.x+b.width<=width,'volume panel fits');
+  const b=await panel.boundingBox();assert(b.x>=0&&b.x+b.width<=width,'volume panel fits');assert(b.height<=64,'compact volume strip stays at most64px tall');
+  assert((await input.boundingBox()).width>=56,'slider retains a usable horizontal travel');
   await panel.screenshot({path:path.join(shots,'volume-phone-'+width+'.png')});
   if(width===390)await page.screenshot({path:path.join(shots,'volume-remote-full.png'),fullPage:true});
   await panel.locator('[data-volume="mute"]').click();await page.waitForFunction(()=>document.querySelector('#volume output').textContent==='0%');assert.equal(await panel.locator('[data-volume="mute"]').getAttribute('aria-pressed'),'true');
