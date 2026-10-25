@@ -57,6 +57,14 @@ public class CinemaCatalogTest {
             try(CinemaCatalog malformed=new CinemaCatalog(dir.toFile(),"secret-test-key",fallback(),url->new JSONObject().put("wrong",true),q)){
                 malformed.refresh(q,true);malformed.awaitIdle();check(malformed.status().batch.items.length()==3&&!malformed.status().error.isEmpty(),"schema failure preserves cache");
             }
+            AtomicInteger translations=new AtomicInteger();
+            try(CinemaCatalog c=new CinemaCatalog(new File(dir.toFile(),"translations"),"secret-test-key",fallback(),url->{JSONObject data=page(1,700);JSONObject f=data.getJSONArray("results").getJSONObject(0);if(url.contains("language=uk-UA")){f.put("overview","").put("poster_path",JSONObject.NULL);}else{translations.incrementAndGet();f.put("overview","An English description").put("poster_path","/english.jpg");data.getJSONArray("results").put(movie(701).put("overview","Wrong film"));}return data;},q)){
+                c.refresh(q,true);c.awaitIdle();JSONObject film=c.status().batch.items.getJSONObject(0);
+                check(translations.get()==1,"one bounded English request for missing metadata");
+                check(film.getString("description").equals("An English description"),"description fallback matches same TMDB id");
+                check(film.getString("poster").equals("/english.jpg"),"poster fallback matches same TMDB id");
+                check(c.status().batch.items.length()==1,"English fallback never injects unrelated films");
+            }
             CinemaQuery filtered=new CinemaQuery(28,2000,2010,8,"vote_average.desc");
             try(CinemaCatalog c=new CinemaCatalog(new File(dir.toFile(),"filtered"),"secret-test-key",fallback(),url->page(1,400),filtered)){
                 String url=c.url(filtered,2);check(url.contains("with_genres=28")&&url.contains("vote_average.gte=8")&&url.contains("primary_release_date.gte=2000-01-01")&&url.contains("primary_release_date.lte=2010-12-31")&&url.contains("page=2"),"filters encoded correctly");

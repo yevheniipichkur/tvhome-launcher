@@ -54,6 +54,7 @@ final class CinemaCatalog implements AutoCloseable {
                 JSONArray raw=response.optJSONArray("results");
                 if(raw==null)throw new IOException("TMDB повернув нерозпізнану відповідь.");
                 if(response.optInt("page",-1)!=page)throw new IOException("TMDB повернув іншу сторінку.");
+                completeMetadata(raw,q,page);
                 JSONArray items=new JSONArray();Set<String> ids=new HashSet<>();
                 if(append)for(int i=0;i<before.items.length();i++){JSONObject f=before.items.getJSONObject(i);items.put(f);ids.add(f.getString("id"));}
                 for(int i=0;i<raw.length() && items.length()<MAX_ITEMS;i++) {
@@ -80,6 +81,22 @@ final class CinemaCatalog implements AutoCloseable {
           "&sort_by="+q.sort+"&vote_average.gte="+q.rating+"&primary_release_date.gte="+q.fromYear+"-01-01"+
           "&primary_release_date.lte="+(q.toYear==CinemaQuery.defaults().toYear?today:q.toYear+"-12-31")+
           (q.genre==0?"":"&with_genres="+q.genre);
+    }
+    private void completeMetadata(JSONArray rows,CinemaQuery query,int page) {
+        boolean missing=false;
+        for(int i=0;i<rows.length();i++) { JSONObject f=rows.optJSONObject(i);if(f!=null && (text(f,"overview","",1200).isEmpty() || text(f,"poster_path","",200).isEmpty()))missing=true; }
+        if(!missing)return;
+        try {
+            JSONObject english=fetcher.get(url(query,page).replace("&language=uk-UA&","&language=en-US&"));
+            if(english.optInt("page",-1)!=page)return;
+            JSONArray alternatives=english.optJSONArray("results");if(alternatives==null)return;
+            Map<Long,JSONObject> byId=new HashMap<>();
+            for(int i=0;i<alternatives.length();i++){JSONObject f=alternatives.optJSONObject(i);if(f!=null)byId.put(f.optLong("id",0),f);}
+            for(int i=0;i<rows.length();i++){
+                JSONObject f=rows.optJSONObject(i);if(f==null)continue;JSONObject alt=byId.get(f.optLong("id",0));if(alt==null)continue;
+                for(String field:new String[]{"overview","poster_path"})if(text(f,field,"",1200).isEmpty()&&!text(alt,field,"",1200).isEmpty())f.put(field,alt.get(field));
+            }
+        }catch(Exception ignored){} // A missing translation must not discard a valid primary page.
     }
     private JSONObject normalize(JSONObject raw) throws Exception {
         if(raw==null || raw.optLong("id",0)<=0 || raw.optBoolean("adult",false) || raw.optBoolean("video",false))return null;
