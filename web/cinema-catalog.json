@@ -1,0 +1,242 @@
+[
+  {
+    "id": "157336",
+    "title": "Інтерстеллар",
+    "original": "Interstellar",
+    "year": 2014,
+    "minutes": 169,
+    "genre": "Фантастика",
+    "description": "Подорож за межі знайомого світу. Історія про час, вибір і зв’язок із домом.",
+    "poster": "/gEU2QniE6E77NI6lCU6MxlNBvIx.jpg"
+  },
+  {
+    "id": "120467",
+    "title": "Готель «Ґранд Будапешт»",
+    "original": "The Grand Budapest Hotel",
+    "year": 2014,
+    "minutes": 100,
+    "genre": "Комедія",
+    "description": "Консьєрж, його юний помічник і пригода, в якій жодна дрібниця не випадкова.",
+    "poster": "/eWdyYQreja6JGCzqHWXpWHDrrPo.jpg"
+  },
+  {
+    "id": "313369",
+    "title": "Ла-Ла Ленд",
+    "original": "La La Land",
+    "year": 2016,
+    "minutes": 128,
+    "genre": "Романтика",
+    "description": "Двоє мрійників у Лос-Анджелесі шукають свій ритм у музиці та житті.",
+    "poster": "/uDO8zWDhfWwoFdKS4fzkUJt0Rf0.jpg"
+  },
+  {
+    "id": "27205",
+    "title": "Початок",
+    "original": "Inception",
+    "year": 2010,
+    "minutes": 148,
+    "genre": "Фантастика",
+    "description": "Команда проникає у сни, щоб виконати завдання з дедалі менш певними правилами.",
+    "poster": "/oYuLEt3zVCKq57qu2F8dT7NIa6f.jpg"
+  },
+  {
+    "id": "77338",
+    "title": "Недоторканні",
+    "original": "The Intouchables",
+    "year": 2011,
+    "minutes": 112,
+    "genre": "Драма",
+    "description": "Несподівана дружба двох людей із зовсім різних світів.",
+    "poster": ""
+  },
+  {
+    "id": "324857",
+    "title": "Людина-павук: Навколо всесвіту",
+    "original": "Spider-Man: Into the Spider-Verse",
+    "year": 2018,
+    "minutes": 117,
+    "genre": "Анімація",
+    "description": "Майлз Моралес відкриває, що героєм можна стати по-своєму.",
+    "poster": ""
+  },
+  {
+    "id": "546554",
+    "title": "Ножі наголо",
+    "original": "Knives Out",
+    "year": 2019,
+    "minutes": 131,
+    "genre": "Детектив",
+    "description": "Родинний маєток, незручні таємниці й детектив, який слухає дуже уважно.",
+    "poster": ""
+  },
+  {
+    "id": "10681",
+    "title": "ВОЛЛ·І",
+    "original": "WALL·E",
+    "year": 2008,
+    "minutes": 98,
+    "genre": "Анімація",
+    "description": "Маленький робот із великою цікавістю знаходить щось важливіше за свою роботу.",
+    "poster": ""
+  },
+  {
+    "id": "194",
+    "title": "Амелі",
+    "original": "Amélie",
+    "year": 2001,
+    "minutes": 122,
+    "genre": "Романтика",
+    "description": "Париж, маленькі добрі вчинки й сміливість змінити власне життя.",
+    "poster": ""
+  },
+  {
+    "id": "76341",
+    "title": "Шалений Макс: Дорога гніву",
+    "original": "Mad Max: Fury Road",
+    "year": 2015,
+    "minutes": 120,
+    "genre": "Екшн",
+    "description": "Погоня крізь пустелю, де свободу доводиться відвойовувати на повній швидкості.",
+    "poster": ""
+  },
+  {
+    "id": "286217",
+    "title": "Марсіянин",
+    "original": "The Martian",
+    "year": 2015,
+    "minutes": 144,
+    "genre": "Фантастика",
+    "description": "Сам на далекій планеті: виживання за допомогою науки, винахідливості й гумору.",
+    "poster": ""
+  },
+  {
+    "id": "508442",
+    "title": "Душа",
+    "original": "Soul",
+    "year": 2020,
+    "minutes": 100,
+    "genre": "Анімація",
+    "description": "Джазовий музикант переосмислює, з чого насправді складається гарне життя.",
+    "poster": ""
+  },
+  {
+    "id": "329865",
+    "title": "Прибуття",
+    "original": "Arrival",
+    "year": 2016,
+    "minutes": 116,
+    "genre": "Фантастика",
+    "description": "Лінгвістка намагається порозумітися з гостями з іншого світу.",
+    "poster": ""
+  },
+  {
+    "id": "105",
+    "title": "Назад у майбутнє",
+    "original": "Back to the Future",
+    "year": 1985,
+    "minutes": 116,
+    "genre": "Пригоди",
+    "description": "Одна поїздка на незвичному автомобілі ставить майбутнє під загрозу.",
+    "poster": ""
+  },
+  {
+    "id": "354912",
+    "title": "Коко",
+    "original": "Coco",
+    "year": 2017,
+    "minutes": 105,
+    "genre": "Анімація",
+    "description": "Музична подорож до родинних історій, які не можна забувати.",
+    "poster": ""
+  },
+  {
+    "id": "18785",
+    "title": "Похмілля у Вегасі",
+    "original": "The Hangover",
+    "year": 2009,
+    "minutes": 100,
+    "genre": "Комедія",
+    "description": "Друзі відновлюють події вечора, про який майже нічого не пам’ятають.",
+    "poster": ""
+  },
+  {
+    "id": "671",
+    "title": "Гаррі Поттер і філософський камінь",
+    "original": "Harry Potter and the Philosopher’s Stone",
+    "year": 2001,
+    "minutes": 152,
+    "genre": "Пригоди",
+    "description": "Лист відкриває двері до магічної школи та нової дружби.",
+    "poster": ""
+  },
+  {
+    "id": "210577",
+    "title": "Загублена",
+    "original": "Gone Girl",
+    "year": 2014,
+    "minutes": 149,
+    "genre": "Трилер",
+    "description": "Зникнення жінки перетворює особисту історію подружжя на публічну загадку.",
+    "poster": ""
+  },
+  {
+    "id": "37165",
+    "title": "Шоу Трумена",
+    "original": "The Truman Show",
+    "year": 1998,
+    "minutes": 103,
+    "genre": "Драма",
+    "description": "Звичайний чоловік починає помічати, що його світ надто добре спланований.",
+    "poster": ""
+  },
+  {
+    "id": "508439",
+    "title": "Уперед",
+    "original": "Onward",
+    "year": 2020,
+    "minutes": 103,
+    "genre": "Анімація",
+    "description": "Два брати вирушають у подорож заради ще одного дня з батьком.",
+    "poster": ""
+  },
+  {
+    "id": "227",
+    "title": "Наречена принца",
+    "original": "The Princess Bride",
+    "year": 1987,
+    "minutes": 98,
+    "genre": "Пригоди",
+    "description": "Казкова пригода з дуелями, дотепами та незламною вірою в кохання.",
+    "poster": ""
+  },
+  {
+    "id": "137",
+    "title": "День бабака",
+    "original": "Groundhog Day",
+    "year": 1993,
+    "minutes": 101,
+    "genre": "Комедія",
+    "description": "Один і той самий день дає безліч спроб навчитися жити інакше.",
+    "poster": ""
+  },
+  {
+    "id": "8392",
+    "title": "Мій сусід Тоторо",
+    "original": "My Neighbor Totoro",
+    "year": 1988,
+    "minutes": 86,
+    "genre": "Анімація",
+    "description": "Дві сестри відкривають тиху магію нового дому й навколишнього лісу.",
+    "poster": ""
+  },
+  {
+    "id": "264660",
+    "title": "Екс-машина",
+    "original": "Ex Machina",
+    "year": 2015,
+    "minutes": 108,
+    "genre": "Трилер",
+    "description": "Зустріч програміста зі штучним інтелектом стає перевіркою для обох.",
+    "poster": ""
+  }
+]

@@ -957,6 +957,7 @@
   }
   // One thin, rounded icon set (Lucide-style geometry, 24 px grid, 1.7 stroke).
   var SYS = [
+    { action: 'cinema', label: 'Що дивимось удвох?', icon: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 4v16M16 4v16M3 9h5M3 15h5M16 9h5M16 15h5"/>' },
     { action: 'apps', label: 'Усі програми', icon: '<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>' },
     { action: 'wifi', label: 'Мережа', icon: '<path class="w3" d="M2 8.8a15 15 0 0 1 20 0"/><path class="w2" d="M5 12.9a10 10 0 0 1 14 0"/><path class="w1" d="M8.5 16.4a5 5 0 0 1 7 0"/><path d="M12 20h.01" stroke-width="2.6"/>' },
     { action: 'quick', label: 'Швидкі налаштування', icon: '<path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2.2"/><circle cx="10" cy="17" r="2.2"/>' },
@@ -1063,6 +1064,7 @@
     var pkg = elm.getAttribute('data-pkg');
     var action = elm.getAttribute('data-action');
     if (pkg) { try { localStorage.setItem('opened:' + pkg, Date.now()); } catch (e) {} if (TV && TV.launch) TV.launch(pkg); return; }
+    if (action === 'cinema') { if (window.Cinema) Cinema.openTV(); return; }
     if (action === 'apps') return openDrawer();
     if (action === 'layout') return toggleLayout();
     if (action === 'quick') { if (window.TVS) TVS.quick(); return; }
@@ -1535,9 +1537,9 @@
     wine:   { name: 'Вино', bg: 'radial-gradient(90% 70% at 80% 0%, #a3204a 0%, transparent 60%), radial-gradient(70% 60% at 0% 100%, #5a1a6a 0%, transparent 60%), linear-gradient(180deg, #24081a 0%, #300a22 55%, #1c0614 100%)' },
     black:  { name: 'Чорний', bg: '#000' },
   };
-  var BG_CHOICES = ['city', 'streets', 'auto', 'night', 'dawn', 'day', 'golden', 'dusk', 'aurora', 'ocean', 'wine', 'black'];
+  var BG_CHOICES = ['kyiv', 'carpathians', 'orbit', 'city', 'streets', 'auto', 'night', 'dawn', 'day', 'golden', 'dusk', 'aurora', 'ocean', 'wine', 'black'];
   function bgChoice() { try { return localStorage.getItem('tv-bg') || 'streets'; } catch (e) { return 'streets'; } }
-  function bgName() { var c = bgChoice(); return c === 'city' ? 'Місто · живе небо' : c === 'streets' ? 'Мапа міста' : c === 'auto' ? 'Градієнт · за сонцем' : PHASES[c].name; }
+  function bgName() { var c = bgChoice(); return c === 'kyiv' ? 'Вікно · Київ' : c === 'carpathians' ? 'Будинок · Карпати' : c === 'orbit' ? 'Орбітальна станція' : c === 'city' ? 'Місто · живе небо' : c === 'streets' ? 'Мапа міста' : c === 'auto' ? 'Градієнт · за сонцем' : PHASES[c].name; }
   function phaseNow() {
     var w = data && data.weather;
     var now = Date.now();
@@ -1556,6 +1558,7 @@
     var code = m ? +m[1] : data && data.weather ? data.weather.code : -1;
     var kind = code >= 95 ? 'storm' : (code >= 61 && code <= 67) || (code >= 80 && code <= 82) ? 'rain' : code >= 51 && code <= 57 ? 'drizzle'
       : (code >= 71 && code <= 77) || code === 85 || code === 86 ? 'snow' : code === 45 || code === 48 ? 'fog' : '';
+    if (bgChoice() === 'orbit') kind = '';
     var fx = $('wx-fx');
     if (fx.getAttribute('data-k') === kind) return;
     fx.setAttribute('data-k', kind);
@@ -1565,11 +1568,13 @@
   var bgPhase = null, bgFront = 'bg-a';
   function paintBackground() {
     var choice = bgChoice();
-    var ph = choice === 'auto' || choice === 'city' ? phaseNow() : choice === 'streets' ? 'black' : choice;
+    var world = /^(kyiv|carpathians|orbit)$/.test(choice);
+    var ph = world ? phaseNow() : choice === 'auto' || choice === 'city' ? phaseNow() : choice === 'streets' ? 'black' : choice;
     document.body.classList.toggle('danger', !!(data && data.alerts && data.alerts.city && data.alerts.city.active));
     var sc = $('scene');
     if (sc && window.Scene) {
-      if (choice === 'city') Scene.city(sc, cityInfo(), ph, data && data.weather);
+      if (world) Scene.world(sc, choice, phaseNow());
+      else if (choice === 'city') Scene.city(sc, cityInfo(), ph, data && data.weather);
       else if (choice === 'streets') Scene.streets(sc, cityInfo());
       else Scene.clear(sc);
     }

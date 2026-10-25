@@ -1,0 +1,22 @@
+{
+  "generator": "OpenAI image_gen",
+  "kind": "generated fictional environments, not live photographs or camera feeds",
+  "derivation": "Resized to 1920x1080 and encoded as WebP quality 84 using ffmpeg",
+  "assets": [
+    {
+      "file": "kyiv.webp",
+      "source": "exec-3d67f884-5dad-4400-88cc-fe0c83473c3e.png",
+      "prompt": "Create a production background asset for an Android TV launcher, wide 16:9 landscape 1920x1080 composition. Cinematic sophisticated photoreal matte painting: interior of a very dark modern apartment overlooking Kyiv and the Dnipro, recognisable distant Motherland Monument on right and city river bridges, panoramic glass window, dusk blue sky with faint warm sunset, small amber lights in skyline, foreground a dark sill along bottom and thin architectural window frame at far right. Camera looks straight out. Composition optimized for white interface overlays: left 60 percent dark quiet spacious open sky without bright focal points, city lower third, detail mainly bottom/right. Elegant real architectural photography, navy ink and warm amber, atmospheric volumetric depth. No people, text, logos, screens or UI. One seamless full bleed environment, no mockup or collage."
+    },
+    {
+      "file": "carpathians.webp",
+      "source": "exec-2a413474-8b30-45ea-b0d6-4673cd196ae8.png",
+      "prompt": "Production TV launcher wallpaper, wide 16:9 landscape. Photoreal architectural cinematic matte painting of a dark cozy contemporary timber cabin interior in Ukrainian Carpathians, looking through large panoramic glass out to layered spruce forest and soft misty mountain ridges in blue evening twilight. Tiny warm cabin lights in distant valley, amber lit wooden sill along bottom, dark vertical timber frame only at far right, a suggestion of a warm fireplace reflection on far right glass. Camera straight out, left 60 percent very quiet dark open sky and mist for white UI overlays, details concentrated lower third and right edge. Extremely refined film photography, dark navy and warm wood, deep spacious composition. No people, furniture blocking center, text, logos, UI, mockups, borders or collage."
+    },
+    {
+      "file": "orbit.webp",
+      "source": "exec-40804699-ea69-4ecc-b6c7-bcd6d5db3367.png",
+      "prompt": "Production cinematic wallpaper asset for a dark premium Android TV home screen. Wide 16:9 landscape composition. Photoreal high-end science-fiction film still: inside the silent observation lounge of an orbital station, looking straight through a huge panoramic window at a blue planet's curved illuminated horizon across the lower third. Black navy space with very sparse stars above. Thin dark metal architectural arch and understated warm amber instrument light only at the extreme right and lower edges, no screens. Left 60 percent remains quiet dark empty space for white launcher interface overlays. Beautiful restrained realistic lens, atmospheric glow along distant planet limb, deep ink black with subtle blue, single coherent physical environment. No text, logos, people, UI, mockups, collage or legible markings."
+    }
+  ]
+}

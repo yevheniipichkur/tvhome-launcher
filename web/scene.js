@@ -165,7 +165,18 @@
     el.setAttribute('data-kind', 'streets');
   }
 
+  function world(el, name, phase) {
+    var key = 'world|' + name;
+    if (lastKey !== key || !el.firstChild) {
+      lastKey = key;
+      el.innerHTML = '<img class="world-image" alt="" src="worlds/' + name + '.webp"><div class="world-shade"></div><div class="world-light"></div>';
+    }
+    el.setAttribute('data-kind', 'world');
+    el.setAttribute('data-world', name);
+    el.setAttribute('data-light', phase);
+  }
+
   function clear(el) { lastKey = ''; el.innerHTML = ''; el.removeAttribute('data-kind'); }
 
-  window.Scene = { city: city, streets: streets, clear: clear };
+  window.Scene = { city: city, streets: streets, clear: clear, world: world };
 })();

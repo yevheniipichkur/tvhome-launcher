@@ -8,6 +8,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.json">
 <title>Пульт «Вітальні»</title>
+<link rel="stylesheet" href="/cinema.css">
+<script src="/cinema.js" defer></script>
 <style>
 @font-face { font-family: 'Fixel Display'; src: url(fonts/FixelDisplay-Medium.woff2) format('woff2'); font-weight: 500; }
 @font-face { font-family: 'Fixel Text'; src: url(fonts/FixelText-Regular.woff2) format('woff2'); font-weight: 400; }
@@ -366,6 +368,7 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
   var $ = function (id) { return document.getElementById(id); };
   var q = new URLSearchParams(location.search), pin = q.get('pin') || '';
   try { if (pin) localStorage.setItem('vit-pin', pin); else pin = localStorage.getItem('vit-pin') || ''; } catch (e) {}
+  window.cinemaAutoOpen = q.get('cinema') === '1';
   if (q.get('pin')) history.replaceState(null, '', location.pathname);
   var state = {}, typing = 0, lastSent = null, lastField = null, toastT;
 
@@ -379,9 +382,11 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
   function toast(t, icon) { $('toastT').textContent = t; $('toast').querySelector('i').textContent = icon || '✓'; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(function () { $('toast').classList.remove('on'); }, 2600); }
   function buzz(ms) { try { navigator.vibrate && navigator.vibrate(ms || 10); } catch (e) {} }
   function askPin() { $('pinbox').classList.add('on'); }
-  $('pingo').onclick = function () { pin = $('pinin').value.trim(); try { localStorage.setItem('vit-pin', pin); } catch (e) {} $('pinbox').classList.remove('on'); poll(); loadApps(); };
+  $('pingo').onclick = function () { pin = $('pinin').value.trim(); try { localStorage.setItem('vit-pin', pin); } catch (e) {} $('pinbox').classList.remove('on'); poll(); loadApps(); if (window.Cinema) Cinema.pinReady(); };
   if (!pin) askPin();
 
+  window.cinemaApi = api;
+  window.cinemaName = function () { return myName || 'Глядач'; };
   // a ripple from the finger on every button
   document.addEventListener('pointerdown', function (e) {
     var b = e.target.closest && e.target.closest('.btn, .app');

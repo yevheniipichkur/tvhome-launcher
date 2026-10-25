@@ -1,0 +1,119 @@
+/* Cinematic worlds are still images; only a small light layer moves on the compositor. */
+.scene[data-kind="world"] { overflow: hidden; background: #070b11; }
+.world-image { width: 100%; height: 100%; object-fit: cover; transition: filter 3s ease-out; }
+.scene[data-light="night"] .world-image { filter: brightness(.68) saturate(.8); }
+.scene[data-light="day"] .world-image { filter: brightness(1.16) saturate(.82); }
+.scene[data-light="golden"] .world-image { filter: sepia(.18) brightness(1.08); }
+.world-shade { position: absolute; inset: 0; background: linear-gradient(90deg,rgba(4,8,16,.42),transparent 75%); }
+.world-light { position: absolute; width: 34%; height: 38%; right: -12%; bottom: -8%; background: radial-gradient(ellipse,rgba(255,185,92,.14),transparent 70%); animation: world-light 28s ease-in-out infinite alternate; }
+.scene[data-world="orbit"] .world-light { background: radial-gradient(ellipse,rgba(116,177,234,.13),transparent 70%); }
+@keyframes world-light { to { transform: translate(-4%, -4%); opacity: .4; } }
+.world-still .world-light,.world-still .wx-fx i { animation: none; }
+.world-paused .world-light,.world-paused .wx-fx i { animation-play-state: paused; }
+.cn-panel,.cn-entry { --cn-bg: #0b1018; --cn-surface: #17202c; --cn-ink: #f3eee4; --cn-muted: #b1bac8; --cn-accent: #f4a640; --cn-line: #34404e; color: var(--cn-ink); font-family: 'Fixel Text',sans-serif; }
+.cn-panel * { box-sizing: border-box; }
+.cn-panel [hidden] { display: none !important; }
+.cn-panel { position: absolute; inset: 0; z-index: 70; overflow: auto; background: var(--cn-bg); font-size: 24px; }
+.cn-shell { margin: 0 auto; padding: 52px 76px; }
+.cn-head { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 28px; }
+.cn-panel h1,.cn-panel h2,.cn-entry b { font-family: 'Fixel Display',sans-serif; font-weight: 500; }
+.cn-panel h1 { font-size: 58px; letter-spacing: -.035em; line-height: 1.1; margin: 0; }
+.cn-head p { color: var(--cn-muted); margin: 12px 0 0; }
+.cn-panel svg,.cn-entry svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; flex-shrink: 0; }
+.cn-panel button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+.cn-panel button:focus-visible { outline: 3px solid var(--cn-accent); outline-offset: 5px; }
+.cn-panel button:disabled { opacity: .45; cursor: default; }
+.cn-panel button:not(:disabled):hover { filter: brightness(1.12); }
+.cn-panel button:not(:disabled):active { transform: scale(.98); }
+.cn-close { width: 64px; height: 64px; display: grid; place-items: center; border-radius: 50%; background: var(--cn-surface) !important; flex-shrink: 0; }
+.cn-people { display: flex; gap: 16px; }
+.cn-person { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 14px 20px; min-width: 320px; border-radius: 12px; background: var(--cn-surface); }
+.cn-person b { color: var(--cn-accent); font-variant-numeric: tabular-nums; font-weight: 500; }
+.cn-person span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cn-wait { background: none; border: 1px dashed var(--cn-line); color: var(--cn-muted); }
+.cn-notice { color: #ffb4a6; line-height: 1.5; margin: 16px 0; min-height: 36px; }
+.cn-notice:empty { min-height: 0; }
+.cn-tv-grid { display: grid; grid-template-columns: 580px minmax(0,1fr); gap: 88px; margin-top: 36px; }
+.cn-panel h2 { margin: 0 0 18px; font-size: 36px; line-height: 1.2; letter-spacing: -.025em; }
+.cn-connect { border-right: 1px solid var(--cn-line); padding-right: 64px; }
+.cn-connect p { color: var(--cn-muted); line-height: 1.5; margin: 22px 0; }
+.cn-qr { width: 250px !important; height: 250px !important; stroke: none !important; border-radius: 8px; }
+.cn-address { font-variant-numeric: tabular-nums; color: var(--cn-ink); }
+.cn-results { display: flex; flex-direction: column; min-height: 560px; }
+.cn-empty { margin: auto 0; max-width: 650px; }
+.cn-empty>svg { width: 72px; height: 72px; color: var(--cn-accent); margin-bottom: 26px; }
+.cn-empty p { color: var(--cn-muted); line-height: 1.6; }
+.cn-reset { margin-top: 32px; display: flex; gap: 18px; flex-wrap: wrap; align-items: center; }
+.cn-reset p { width: 100%; margin: 0; }
+.cn-primary,.cn-quiet { min-height: 58px; padding: 14px 24px; border-radius: 12px; background: var(--cn-surface) !important; }
+.cn-primary { background: var(--cn-accent) !important; color: #211507 !important; font-weight: 500 !important; }
+.cn-credit { color: var(--cn-muted); font-size: 17px; line-height: 1.5; margin-top: 26px; }
+.cn-matches h2 { display: flex; align-items: center; gap: 12px; color: var(--cn-accent); }
+.cn-match { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 20px; border-bottom: 1px solid var(--cn-line) !important; padding: 20px 8px !important; text-align: left; }
+.cn-match span:first-child { min-width: 0; }
+.cn-match b { display: block; font-weight: 500; line-height: 1.3; overflow-wrap: anywhere; }
+.cn-match small { display: block; color: var(--cn-muted); font-size: .75em; margin-top: 6px; }
+.cn-open { display: flex; align-items: center; gap: 6px; color: var(--cn-accent); flex-shrink: 0; font-size: .8em; }
+.cn-entry { display: flex; align-items: center; gap: 14px; width: 100%; padding: 18px; margin: 0 0 18px; background: #211d17; border: 1px solid #715431; border-radius: 16px; text-align: left; min-height: 76px; }
+.cn-entry>svg { width: 30px; height: 30px; color: var(--cn-accent); }
+.cn-entry b { display: block; font-size: 17px; }
+.cn-entry small { display: block; color: #d8c2a2; margin-top: 5px; font-size: 13px; }
+.cn-phone-open { overflow: hidden !important; }
+.cn-phone { position: fixed; z-index: 100; inset: 0; font-size: 16px; overscroll-behavior: contain; -webkit-user-select: text; user-select: text; }
+.cn-phone .cn-shell { max-width: 520px; padding: max(22px,env(safe-area-inset-top)) 20px max(28px,env(safe-area-inset-bottom)); }
+.cn-phone .cn-head { margin-bottom: 24px; gap: 12px; }
+.cn-phone h1 { font-size: 34px; }
+.cn-phone .cn-head p { font-size: 14px; margin-top: 7px; }
+.cn-phone .cn-close { width: 46px; height: 46px; }
+.cn-phone .cn-people { gap: 8px; }
+.cn-phone .cn-person { flex: 1; min-width: 0; padding: 10px; font-size: 12px; gap: 8px; }
+.cn-phone .cn-notice { font-size: 14px; margin: 12px 0; }
+.cn-phone h2 { font-size: 28px; }
+.cn-invite { padding-top: 26px; }
+.cn-invite .cn-orbit { color: var(--cn-accent); margin-bottom: 20px; }
+.cn-orbit svg { width: 48px; height: 48px; }
+.cn-invite h2 { font-size: 44px; margin-bottom: 18px; }
+.cn-invite p,.cn-finished p { color: var(--cn-muted); line-height: 1.65; margin: 0 0 28px; }
+.cn-invite label { display: block; margin: 0 0 8px; }
+.cn-invite input { display: block; width: 100%; font: inherit; font-size: 17px; color: var(--cn-ink); caret-color: var(--cn-accent); padding: 16px; min-height: 54px; background: var(--cn-surface); border: 1px solid var(--cn-line); border-radius: 12px; margin-bottom: 16px; }
+.cn-invite input::placeholder { color: var(--cn-muted); }
+.cn-invite input:focus { outline: 2px solid var(--cn-accent); outline-offset: 2px; }
+.cn-invite .cn-primary { width: 100%; }
+.cn-invite>small { display: block; color: var(--cn-muted); margin-top: 16px; text-align: center; }
+.cn-progress { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--cn-muted); margin-top: 24px; }
+.cn-progress b { font-weight: 400; font-variant-numeric: tabular-nums; }
+.cn-track { appearance: none; -webkit-appearance: none; display: block; width: 100%; height: 3px; border: 0; background: var(--cn-line); margin: 10px 0 18px; }
+.cn-track::-webkit-progress-bar { background: var(--cn-line); }
+.cn-track::-webkit-progress-value { background: var(--cn-accent); }
+.cn-track::-moz-progress-bar { background: var(--cn-accent); }
+.cn-film { overflow: hidden; border-radius: 16px; background: var(--cn-surface); touch-action: pan-y; }
+.cn-film-art { position: relative; height: 218px; overflow: hidden; background: #25374d; }
+.cn-film-art[data-genre="Романтика"] { background: #66453f; }
+.cn-film-art[data-genre="Анімація"] { background: #3b5050; }
+.cn-film-art[data-genre="Комедія"] { background: #644e32; }
+.cn-film-art[data-genre="Трилер"],.cn-film-art[data-genre="Детектив"] { background: #383846; }
+.cn-film-art img { position: absolute; width: 100%; height: 100%; object-fit: cover; object-position: center 28%; }
+.cn-film-art:after { content: ''; position: absolute; inset: 0; background: linear-gradient(0deg,rgba(8,13,21,.8),transparent 70%); }
+.cn-film-word { position: absolute; left: 20px; bottom: 18px; z-index: 1; font-family: 'Fixel Display',sans-serif; font-size: 28px; }
+.cn-film-no { position: absolute; right: 20px; top: 14px; color: #f3eee4; font-size: 20px; font-variant-numeric: tabular-nums; }
+.cn-film-info { padding: 20px; }
+.cn-meta { font-size: 12px; color: var(--cn-muted); margin-bottom: 10px; }
+.cn-film-info h2 { font-size: 28px; margin: 0 0 12px; overflow-wrap: anywhere; }
+.cn-film-info p { margin: 0; color: var(--cn-muted); line-height: 1.5; font-size: 14px; }
+.cn-vote { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 18px 0 8px; }
+.cn-vote button { display: flex; justify-content: center; align-items: center; gap: 8px; padding: 14px 8px; min-height: 58px; border-radius: 12px; font-size: 14px; font-weight: 500; transition: transform 120ms ease-out; }
+.cn-no { background: var(--cn-surface) !important; }
+.cn-yes { background: var(--cn-accent) !important; color: #211507 !important; }
+.cn-vote svg { width: 21px; height: 21px; }
+.cn-undo { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; width: 100%; font-size: 13px !important; color: var(--cn-muted) !important; }
+.cn-undo svg { width: 18px; height: 18px; }
+.cn-phone .cn-credit { font-size: 11px; margin-top: 22px; }
+.cn-phone .cn-matches { margin-top: 30px; }
+.cn-phone .cn-matches h2 { font-size: 22px; }
+.cn-phone .cn-match { padding: 16px 4px !important; }
+.cn-finished { padding-top: 42px; }
+.cn-finished>svg { width: 54px; height: 54px; color: var(--cn-accent); margin-bottom: 20px; }
+.cn-panel ::selection { background: #f4a640; color: #211507; }
+.cn-panel { scrollbar-color: #536070 var(--cn-bg); scrollbar-width: thin; }
+@media (max-width: 360px) { .cn-phone .cn-shell { padding-left: 14px; padding-right: 14px; } .cn-vote button { font-size: 12px; } .cn-phone h1 { font-size: 30px; } }
+@media (prefers-reduced-motion: reduce) { .world-light,.wx-fx i { animation: none !important; } .world-image,.cn-vote button { transition: none !important; } }

@@ -76,8 +76,9 @@
   var ROWS = {
     editor: { name: 'Конструктор екрана', desc: 'блоки, кольори, годинник, шрифт, полиця', type: 'act' },
     theme: { name: 'Тема', desc: 'кольори й настрій усього екрана', type: 'opt', val: function () { return legacy('theme'); }, pos: function () { var l = H().THEMES(), c = H().themeId(); return [idxOf(l, function (t) { return t.id === c; }), l.length]; } },
-    bg: { name: 'Фон', desc: 'що під панелями: мапа міста, місто, градієнт', type: 'opt', val: function () { return legacy('bg'); }, pos: function () { var l = H().BG_CHOICES(); return [l.indexOf(H().bgChoice()), l.length]; } },
+    bg: { name: 'Фон', desc: 'живі світи, мапа міста або градієнт', type: 'opt', val: function () { return legacy('bg'); }, pos: function () { var l = H().BG_CHOICES(); return [l.indexOf(H().bgChoice()), l.length]; } },
     layout: { name: 'Макет', desc: 'де годинник, де карта', type: 'opt', val: function () { return legacy('layout'); }, pos: function () { var l = H().LAYOUTS(), c = H().layoutId(); return [idxOf(l, function (x) { return x.id === c; }), l.length]; } },
+    worldmotion: { name: 'Рух у живих світах', desc: 'легке світло та опади на фоні; вимкніть для статичного екрана', type: 'toggle', on: function () { return ls('tv-world-motion') !== '0'; } },
     bgdim: { name: 'Яскравість фону', desc: 'приглушити мапу чи градієнт під панелями', type: 'opt', val: function () { return (100 - bgDim()) + '%'; }, pos: function () { return [[0, 20, 40, 60].indexOf(bgDim()), 4]; } },
     season: { name: 'Святкове оформлення', desc: 'гірлянда на Новий рік, синьо-жовте у свята', type: 'toggle', on: function () { return H().seasonOn(); } },
     wizard: { name: 'Пройти налаштування знову', desc: 'місто, полиця, дозволи — з самого початку', type: 'act' },
@@ -98,7 +99,7 @@
     android: { name: 'Налаштування Android', desc: 'мережа, звук, екран, програми', type: 'act' },
   };
   var SECTIONS = [
-    { id: 'screen', name: 'Екран', rows: ['editor', 'theme', 'bg', 'layout', 'bgdim', 'season', 'wizard'] },
+    { id: 'screen', name: 'Екран', rows: ['editor', 'theme', 'bg', 'worldmotion', 'layout', 'bgdim', 'season', 'wizard'] },
     { id: 'map', name: 'Карта', side: 'left', rows: ['maplayer', 'map3d', 'notchmap'] },
     { id: 'shelf', name: 'Полиця', apps: true },
     { id: 'data', name: 'Дані', rows: ['city', 'powerq', 'team'] },
@@ -223,7 +224,8 @@
       if (k === 'bgdim') { var l = [0, 20, 40, 60]; ls('tv-bgdim', String(l[(l.indexOf(bgDim()) + dir + 4) % 4])); applyBgDim(); }
       else H().act(k, dir);
     } else if (d.type === 'toggle') {
-      if (k === 'volui') TV.setPref('vol_ui', !TV.pref('vol_ui'));
+      if (k === 'worldmotion') { ls('tv-world-motion', ls('tv-world-motion') === '0' ? '1' : '0'); if (window.Cinema) Cinema.motion(); }
+      else if (k === 'volui') TV.setPref('vol_ui', !TV.pref('vol_ui'));
       else if (k === 'sounds') ls('tv-sounds', ls('tv-sounds') === '0' ? '1' : '0');
       else H().act(k, 0);
     } else {

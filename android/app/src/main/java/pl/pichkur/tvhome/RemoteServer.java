@@ -214,11 +214,20 @@ final class RemoteServer {
             String ipAddr = sock.getInetAddress().getHostAddress();
 
             if (path.equals("/") || path.equals("/index.html")) { sendAsset(out, "web/remote.html", "text/html; charset=utf-8"); return; }
+            if (path.equals("/cinema.js")) { sendAsset(out, "web/cinema.js", "application/javascript"); return; }
+            if (path.equals("/cinema.css")) { sendAsset(out, "web/cinema.css", "text/css"); return; }
             if (path.matches("/fonts/[A-Za-z0-9-]+\\.woff2")) { sendAsset(out, "web" + path, "font/woff2"); return; }
             if (path.equals("/manifest.json")) { sendAsset(out, "web/remote-manifest.json", "application/manifest+json"); return; }
             if (!path.startsWith("/api/")) { send(out, 404, "text/plain", "not found".getBytes()); return; }
             if (!pinOk(ipAddr, args, out)) return;
             String b = new String(body, StandardCharsets.UTF_8);
+            if (path.startsWith("/api/cinema/")) {
+                String action = path.substring("/api/cinema/".length());
+                if (!action.equals("state") && !method.equals("POST")) { json(out, 405, err("POST required")); return; }
+                JSONObject input = b.isEmpty() ? new JSONObject() : new JSONObject(b);
+                if (action.equals("state")) input.put("client", args.getOrDefault("client", ""));
+                json(out, 200, CinemaService.request(app, action, input)); return;
+            }
             switch (path) {
                 case "/api/state": { seen(ipAddr, args.get("name")); JSONObject st = state(); st.put("clients", clientList(ipAddr)); json(out, 200, st); return; }
                 case "/api/text": json(out, 200, text(new JSONObject(b.isEmpty() ? "{}" : b).optString("text", ""))); return;

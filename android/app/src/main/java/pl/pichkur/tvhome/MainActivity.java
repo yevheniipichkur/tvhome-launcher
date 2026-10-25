@@ -537,6 +537,12 @@ public class MainActivity extends Activity {
             });
         }
 
+        @JavascriptInterface
+        public String cinema(String action, String body) {
+            try { return CinemaService.request(MainActivity.this, action, new JSONObject(body)).toString(); }
+            catch (Exception e) { return "{\"ok\":false,\"error\":\"Невірний запит\"}"; }
+        }
+
         /** Settings → Система → Пульт з телефону: address, code, keyboard and debugging state. */
         @JavascriptInterface
         public String remoteInfo() { return RemoteServer.info(MainActivity.this).toString(); }
