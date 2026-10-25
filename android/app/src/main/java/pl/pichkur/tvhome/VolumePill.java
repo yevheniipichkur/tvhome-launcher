@@ -1,5 +1,7 @@
 package pl.pichkur.tvhome;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
@@ -8,118 +10,76 @@ import android.graphics.Path;
 import android.graphics.PixelFormat;
 import android.graphics.RectF;
 import android.graphics.Typeface;
-import android.util.TypedValue;
+import android.os.IBinder;
+import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
 
-/**
- * Volume level as a notch at the top edge (same shape as the alert NotchBanner): a speaker, a bar
- * and the number. Shown by HomeGuardService instead of the system volume panel; it stays while the
- * remote's volume keys are pressed and folds away ~1.6 s after the last one.
- */
+/** Media volume: ink surface, ivory speaker, amber track and the same 0–100% scale as the phone. */
 final class VolumePill extends View {
     private final float d;
-    private final Paint bg = new Paint(Paint.ANTI_ALIAS_FLAG), track = new Paint(Paint.ANTI_ALIAS_FLAG),
-            fill = new Paint(Paint.ANTI_ALIAS_FLAG), icon = new Paint(Paint.ANTI_ALIAS_FLAG), text = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Path path = new Path();
-    private final RectF r = new RectF();
-    private float drop;          // 0 hidden above the edge … 1 attached
-    private float shown;         // animated level 0..1
-    private int level, max = 15;
-    private boolean muted;
-    private ValueAnimator dropAnim, levelAnim;
-
-    VolumePill(Context ctx) {
-        super(ctx);
-        d = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, ctx.getResources().getDisplayMetrics());
-        bg.setColor(0xFF000000);
-        track.setColor(0x33FFFFFF);
-        fill.setColor(0xFFF4A640);
-        icon.setColor(0xFFFFFFFF);
-        icon.setStyle(Paint.Style.STROKE);
-        icon.setStrokeWidth(2.2f * d);
-        icon.setStrokeCap(Paint.Cap.ROUND);
-        icon.setStrokeJoin(Paint.Join.ROUND);
-        text.setColor(0xFFFFFFFF);
-        text.setTextSize(17 * d);
-        text.setTypeface(Typeface.create("sans-serif-medium", Typeface.NORMAL));
-        text.setTextAlign(Paint.Align.RIGHT);
+    private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Path speaker = new Path();
+    private final RectF rect = new RectF();
+    private final Typeface regular = Typeface.create("sans-serif", Typeface.NORMAL), medium = Typeface.create("sans-serif-medium", Typeface.NORMAL);
+    private float shown, reveal;
+    private int percent;
+    private boolean quiet, visibleTarget;
+    private ValueAnimator entrance, level;
+    VolumePill(Context c) { super(c); d = getResources().getDisplayMetrics().scaledDensity; setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES); }
+    static WindowManager.LayoutParams windowParams(Context c, boolean global, IBinder token) {
+        float d = c.getResources().getDisplayMetrics().scaledDensity;
+        float physical = c.getResources().getDisplayMetrics().density;
+        int width = Math.min((int)(360*d), c.getResources().getDisplayMetrics().widthPixels-(int)(48*physical));
+        WindowManager.LayoutParams p = new WindowManager.LayoutParams(width, (int)(104*d), global ? WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY : WindowManager.LayoutParams.TYPE_APPLICATION_PANEL,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN, PixelFormat.TRANSLUCENT);
+        p.gravity = Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL; p.y = (int)(28*physical); p.token = token; p.setTitle("Вітальня · Гучність"); return p;
     }
-
-    static WindowManager.LayoutParams windowParams(Context ctx) {
-        float d = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, ctx.getResources().getDisplayMetrics());
-        WindowManager.LayoutParams lp = new WindowManager.LayoutParams((int) (420 * d), (int) (70 * d),
-                WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-                        | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                PixelFormat.TRANSLUCENT);
-        lp.gravity = Gravity.TOP | Gravity.CENTER_HORIZONTAL;
-        return lp;
+    private boolean motion() { return Settings.Global.getFloat(getContext().getContentResolver(), Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0; }
+    void setLevel(int current, int max, boolean muted) {
+        percent = VolumeScale.percent(current, max, muted); quiet = muted || current == 0;
+        setContentDescription(quiet ? "Гучність: без звуку" : "Гучність: " + percent + " відсотків");
+        if (level != null) level.cancel();
+        float to = percent / 100f;
+        if (!motion() || !visibleTarget) { shown = to; invalidate(); return; }
+        level = ValueAnimator.ofFloat(shown, to); level.setDuration(120); level.setInterpolator(new DecelerateInterpolator());
+        level.addUpdateListener(a -> { shown = (float)a.getAnimatedValue(); invalidate(); }); level.start();
     }
-
-    void setLevel(int level, int max, boolean muted) {
-        this.max = Math.max(1, max);
-        this.muted = muted;
-        float from = shown, to = muted ? 0 : (float) level / this.max;
-        this.level = level;
-        if (levelAnim != null) levelAnim.cancel();
-        levelAnim = ValueAnimator.ofFloat(from, to);
-        levelAnim.setDuration(160);
-        levelAnim.addUpdateListener(a -> { shown = (float) a.getAnimatedValue(); invalidate(); });
-        levelAnim.start();
+    void slide(boolean show, Runnable end) {
+        if (show && visibleTarget) return;
+        visibleTarget = show;
+        if (entrance != null) entrance.cancel();
+        if (!motion()) { reveal = show ? 1 : 0; invalidate(); if (end != null) end.run(); return; }
+        entrance = ValueAnimator.ofFloat(reveal, show ? 1 : 0); entrance.setDuration(show ? 180 : 150); entrance.setInterpolator(new DecelerateInterpolator());
+        entrance.addUpdateListener(a -> { reveal = (float)a.getAnimatedValue(); invalidate(); });
+        entrance.addListener(new AnimatorListenerAdapter() { boolean cancelled; @Override public void onAnimationCancel(Animator a) { cancelled = true; } @Override public void onAnimationEnd(Animator a) { if (!cancelled && end != null) end.run(); } }); entrance.start();
     }
-
-    void slide(boolean in, Runnable end) {
-        if (dropAnim != null) dropAnim.cancel();
-        dropAnim = ValueAnimator.ofFloat(drop, in ? 1 : 0);
-        dropAnim.setDuration(in ? 220 : 260);
-        dropAnim.setInterpolator(new DecelerateInterpolator(2f));
-        dropAnim.addUpdateListener(a -> { drop = (float) a.getAnimatedValue(); invalidate(); });
-        if (end != null) dropAnim.addListener(new android.animation.AnimatorListenerAdapter() {
-            @Override public void onAnimationEnd(android.animation.Animator a) { end.run(); }
-        });
-        dropAnim.start();
+    void cancelAnimations() { if (entrance != null) entrance.cancel(); if (level != null) level.cancel(); }
+    private void color(int color) { paint.setColor(color); paint.setStyle(Paint.Style.FILL); }
+    private void text(Canvas c, String value, float x, float y, int size, boolean bold, Paint.Align align, int color) {
+        color(color); paint.setTypeface(bold ? medium : regular); paint.setTextSize(size*d); paint.setTextAlign(align); c.drawText(value,x*d,y*d,paint);
     }
-
-    @Override
-    protected void onDraw(Canvas c) {
-        float w = 360 * d, h = 46 * d, cx = getWidth() / 2f;
-        float top = -h * (1 - drop) - 2 * d, rad = 22 * d, sh = 10 * d;
-        path.reset();
-        path.moveTo(cx - w / 2 - sh, top);
-        path.quadTo(cx - w / 2, top, cx - w / 2, top + sh);
-        path.lineTo(cx - w / 2, top + h - rad);
-        r.set(cx - w / 2, top + h - 2 * rad, cx - w / 2 + 2 * rad, top + h);
-        path.arcTo(r, 180, -90);
-        path.lineTo(cx + w / 2 - rad, top + h);
-        r.set(cx + w / 2 - 2 * rad, top + h - 2 * rad, cx + w / 2, top + h);
-        path.arcTo(r, 90, -90);
-        path.lineTo(cx + w / 2, top + sh);
-        path.quadTo(cx + w / 2, top, cx + w / 2 + sh, top);
-        path.close();
-        c.drawPath(path, bg);
-        float mid = top + h / 2f + 2 * d, x0 = cx - w / 2 + 26 * d;
-        // speaker
-        Path sp = new Path();
-        sp.moveTo(x0, mid - 4 * d); sp.lineTo(x0 + 5 * d, mid - 4 * d); sp.lineTo(x0 + 11 * d, mid - 9 * d);
-        sp.lineTo(x0 + 11 * d, mid + 9 * d); sp.lineTo(x0 + 5 * d, mid + 4 * d); sp.lineTo(x0, mid + 4 * d); sp.close();
-        c.drawPath(sp, icon);
-        if (muted || level == 0) {
-            c.drawLine(x0 + 16 * d, mid - 5 * d, x0 + 26 * d, mid + 5 * d, icon);
-            c.drawLine(x0 + 26 * d, mid - 5 * d, x0 + 16 * d, mid + 5 * d, icon);
-        } else {
-            r.set(x0 + 9 * d, mid - 6 * d, x0 + 21 * d, mid + 6 * d);
-            c.drawArc(r, -50, 100, false, icon);
-            if (shown > 0.5f) { r.set(x0 + 9 * d, mid - 11 * d, x0 + 29 * d, mid + 11 * d); c.drawArc(r, -50, 100, false, icon); }
-        }
-        // bar + number
-        float bx = x0 + 40 * d, bw = w - 40 * d - 26 * d - 40 * d;
-        r.set(bx, mid - 3 * d, bx + bw, mid + 3 * d);
-        c.drawRoundRect(r, 3 * d, 3 * d, track);
-        r.set(bx, mid - 3 * d, bx + bw * shown, mid + 3 * d);
-        c.drawRoundRect(r, 3 * d, 3 * d, fill);
-        c.drawText(muted ? "—" : String.valueOf(level), cx + w / 2 - 22 * d, mid + 6 * d, text);
+    @Override protected void onDraw(Canvas c) {
+        if (reveal <= 0) return;
+        float w = getWidth()/d;
+        c.save(); c.translate(0,(1-reveal)*10*d); c.saveLayerAlpha(0,0,getWidth(),getHeight(),Math.round(reveal*255));
+        color(0xF517202C); rect.set(0,0,getWidth(),96*d); c.drawRoundRect(rect,16*d,16*d,paint);
+        color(0xFFF3EEE4); paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(1.8f); paint.setStrokeCap(Paint.Cap.ROUND); paint.setStrokeJoin(Paint.Join.ROUND);
+        c.save(); c.translate(22*d,22*d); c.scale(d,d);
+        speaker.reset(); speaker.moveTo(2,8); speaker.lineTo(6,8); speaker.lineTo(12,3); speaker.lineTo(12,21); speaker.lineTo(6,16); speaker.lineTo(2,16); speaker.close(); c.drawPath(speaker,paint);
+        // Canvas was scaled to density; keep the icon stroke at 1.8 logical pixels.
+        paint.setStrokeWidth(1.8f);
+        if (quiet) { c.drawLine(17,8,23,16,paint); c.drawLine(23,8,17,16,paint); }
+        else { rect.set(12,6,22,18); c.drawArc(rect,-55,110,false,paint); if (percent>50) { rect.set(11,2,29,22); c.drawArc(rect,-50,100,false,paint); } }
+        c.restore();
+        text(c,"Гучність",62,31,16,true,Paint.Align.LEFT,0xFFF3EEE4);
+        text(c,quiet ? "Без звуку" : "Приставка",62,49,12,false,Paint.Align.LEFT,0xFFB1BAC8);
+        text(c,percent+"%",w-22,39,24,true,Paint.Align.RIGHT,0xFFF3EEE4);
+        float x=22*d,y=70*d,bw=getWidth()-44*d;
+        color(0xFF34404E);rect.set(x,y,x+bw,y+6*d);c.drawRoundRect(rect,3*d,3*d,paint);
+        if (shown>0) { color(quiet ? 0xFFB1BAC8 : 0xFFF4A640);rect.set(x,y,x+bw*shown,y+6*d);c.drawRoundRect(rect,3*d,3*d,paint); }
+        c.restore();c.restore();
     }
 }

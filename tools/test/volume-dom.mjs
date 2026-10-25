@@ -1,0 +1,31 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+const {Window}=await import(process.env.HAPPY_DOM_PATH?pathToFileURL(process.env.HAPPY_DOM_PATH).href:'happy-dom');
+const root=path.resolve(import.meta.dirname,'../..');
+const html=fs.readFileSync(path.join(root,'web/remote.html'),'utf8');
+const w=new Window({settings:{disableJavaScriptEvaluation:true,disableJavaScriptFileLoading:true,disableCSSFileLoading:true}});
+w.document.body.innerHTML=html.slice(html.indexOf('<body>')+6,html.lastIndexOf('</body>'));
+w.eval(fs.readFileSync(path.join(root,'web/volume.js'),'utf8'));
+const panel=w.document.getElementById('volume'),input=panel.querySelector('input');
+const calls=[];const api=(url)=>new Promise((resolve,reject)=>calls.push({url,resolve,reject}));
+const control=w.VolumeRemote(panel,api,()=>{});
+const state=(vol=8,more={})=>({ok:true,vol,volMax:15,muted:false,volFixed:false,...more});
+const flush=async()=>{for(let i=0;i<4;i++)await new Promise(r=>setImmediate(r));};
+const edit=v=>{input.value=v;input.dispatchEvent(new w.Event('input'));};
+try{
+ assert(input.disabled);control.sync(state(),0);assert(!input.disabled);assert.equal(panel.querySelector('output').textContent,'53%');
+ edit(10);edit(12);edit(14);assert.equal(calls.length,1,'one in-flight slider command');
+ control.sync(state(1),0);assert.equal(input.value,'14','old poll cannot overwrite local intent');
+ calls[0].resolve(state(10));await flush();assert.equal(calls.length,2);assert.equal(calls[1].url,'vol?v=14','latest queued slider intent wins');
+ calls[1].resolve(state(14));await flush();assert.equal(panel.querySelector('output').textContent,'93%');
+ control.key('mute');calls[2].resolve(state(14,{muted:true}));await flush();assert.equal(panel.querySelector('output').textContent,'0%');assert.equal(input.value,'0');assert.equal(panel.querySelector('[data-volume="mute"]').getAttribute('aria-pressed'),'true');
+ edit(6);calls[3].resolve(state(6));await flush();assert.equal(panel.querySelector('output').textContent,'40%');assert.equal(panel.querySelector('[data-volume="mute"]').getAttribute('aria-pressed'),'false');
+ edit(9);calls[4].reject(new Error('offline'));await flush();assert.equal(input.value,'6','failed command restores confirmed level');assert(panel.querySelector('.volume-message').textContent.includes('Не вдалося'));
+ control.sync(state(6,{volFixed:true}),control.revision());assert(input.disabled);assert([...panel.querySelectorAll('button')].every(b=>b.disabled));const before=calls.length;control.key('volup');assert.equal(calls.length,before,'fixed output cannot send changes');
+ control.sync(state(6),control.revision());control.offline();assert(input.disabled);control.sync(state(7),control.revision());assert(!input.disabled);assert.equal(panel.querySelector('output').textContent,'47%');
+ control.key('volup');control.key('volup');calls[5].resolve(state(8));await flush();assert.equal(calls[6].url,'key?k=volup');calls[6].resolve(state(9));await flush();assert.equal(panel.querySelector('output').textContent,'60%');
+ assert(input.getAttribute('aria-valuetext').includes('60'));assert.equal(input.type,'range');assert.equal(input.step,'1');
+ console.log('Volume DOM passed: shared percent, coalesced slider, ordered keys, stale polls, mute/unmute, rollback, fixed output, reconnect and native range accessibility.');
+}finally{await w.happyDOM.close();}

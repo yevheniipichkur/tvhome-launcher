@@ -10,6 +10,7 @@
 <title>Пульт «Вітальні»</title>
 <link rel="stylesheet" href="/cinema.css">
 <script src="/cinema.js" defer></script>
+<script src="/volume.js"></script>
 <style>
 @font-face { font-family: 'Fixel Display'; src: url(fonts/FixelDisplay-Medium.woff2) format('woff2'); font-weight: 500; }
 @font-face { font-family: 'Fixel Text'; src: url(fonts/FixelText-Regular.woff2) format('woff2'); font-weight: 400; }
@@ -197,14 +198,29 @@ body.touch .tp { display: block; animation: rise .5s var(--out) both; } body.tou
 .row .btn svg { color: var(--ivory); width: 23px; height: 23px; }
 .row .btn.big svg { width: 28px; height: 28px; }
 
-/* volume: drag the bar */
-.vol { display: grid; grid-template-columns: 50px 1fr 50px; align-items: center; gap: 12px; }
-.vol .btn { height: 50px; border-radius: 15px; }
-.vtrack { position: relative; height: 44px; border-radius: 14px; background: rgba(5,8,13,.55); border: 1px solid var(--edge); overflow: hidden; touch-action: none; }
-.vfill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, rgba(244,166,64,.35), var(--amber)); transition: width .25s var(--out); }
-.vtrack.drag .vfill { transition: none; }
-.vlab { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: var(--ivory); text-shadow: 0 1px 6px rgba(0,0,0,.6); pointer-events: none; }
-.vlab b { font-family: 'Fixel Display', sans-serif; font-weight: 500; font-size: 18px; }
+/* One media-volume language shared with the native TV panel. */
+.volume-panel { background: #17202c; padding: 20px; border-radius: 16px; margin-top: 18px; }
+.volume-head { display: flex; align-items: center; gap: 12px; }
+.volume-mute { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 12px; background: #273341; flex-shrink: 0; }
+.volume-mute svg { width: 25px; height: 25px; }
+.volume-title { flex: 1; min-width: 0; font-weight: 500; font-size: 16px; }
+.volume-state { display: block; color: #b1bac8; font-size: 12px; font-weight: 400; line-height: 1.4; margin-top: 3px; }
+.volume-panel output { font-size: 28px; font-family: 'Fixel Display', sans-serif; font-variant-numeric: tabular-nums; }
+.volume-controls { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.volume-step { width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; border-radius: 12px; background: #273341; }
+.volume-step svg { width: 20px; height: 20px; }
+.volume-range { --volume-fill: 0%; -webkit-appearance: none; appearance: none; flex: 1; width: 0; min-width: 0; height: 44px; margin: 0; background: transparent; cursor: pointer; touch-action: pan-y; }
+.volume-range::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: linear-gradient(to right, #f4a640 var(--volume-fill), #465363 var(--volume-fill)); }
+.volume-range::-moz-range-track { height: 6px; border-radius: 3px; background: #465363; }
+.volume-range::-moz-range-progress { height: 6px; border-radius: 3px; background: #f4a640; }
+.volume-range::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -9px; border: 0; border-radius: 50%; background: #f3eee4; box-shadow: 0 2px 6px #0005; }
+.volume-range::-moz-range-thumb { width: 24px; height: 24px; border: 0; border-radius: 50%; background: #f3eee4; box-shadow: 0 2px 6px #0005; }
+.volume-panel button:focus-visible,.volume-range:focus-visible { outline: 2px solid #f3eee4; outline-offset: 3px; }
+.volume-panel button:not(:disabled):active { background: #34404e; }
+.volume-panel button:disabled,.volume-range:disabled { opacity: .4; cursor: default; }
+.volume-message { margin: 8px 0 0; font-size: 13px; line-height: 1.45; color: #ffb4a6; }
+.volume-message:empty { display: none; }
+.volume-panel.is-muted .volume-mute { color: #f4a640; }
 
 /* apps */
 h2 { display: flex; align-items: center; gap: 10px; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); font-weight: 500; margin: 18px 4px 12px; }
@@ -305,12 +321,18 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
     <button class="btn big" data-k="playpause"><svg viewBox="0 0 24 24"><path d="M7 5v14l11-7z"/></svg>Пауза</button>
     <button class="btn" data-k="next"><svg viewBox="0 0 24 24"><path d="M18 5v14M5 5l10 7-10 7z"/></svg>Далі</button>
   </div>
-  <section class="card rise" style="animation-delay:.32s">
-    <div class="vol">
-      <button class="btn" data-k="voldown" aria-label="Тихіше"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 12h4"/></svg></button>
-      <div class="vtrack" id="vt"><div class="vfill" id="vf"></div><div class="vlab"><svg viewBox="0 0 24 24" style="width:18px;height:18px"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9a4 4 0 0 1 0 6"/></svg><b id="vn">—</b><span id="vm"></span></div></div>
-      <button class="btn" data-k="volup" aria-label="Гучніше"><svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 12h4M19 10v4"/></svg></button>
+  <section class="volume-panel" id="volume" aria-label="Гучність приставки">
+    <div class="volume-head">
+      <button class="volume-mute" data-volume="mute" aria-label="Вимкнути звук" aria-pressed="false" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h4l5-4v14l-5-4H3z"/><path d="M16 8a5 5 0 0 1 0 8m3-11a9 9 0 0 1 0 14"/></svg></button>
+      <div class="volume-title">Гучність<span class="volume-state">Підключення…</span></div>
+      <output aria-hidden="true">—</output>
     </div>
+    <div class="volume-controls">
+      <button class="volume-step" data-volume="voldown" aria-label="Тихіше" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+      <input class="volume-range" type="range" min="0" max="15" value="0" step="1" aria-label="Гучність приставки" disabled>
+      <button class="volume-step" data-volume="volup" aria-label="Гучніше" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg></button>
+    </div>
+    <p class="volume-message" role="status" aria-live="polite"></p>
   </section>
 
   <h2 class="rise" style="animation-delay:.34s">На телевізор</h2>
@@ -419,6 +441,7 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
     off: 'Стрілки й ОК зараз працюють на головному екрані «Вітальні». Щоб керувати ними в YouTube, Lampa та інших програмах, увімкніть на приставці «Налагодження по мережі» (Налаштування → Параметри розробника).',
   };
   function key(k) {
+    if (k === 'volup' || k === 'voldown' || k === 'mute') { volumeControl.key(k); return; }
     buzz();
     api('key?k=' + k, { method: 'POST' }).then(function (r) {
       if (!r.ok && r.error === 'adb') showNote('off');
@@ -517,22 +540,7 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
   try { setMode(localStorage.getItem('vit-mode') === 'tp'); } catch (e) {}
   window.addEventListener('resize', sizeCanvas);
 
-  // ---------- volume: drag the bar to an exact level ----------
-  var volDrag = false;
-  (function () {
-    var vt = $('vt'), sendT;
-    function at(x) { var r = vt.getBoundingClientRect(); return Math.max(0, Math.min(1, (x - r.left) / r.width)); }
-    function set(f) {
-      if (!state.volMax) return;
-      var v = Math.round(f * state.volMax);
-      $('vf').style.width = (v / state.volMax * 100) + '%'; $('vn').textContent = v; $('vm').textContent = '/ ' + state.volMax;
-      clearTimeout(sendT); sendT = setTimeout(function () { api('vol?v=' + v, { method: 'POST' }).catch(function () {}); }, 60);
-    }
-    vt.addEventListener('pointerdown', function (e) { volDrag = true; vt.classList.add('drag'); try { vt.setPointerCapture(e.pointerId); } catch (x) {} set(at(e.clientX)); buzz(); });
-    vt.addEventListener('pointermove', function (e) { if (volDrag) set(at(e.clientX)); });
-    vt.addEventListener('pointerup', function () { volDrag = false; vt.classList.remove('drag'); });
-    vt.addEventListener('pointercancel', function () { volDrag = false; vt.classList.remove('drag'); });
-  })();
+  var volumeControl = VolumeRemote($('volume'), api, buzz);
 
   // ---------- keyboard: the whole text is sent as you type (the TV field mirrors it) ----------
   var txt = $('txt'), sendT = null;
@@ -657,6 +665,7 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
   var wasEditing = false;
   function poll() {
     if (!pin) return;
+    var volumeRevision = volumeControl.revision();
     api('state?x=1' + nameParam()).then(function (s) {
       state = s;
       $('conn').className = 'conn on'; $('st').textContent = s.model || 'на зв’язку';
@@ -681,7 +690,7 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
         $('mubar').style.width = (mu.dur ? Math.round(mu.pos / mu.dur * 100) : 0) + '%';
         $('muI').innerHTML = mu.playing ? '<path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor" stroke="none"/>' : '<path d="M8 5v14l11-7z" fill="currentColor" stroke="none"/>';
       }
-      if (s.volMax && !volDrag) { $('vf').style.width = Math.round((s.muted ? 0 : s.vol) / s.volMax * 100) + '%'; $('vn').textContent = s.muted ? 'без звуку' : s.vol; $('vm').textContent = s.muted ? '' : '/ ' + s.volMax; }
+      volumeControl.sync(s, volumeRevision);
       if (s.adb === 'asking') showNote('asking'); else if (s.adb === 'ok') $('note').classList.remove('on');
       if (!s.imeCurrent && !s.editing) kbHint('warn', 'Щоб писати з телефону, на телевізорі виберіть клавіатуру «Вітальня» (Налаштування → Телефон)');
       else if (s.editing) {
@@ -691,7 +700,7 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
         lastField = s.fieldText;
       } else { kbHint('', 'Виберіть поле на телевізорі — і пишіть тут'); lastField = null; }
       wasEditing = !!s.editing;
-    }).catch(function (e) { if (e.message !== 'pin') { $('conn').className = 'conn off'; $('st').textContent = 'немає зв’язку'; } });
+    }).catch(function (e) { volumeControl.offline(); if (e.message !== 'pin') { $('conn').className = 'conn off'; $('st').textContent = 'немає зв’язку'; } });
   }
   function loadApps() {
     if (!pin) return;

@@ -22,12 +22,19 @@ workflows:
         script: |
           chmod +x gradlew
           ./gradlew :app:assembleFullRelease :app:assembleLiteRelease
-      - name: Check TV match screen
+      - name: Check TV and remote controls
         script: |
           set -eu
           npm install --prefix "$CM_BUILD_DIR/.ci-web" --ignore-scripts playwright@1.62.1
           "$CM_BUILD_DIR/.ci-web/node_modules/.bin/playwright" install chromium
           PLAYWRIGHT_PATH="$CM_BUILD_DIR/.ci-web/node_modules/playwright" node tools/test/cinema-celebration-ui.cjs
+          PLAYWRIGHT_PATH="$CM_BUILD_DIR/.ci-web/node_modules/playwright" node tools/test/volume-ui.cjs
+          mkdir -p "$CM_BUILD_DIR/.ci-volume"
+          javac -d "$CM_BUILD_DIR/.ci-volume" android/app/src/main/java/pl/pichkur/tvhome/VolumeScale.java tools/test/VolumeScaleTest.java
+          java -cp "$CM_BUILD_DIR/.ci-volume" pl.pichkur.tvhome.VolumeScaleTest
+          curl --fail --silent --show-error https://repo.maven.apache.org/maven2/org/json/json/20250517/json-20250517.jar -o "$CM_BUILD_DIR/.ci-volume/json.jar"
+          javac -cp "$CM_BUILD_DIR/.ci-volume/json.jar" -d "$CM_BUILD_DIR/.ci-volume/controller" $(find tools/test/volume-support -name '*.java') android/app/src/main/java/pl/pichkur/tvhome/MediaVolume.java android/app/src/main/java/pl/pichkur/tvhome/VolumeScale.java tools/test/MediaVolumeTest.java
+          java -cp "$CM_BUILD_DIR/.ci-volume/controller:$CM_BUILD_DIR/.ci-volume/json.jar" pl.pichkur.tvhome.MediaVolumeTest
     artifacts:
       - android/app/build/outputs/apk/*/release/*.apk
-      - .impeccable/review/celebration-*.png
+      - .impeccable/review/*.png

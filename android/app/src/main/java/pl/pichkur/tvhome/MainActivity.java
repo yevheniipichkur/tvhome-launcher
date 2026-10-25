@@ -71,6 +71,20 @@ public class MainActivity extends Activity {
     private WebView web;
     static volatile MainActivity instance;
 
+    private final MediaVolume.Keys volumeKeys = new MediaVolume.Keys();
+    private VolumeOverlay volumeOverlay;
+    void showVolumeNow() {
+        ui.post(() -> {
+            if (!HomeGuardService.homeInFront || isFinishing()) return;
+            if (volumeOverlay == null) volumeOverlay = new VolumeOverlay(this, false, () -> getWindow().getDecorView().getWindowToken());
+            volumeOverlay.show();
+        });
+    }
+    @Override public boolean dispatchKeyEvent(android.view.KeyEvent event) {
+        if (volumeKeys.handle(this, event)) return true;
+        return super.dispatchKeyEvent(event);
+    }
+
     /** A notch toast on the home screen (setup.js TVS.toast). */
     void webToast(String icon, String title, String sub) {
         org.json.JSONArray args = new org.json.JSONArray().put(icon).put(title).put(sub);
@@ -243,6 +257,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onPause() {
         HomeGuardService.homeInFront = false;
+        volumeKeys.clear();
+        if (volumeOverlay != null) volumeOverlay.close();
         // Another app is in front: stop the page entirely (JS timers, animations, rendering) so video
         // gets the whole box. DataService keeps running in Java for the alert notch.
         if (web != null) { web.evaluateJavascript("document.body.classList.add('bg-paused')", null); web.onPause(); web.pauseTimers(); }
@@ -653,17 +669,11 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String volume() {
-            android.media.AudioManager am = (android.media.AudioManager) getSystemService(AUDIO_SERVICE);
-            if (am == null) return "{}";
-            return "{\"cur\":" + am.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) + ",\"max\":" + am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC)
-                    + ",\"fixed\":" + am.isVolumeFixed() + "}";
+            return MediaVolume.snapshot(MainActivity.this).toString();
         }
 
         @JavascriptInterface
-        public void setVolume(int v) {
-            android.media.AudioManager am = (android.media.AudioManager) getSystemService(AUDIO_SERVICE);
-            if (am != null) am.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, Math.max(0, Math.min(v, am.getStreamMaxVolume(android.media.AudioManager.STREAM_MUSIC))), 0);
-        }
+        public void setVolume(int v) { MediaVolume.change(MainActivity.this, v, 0); }
 
         @JavascriptInterface
         public void setPref(String key, boolean on) { if ("vol_ui".equals(key)) prefs().edit().putBoolean(key, on).apply(); }

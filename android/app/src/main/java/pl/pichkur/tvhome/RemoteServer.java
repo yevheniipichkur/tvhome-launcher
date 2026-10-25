@@ -215,6 +215,7 @@ final class RemoteServer {
 
             if (path.equals("/") || path.equals("/index.html")) { sendAsset(out, "web/remote.html", "text/html; charset=utf-8"); return; }
             if (path.equals("/tmdb-logo.svg")) { sendAsset(out, "web/tmdb-logo.svg", "image/svg+xml"); return; }
+            if (path.equals("/volume.js")) { sendAsset(out, "web/volume.js", "application/javascript"); return; }
             if (path.equals("/cinema.js")) { sendAsset(out, "web/cinema.js", "application/javascript"); return; }
             if (path.equals("/cinema.css")) { sendAsset(out, "web/cinema.css", "text/css"); return; }
             if (path.matches("/fonts/[A-Za-z0-9-]+\\.woff2")) { sendAsset(out, "web" + path, "font/woff2"); return; }
@@ -244,11 +245,8 @@ final class RemoteServer {
                 case "/api/open": json(out, 200, open(args.get("url"))); return;
                 case "/api/seek": json(out, 200, seek(args)); return;
                 case "/api/vol": {
-                    // the phone's volume slider: an exact level
-                    AudioManager am = (AudioManager) app.getSystemService(Context.AUDIO_SERVICE);
                     int v = Integer.parseInt(args.getOrDefault("v", "-1"));
-                    if (am != null && v >= 0) { am.setStreamVolume(AudioManager.STREAM_MUSIC, Math.min(v, am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)), 0); HomeGuardService g = HomeGuardService.instance; if (g != null) g.showVolumeNow(); }
-                    json(out, 200, ok());
+                    json(out, 200, v < 0 ? err("volume") : MediaVolume.change(app, v, 0));
                     return;
                 }
                 case "/api/launch": json(out, 200, launch(args.get("pkg"))); return;
@@ -401,7 +399,8 @@ final class RemoteServer {
         o.put("adb", adbState);
         o.put("home", HomeGuardService.homeInFront);
         AudioManager am = (AudioManager) app.getSystemService(Context.AUDIO_SERVICE);
-        if (am != null) { o.put("vol", am.getStreamVolume(AudioManager.STREAM_MUSIC)); o.put("volMax", am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)); o.put("muted", am.isStreamMute(AudioManager.STREAM_MUSIC)); }
+        JSONObject volume = MediaVolume.snapshot(app);
+        for (String field : new String[]{"vol", "volMax", "muted", "volFixed", "volPercent"}) if (volume.has(field)) o.put(field, volume.get(field));
         try {
             MediaSessionManager msm = (MediaSessionManager) app.getSystemService(Context.MEDIA_SESSION_SERVICE);
             List<MediaController> list = msm.getActiveSessions(new ComponentName(app, MediaListener.class));
@@ -532,10 +531,7 @@ final class RemoteServer {
         switch (k) {
             case "volup": case "voldown": case "mute": {
                 int dir = k.equals("volup") ? AudioManager.ADJUST_RAISE : k.equals("voldown") ? AudioManager.ADJUST_LOWER : AudioManager.ADJUST_TOGGLE_MUTE;
-                am.adjustStreamVolume(AudioManager.STREAM_MUSIC, dir, 0);
-                HomeGuardService g = HomeGuardService.instance;
-                if (g != null) g.showVolumeNow();
-                return ok();
+                return MediaVolume.change(app, null, dir);
             }
             case "playpause": case "next": case "prev": case "ff": case "rew": {
                 // media keys reach the playing app without any permission

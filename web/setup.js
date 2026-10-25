@@ -92,7 +92,7 @@
     team: { name: 'Футбол', desc: 'матчі в рядку новин і в блоці «Футбол»', type: 'opt', val: function () { return legacy('team'); }, pos: function () { var l = H().TEAMS(), c = ls('tv-team') || ''; return [idxOf(l, function (t) { return t[0] === c; }), l.length]; } },
     speed: { name: 'Швидкість інтернету', desc: 'завантаження й пінг (Cloudflare)', type: 'act', val: function () { return legacy('net'); } },
     freemem: { name: 'Звільнити пам’ять', desc: 'закрити фонові програми, якщо приставка гальмує', type: 'act', val: function () { return lastFree || ''; } },
-    volui: { name: 'Гучність у «чубчику»', desc: 'своя шкала гучності замість системної', type: 'toggle', full: true, on: function () { return !!(TV && TV.pref && TV.pref('vol_ui')); } },
+    volui: { name: 'Панель гучності «Вітальні»', desc: 'єдина шкала на ТВ і в пульті; поверх програм потрібна служба «Вітальня»', type: 'toggle', full: true, on: function () { return !!(TV && TV.pref && TV.pref('vol_ui')); } },
     sounds: { name: 'Звуки меню', desc: 'тихе клацання при русі по меню', type: 'toggle', on: function () { return ls('tv-sounds') !== '0'; } },
     perms: { name: 'Дозволи', desc: 'головний екран, спецможливості, сповіщення', type: 'act', val: function () { var p = permState(), ok = p.filter(function (x) { return x.ok; }).length; return ok + ' з ' + p.length; } },
     update: { name: 'Оновлення', desc: 'нові версії з tvhome.pichkur.com', type: 'act', val: function () { return legacy('update'); } },
@@ -292,7 +292,7 @@
   function qRows() {
     var r = [];
     var v = TV && TV.volume ? vol() : null;
-    if (v && !v.fixed) r.push({ k: 'vol', name: 'Гучність', type: 'opt', val: function () { var x = vol(); return x ? x.cur + ' / ' + x.max : ''; }, bar: function () { var x = vol(); return x ? x.cur / x.max : 0; } });
+    if (v && !v.fixed) r.push({ k: 'vol', name: 'Гучність', type: 'opt', val: function () { var x = vol(); return x ? (x.muted ? 'Без звуку' : Math.round(100 * x.cur / Math.max(1, x.max)) + '%') : ''; }, bar: function () { var x = vol(); return x ? (x.muted ? 0 : x.cur / Math.max(1, x.max)) : 0; } });
     r.push({ k: 'maplayer' }, { k: 'layout' }, { k: 'theme' }, { k: 'bgdim' }, { k: 'sounds' });
     var w = H().wifi ? H().wifi() : null;
     r.push({ k: 'wifi', name: 'Мережа', type: 'act', val: function () { return w ? (w.type === 'ethernet' ? 'Ethernet' : w.ssid || 'Wi‑Fi') : ''; } });
@@ -319,7 +319,7 @@
   function quickAct(dir) {
     var r = qRows()[qk.i];
     if (!r) return;
-    if (r.k === 'vol') { var v = vol(); if (v) { TV.setVolume(v.cur + (dir || 1)); var n = vol(); toast('volui', 'Гучність ' + n.cur + ' / ' + n.max); } }
+    if (r.k === 'vol') { var v = vol(); if (v) { TV.setVolume(v.cur + (dir || 1));  } }
     else if (r.k === 'wifi') { if (!dir) { quickClose(); TV && TV.openSettings && TV.openSettings('wifi'); } return; }
     else if (r.k === 'editor') { if (!dir) { quickClose(); if (window.TVC) TVC.open(); } return; }
     else if (r.k === 'phone') { if (!dir) { quickClose(); open(); st.sec = idxOf(SECTIONS, function (x) { return x.id === 'phone'; }); renderSettings(); } return; }
