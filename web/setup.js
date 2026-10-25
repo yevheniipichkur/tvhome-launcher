@@ -13,6 +13,7 @@
   function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
 
   var IC = {
+    cinema: '<rect x="3" y="4" width="18" height="16" rx="3"/><path d="M8 4v16M16 4v16M3 9h5M3 15h5M16 9h5M16 15h5"/>',
     screen: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>',
     map: '<path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2z"/><path d="M9 4v14M15 6v14"/>',
     shelf: '<rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/>',
@@ -74,6 +75,7 @@
   function vol() { try { return JSON.parse(TV.volume()); } catch (e) { return null; } }
 
   var ROWS = {
+    cinema: { name: 'Кіновечір удвох', desc: 'оберіть спільний фільм із двох телефонів', type: 'act' },
     editor: { name: 'Конструктор екрана', desc: 'блоки, кольори, годинник, шрифт, полиця', type: 'act' },
     theme: { name: 'Тема', desc: 'кольори й настрій усього екрана', type: 'opt', val: function () { return legacy('theme'); }, pos: function () { var l = H().THEMES(), c = H().themeId(); return [idxOf(l, function (t) { return t.id === c; }), l.length]; } },
     bg: { name: 'Фон', desc: 'живі світи, мапа міста або градієнт', type: 'opt', val: function () { return legacy('bg'); }, pos: function () { var l = H().BG_CHOICES(); return [l.indexOf(H().bgChoice()), l.length]; } },
@@ -103,7 +105,7 @@
     { id: 'map', name: 'Карта', side: 'left', rows: ['maplayer', 'map3d', 'notchmap'] },
     { id: 'shelf', name: 'Полиця', apps: true },
     { id: 'data', name: 'Дані', rows: ['city', 'powerq', 'team'] },
-    { id: 'phone', name: 'Телефон', rows: ['kbd', 'adbctl'], remote: true },
+    { id: 'phone', name: 'Телефон', rows: ['cinema', 'kbd', 'adbctl'], remote: true },
     { id: 'system', name: 'Система', rows: ['speed', 'freemem', 'volui', 'sounds', 'perms', 'update', 'android'], about: true },
   ];
   function idxOf(list, f) { for (var i = 0; i < list.length; i++) if (f(list[i])) return i; return 0; }
@@ -230,6 +232,7 @@
       else H().act(k, 0);
     } else {
       if (dir) { if (dir < 0) { st.area = 'nav'; renderSettings(); } return; }
+      if (k === 'cinema') { close(); if (window.Cinema) Cinema.openTV(); return; }
       if (k === 'editor') { close(); if (window.TVC) TVC.open(); return; }
       if (k === 'wizard') { close(); wizard(); return; }
       if (k === 'perms') { close(); wizard('perms'); return; }

@@ -84,5 +84,26 @@ try{
   }
   assert.equal(new Set(catalog.map(f=>f.id)).size,catalog.length);assert.equal(catalog.length,24);
   for(const f of catalog){assert(/^\d+$/.test(f.id));assert(f.title&&f.description&&f.minutes>0);}
+  // Regression: the actual home screen must expose the entry before even a very long app shelf.
+  const home = new Window({url:'http://tvhome.test/',settings:{disableJavaScriptFileLoading:true,disableCSSFileLoading:true}});windows.push(home);
+  home.document.body.innerHTML=fs.readFileSync(path.join(root,'web/index.html'),'utf8').match(/<body[^>]*>([\s\S]*)<\/body>/)[1];
+  const manyApps=Array.from({length:20},(_,i)=>({pkg:'test.app.'+i,label:'App '+i,tv:true}));
+  home.TV_CONFIG={favorites:manyApps.map(a=>a.pkg),hidden:[]};
+  home.TV={apps:()=>JSON.stringify(manyApps),appsVersion:()=>1,watchNext:()=> '[]',media:()=> '{}',wifi:()=>'{"type":"wifi","level":3}',isLite:()=>true,updateInfo:()=> '{}',isDefaultHome:()=>true,a11yEnabled:()=>true,launch:()=>{},sound:()=>{}};
+  home.XMLHttpRequest=class {open(){}send(){}setRequestHeader(){}};
+  home.fetch=()=>Promise.reject(new Error('offline fixture'));
+  home.eval(fs.readFileSync(path.join(root,'web/app.js'),'utf8'));
+  const entry=select(home,'#track').firstElementChild;
+  assert.equal(entry.dataset.action,'cinema','cinema is before all 20 favorite apps');
+  assert.equal(entry.querySelector('.cinema-label').textContent,'Кіновечір');
+  assert.equal(select(home,'#track').querySelectorAll('[data-action="cinema"]').length,1,'no duplicate icon at end');
+  let openings=0;home.Cinema={openTV:()=>openings++};entry.click();assert.equal(openings,1);
+  home.TVC={sysHidden:()=>true};home.TVH.buildDock();assert.equal(select(home,'#track').firstElementChild.dataset.action,'cinema','hidden system shortcuts do not hide cinema');
+  home.eval(fs.readFileSync(path.join(root,'web/setup.js'),'utf8'));
+  home.TVS.open();
+  const key=k=>home.dispatchEvent(new home.KeyboardEvent('keydown',{key:k,bubbles:true}));
+  for(let i=0;i<4;i++)key('ArrowDown');key('ArrowRight');
+  assert(select(home,'.sv-row.focus').textContent.includes('Кіновечір удвох'),'settings > phone exposes movie night');
+  key('Enter');assert.equal(openings,2,'settings shortcut opens cinema');
   console.log('DOM behavior passed: private selection UI, two phones, name/focus retention, error retry, match, undo, reconnect, third viewer, PIN recovery, reset confirmation, TV navigation/back, motion preference, 3 scene assets, 24 unique films. No visual/layout claims.');
 }finally{await Promise.all(windows.map(w=>w.happyDOM.abort()));}

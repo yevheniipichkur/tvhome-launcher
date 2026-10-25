@@ -117,3 +117,11 @@
 .cn-panel { scrollbar-color: #536070 var(--cn-bg); scrollbar-width: thin; }
 @media (max-width: 360px) { .cn-phone .cn-shell { padding-left: 14px; padding-right: 14px; } .cn-vote button { font-size: 12px; } .cn-phone h1 { font-size: 30px; } }
 @media (prefers-reduced-motion: reduce) { .world-light,.wx-fx i { animation: none !important; } .world-image,.cn-vote button { transition: none !important; } }
+
+/* Keep the entry readable with app captions off and every shelf size/layout. */
+.tile.cinema-shortcut { display: flex; flex-direction: column; justify-content: center; gap: 10px; background: #211d17; color: #f3eee4; font-family: 'Fixel Display',sans-serif; }
+.tile.cinema-shortcut svg { width: 34px; height: 34px; flex-shrink: 0; fill: none; stroke: #f4a640; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.tile.cinema-shortcut .cinema-label { display: block; font-size: 21px; line-height: 1.15; font-weight: 500; }
+body.shelf-s .tile.cinema-shortcut { gap: 6px; }
+body.shelf-s .tile.cinema-shortcut svg { width: 27px; height: 27px; }
+body.shelf-s .tile.cinema-shortcut .cinema-label { font-size: 18px; }

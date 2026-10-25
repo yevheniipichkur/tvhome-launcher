@@ -940,10 +940,17 @@
     var fav = dockList();
     var byPkg = {};
     apps.forEach(function (a) { byPkg[a.pkg] = a; });
+    // A named entry before apps stays discoverable even when a long shelf scrolls off screen.
+    var cinema = document.createElement('button');
+    cinema.className = 'tile cinema-shortcut';
+    cinema.setAttribute('data-action', 'cinema');
+    cinema.setAttribute('aria-label', 'Кіновечір удвох');
+    cinema.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">' + SYS[0].icon + '</svg><span class="cinema-label">Кіновечір</span>';
+    dock.appendChild(cinema);
     var cont = continueTile(byPkg);
     if (cont) dock.appendChild(cont);
     fav.forEach(function (p) { if (byPkg[p]) dock.appendChild(tile(byPkg[p])); });
-    SYS.filter(function (b) { return !(window.TVC && TVC.sysHidden(b.action)); }).forEach(function (b, i) {
+    SYS.filter(function (b) { return b.action !== 'cinema' && !(window.TVC && TVC.sysHidden(b.action)); }).forEach(function (b, i) {
       var el2 = document.createElement('button');
       el2.className = 'sys' + (i === 0 ? ' first' : '');
       el2.setAttribute('data-action', b.action);
