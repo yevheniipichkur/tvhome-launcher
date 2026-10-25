@@ -146,3 +146,23 @@
 .sv-remote small { display: block; font-size: 14px; color: var(--dim); line-height: 1.45; margin-top: 8px; }
 
 .sv-main, .sv-remote .rm-t { min-width: 0; }
+
+/* ---------- slideshow from the phone ---------- */
+.slides { position: absolute; inset: 0; z-index: 95; background: #000; overflow: hidden; }
+.slides[hidden] { display: none; }
+.sl-l { position: absolute; inset: 0; background: center / contain no-repeat; opacity: 0; transition: opacity 1.2s ease; will-change: opacity, transform; }
+.sl-l.on { opacity: 1; }
+.sl-l.kb1 { animation: kb1 9s ease-out forwards; } .sl-l.kb2 { animation: kb2 9s ease-out forwards; }
+.sl-l.kb3 { animation: kb3 9s ease-out forwards; } .sl-l.kb4 { animation: kb4 9s ease-out forwards; }
+@keyframes kb1 { from { transform: scale(1); } to { transform: scale(1.07) translate(-1%, -1%); } }
+@keyframes kb2 { from { transform: scale(1.07) translate(1%, 0); } to { transform: scale(1); } }
+@keyframes kb3 { from { transform: scale(1); } to { transform: scale(1.07) translate(1%, 1%); } }
+@keyframes kb4 { from { transform: scale(1.06) translate(-1%, 1%); } to { transform: scale(1.01); } }
+.slides video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity .6s; background: #000; }
+.slides video.on { opacity: 1; }
+.sl-cap { position: absolute; left: 60px; bottom: 50px; padding: 12px 22px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 20px; opacity: 0; transform: translateY(10px); transition: opacity .5s, transform .5s var(--ease-out); }
+.sl-cap.on { opacity: 1; transform: none; }
+.sl-cap b { color: var(--amber); font-weight: 600; }
+.sl-pause { position: absolute; right: 60px; bottom: 50px; width: 70px; height: 70px; border-radius: 50%; display: grid; place-items: center; background: rgba(0,0,0,.55); color: #fff; font-size: 24px; opacity: 0; transition: opacity .3s; }
+.sl-pause.on { opacity: 1; }
+body.bg-paused .sl-l { animation-play-state: paused; }

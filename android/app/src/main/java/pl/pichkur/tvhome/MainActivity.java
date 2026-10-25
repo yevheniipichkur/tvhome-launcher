@@ -2,6 +2,7 @@ package pl.pichkur.tvhome;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
@@ -76,6 +77,26 @@ public class MainActivity extends Activity {
         ui.post(() -> { if (web != null) web.evaluateJavascript("window.TVS && TVS.toast.apply(null, " + args + ")", null); });
     }
 
+    /** Phone remote → slideshow of the photos/videos it sent: bring the home screen up, then start it. */
+    static void showMedia(Context c, org.json.JSONArray items, int start) {
+        MainActivity m = instance;
+        boolean front = HomeGuardService.homeInFront && m != null;
+        if (!front) {
+            Intent i = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            c.startActivity(i);
+        }
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            MainActivity a = instance;
+            if (a != null && a.web != null) a.web.evaluateJavascript("window.TVS && TVS.slideshow(" + items + "," + start + ")", null);
+        }, front ? 0 : 900);
+    }
+
+    static void slideCtl(String a) {
+        MainActivity m = instance;
+        if (m == null) return;
+        m.ui.post(() -> { if (m.web != null) m.web.evaluateJavascript("window.TVS && TVS.slide('" + a.replaceAll("[^a-z]", "") + "')", null); });
+    }
+
     /** A key from the phone remote while the home screen is in front: same path as the TV remote. */
     void webKey(String k) {
         ui.post(() -> { if (web != null) web.evaluateJavascript("window.tvKey && tvKey('" + k.replaceAll("[^a-z]", "") + "')", null); });
@@ -138,6 +159,39 @@ public class MainActivity extends Activity {
                 if (path.equals("/web/api/state")) {
                     byte[] body = DataService.get(MainActivity.this).snapshot().getBytes(java.nio.charset.StandardCharsets.UTF_8);
                     return new WebResourceResponse("application/json", "utf-8", 200, "OK", headers, new java.io.ByteArrayInputStream(body));
+                }
+                if (path.startsWith("/media/")) {
+                    // photos/videos sent from the phone (MediaShare), with Range support so videos can seek
+                    java.io.File f = MediaShare.file(MainActivity.this, path.substring(7));
+                    if (f == null) return new WebResourceResponse("text/plain", "utf-8", 404, "Not Found", headers, new java.io.ByteArrayInputStream(new byte[0]));
+                    try {
+                        long len = f.length(), from = 0, to = len - 1;
+                        String range = req.getRequestHeaders().get("Range");
+                        java.io.RandomAccessFile raf = new java.io.RandomAccessFile(f, "r");
+                        Map<String, String> h = new HashMap<>();
+                        h.put("Accept-Ranges", "bytes");
+                        if (range != null && range.startsWith("bytes=")) {
+                            String[] p = range.substring(6).split("-");
+                            from = Long.parseLong(p[0]);
+                            if (p.length > 1 && !p[1].isEmpty()) to = Math.min(len - 1, Long.parseLong(p[1]));
+                            raf.seek(from);
+                            h.put("Content-Range", "bytes " + from + "-" + to + "/" + len);
+                            h.put("Content-Length", String.valueOf(to - from + 1));
+                            final long remain = to - from + 1;
+                            java.io.InputStream body = new java.io.InputStream() {
+                                long left = remain;
+                                @Override public int read() throws java.io.IOException { if (left <= 0) return -1; left--; return raf.read(); }
+                                @Override public int read(byte[] b, int off, int n) throws java.io.IOException { if (left <= 0) return -1; int r = raf.read(b, off, (int) Math.min(n, left)); if (r > 0) left -= r; return r; }
+                                @Override public void close() throws java.io.IOException { raf.close(); }
+                            };
+                            return new WebResourceResponse(MediaShare.mime(f.getName()), null, 206, "Partial Content", h, body);
+                        }
+                        raf.close();
+                        h.put("Content-Length", String.valueOf(len));
+                        return new WebResourceResponse(MediaShare.mime(f.getName()), null, 200, "OK", h, new java.io.FileInputStream(f));
+                    } catch (Exception e) {
+                        return null;
+                    }
                 }
                 if (path.startsWith("/web/") && !path.contains("..")) {
                     try {

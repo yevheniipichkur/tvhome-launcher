@@ -75,6 +75,8 @@ final class RemoteServer {
         if (fresh) announce("Підключено: " + name, "пульт з телефону");
     }
 
+    static void announceNow(String title, String sub) { announce(title, sub); }
+
     private static void announce(String title, String sub) {
         MainActivity main = MainActivity.instance;
         if (HomeGuardService.homeInFront && main != null) { main.webToast("phone", title, sub); return; }
@@ -175,6 +177,20 @@ final class RemoteServer {
             String[] parts = reqLine.split(" ");
             String method = parts[0], target = parts.length > 1 ? parts[1] : "/";
             String ipAddr0 = sock.getInetAddress().getHostAddress();
+            if (target.startsWith("/api/media/upload")) {
+                int qi = target.indexOf('?');
+                Map<String, String> a0 = parseQuery(qi >= 0 ? target.substring(qi + 1) : "");
+                OutputStream o0 = sock.getOutputStream();
+                if (!pinOk(ipAddr0, a0, o0)) return;
+                long total = 0;
+                try { total = Long.parseLong(headers.getOrDefault("content-length", "0")); } catch (Exception ignored) { }
+                sock.setSoTimeout(60_000);
+                try {
+                    JSONObject item = MediaShare.save(app, in, total, a0.getOrDefault("file", "file"), "1".equals(a0.get("reset")));
+                    JSONObject r = ok(); r.put("item", item); json(o0, 200, r);
+                } catch (Exception e) { json(o0, 200, err(String.valueOf(e.getMessage()))); }
+                return;
+            }
             if (target.startsWith("/api/install")) {
                 int qi = target.indexOf('?');
                 Map<String, String> a0 = parseQuery(qi >= 0 ? target.substring(qi + 1) : "");
@@ -208,6 +224,15 @@ final class RemoteServer {
                 case "/api/text": json(out, 200, text(new JSONObject(b.isEmpty() ? "{}" : b).optString("text", ""))); return;
                 case "/api/enter": json(out, 200, enter()); return;
                 case "/api/key": json(out, 200, key(args.getOrDefault("k", ""))); return;
+                case "/api/media/show": {
+                    MainActivity.showMedia(app, MediaShare.showList(), Integer.parseInt(args.getOrDefault("start", "0")));
+                    json(out, 200, ok());
+                    return;
+                }
+                case "/api/media/ctl": { MainActivity.slideCtl(args.getOrDefault("a", "")); json(out, 200, ok()); return; }
+                case "/api/music/ctl": { MediaShare.musicCtl(app, args.getOrDefault("a", "")); json(out, 200, ok()); return; }
+                case "/api/open": json(out, 200, open(args.get("url"))); return;
+                case "/api/seek": json(out, 200, seek(args)); return;
                 case "/api/vol": {
                     // the phone's volume slider: an exact level
                     AudioManager am = (AudioManager) app.getSystemService(Context.AUDIO_SERVICE);
@@ -379,11 +404,74 @@ final class RemoteServer {
                 m.put("artist", md.getString(MediaMetadata.METADATA_KEY_ARTIST));
                 m.put("app", label(c.getPackageName()));
                 m.put("playing", ps != null && ps.getState() == PlaybackState.STATE_PLAYING);
+                long dur = md.getLong(MediaMetadata.METADATA_KEY_DURATION);
+                if (dur > 0) m.put("dur", dur);
+                if (ps != null && ps.getPosition() >= 0) {
+                    // the position as of now (the session reports it with its own timestamp and speed)
+                    long pos = ps.getPosition();
+                    if (ps.getState() == PlaybackState.STATE_PLAYING) pos += (long) ((SystemClock.elapsedRealtime() - ps.getLastPositionUpdateTime()) * ps.getPlaybackSpeed());
+                    m.put("pos", Math.max(0, dur > 0 ? Math.min(pos, dur) : pos));
+                    m.put("seek", (ps.getActions() & PlaybackState.ACTION_SEEK_TO) != 0);
+                }
                 o.put("media", m);
                 break;
             }
         } catch (Exception ignored) { // lite edition / no notification access
         }
+        o.put("music", MediaShare.musicState());
+        o.put("show", MediaShare.showList().length());
+        return o;
+    }
+
+    // ---------- seek in whatever is playing (YouTube, players with a media session) ----------
+    private static JSONObject seek(Map<String, String> args) throws Exception {
+        MediaSessionManager msm = (MediaSessionManager) app.getSystemService(Context.MEDIA_SESSION_SERVICE);
+        List<MediaController> list;
+        try { list = msm.getActiveSessions(new ComponentName(app, MediaListener.class)); } catch (Exception e) { return err("sessions"); }
+        for (MediaController c : list) {
+            PlaybackState ps = c.getPlaybackState();
+            if (ps == null) continue;
+            long pos = ps.getPosition();
+            if (ps.getState() == PlaybackState.STATE_PLAYING) pos += SystemClock.elapsedRealtime() - ps.getLastPositionUpdateTime();
+            long to = args.containsKey("ms") ? Long.parseLong(args.get("ms")) : pos + Long.parseLong(args.getOrDefault("rel", "0"));
+            c.getTransportControls().seekTo(Math.max(0, to));
+            return ok();
+        }
+        return err("nothing");
+    }
+
+    // ---------- links from the phone ----------
+    private static JSONObject open(String url) throws Exception {
+        if (url == null) return err("url");
+        url = url.trim();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile("https?://\\S+").matcher(url);
+        if (m.find()) url = m.group(); // shared text often has a title around the link
+        else return err("це не посилання");
+        android.net.Uri u = android.net.Uri.parse(url);
+        String host = u.getHost() == null ? "" : u.getHost().toLowerCase(java.util.Locale.ROOT);
+        Intent i = new Intent(Intent.ACTION_VIEW).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        String how;
+        if (host.endsWith("youtube.com") || host.equals("youtu.be")) {
+            String id = host.equals("youtu.be") ? u.getLastPathSegment() : u.getQueryParameter("v");
+            if (id == null && u.getPath() != null && u.getPath().startsWith("/shorts/")) id = u.getLastPathSegment();
+            i.setData(android.net.Uri.parse(id != null ? "https://www.youtube.com/watch?v=" + id : url));
+            i.setPackage("com.google.android.youtube.tv");
+            how = "YouTube";
+        } else if (url.toLowerCase(java.util.Locale.ROOT).matches(".*\\.(mp4|mkv|m3u8|webm|mov|avi|ts|mp3|m4a)(\\?.*)?$")) {
+            i.setDataAndType(u, url.toLowerCase(java.util.Locale.ROOT).matches(".*\\.(mp3|m4a)(\\?.*)?$") ? "audio/*" : "video/*");
+            how = "плеєр";
+        } else {
+            i.setData(u);
+            how = "браузер";
+        }
+        try {
+            app.startActivity(i);
+        } catch (android.content.ActivityNotFoundException e) {
+            if (i.getPackage() != null) { i.setPackage(null); try { app.startActivity(i); } catch (Exception e2) { return err("немає програми для цього посилання"); } }
+            else return err("немає програми для цього посилання");
+        }
+        JSONObject o = ok();
+        o.put("how", how);
         return o;
     }
 

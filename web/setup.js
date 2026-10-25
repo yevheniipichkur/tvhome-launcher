@@ -505,6 +505,72 @@
     renderWz();
   }
 
+  // ---------- slideshow of photos/videos sent from the phone ----------
+  // Two image layers crossfade; each photo drifts slowly (a gentle Ken Burns), videos play to the end.
+  var sl = { open: false, items: [], i: 0, t: null, paused: false, front: 'sl-a', capT: null };
+  var KB = ['kb1', 'kb2', 'kb3', 'kb4'];
+  function slideshow(items, start) {
+    if (!items || !items.length) return;
+    sl.items = items; sl.i = Math.max(0, Math.min(start || 0, items.length - 1)); sl.open = true; sl.paused = false;
+    if (st.open) close(); if (qk.open) quickClose(); if (wz.open) wzClose(false);
+    $('slides').hidden = false;
+    document.body.classList.add('slides-open');
+    showSlide();
+  }
+  function slideUrl(it) { return '/media/' + encodeURIComponent(it.file); }
+  function showSlide() {
+    clearTimeout(sl.t);
+    var it = sl.items[sl.i], v = $('sl-v');
+    $('sl-pause').classList.remove('on');
+    if (it.kind === 'video') {
+      ['sl-a', 'sl-b'].forEach(function (id) { $(id).classList.remove('on'); });
+      v.src = slideUrl(it); v.classList.add('on'); v.currentTime = 0;
+      var p = v.play(); if (p && p.catch) p.catch(function () {});
+      v.onended = function () { nextSlide(1); };
+    } else {
+      v.pause(); v.removeAttribute('src'); v.load(); v.classList.remove('on');
+      var back = sl.front === 'sl-a' ? 'sl-b' : 'sl-a', el = $(back);
+      var img = new Image();
+      img.onload = img.onerror = function () {
+        el.style.backgroundImage = 'url("' + slideUrl(it) + '")';
+        KB.forEach(function (k) { el.classList.remove(k); });
+        void el.offsetWidth;
+        el.classList.add('on', KB[Math.floor(Math.random() * KB.length)]);
+        $(sl.front).classList.remove('on');
+        sl.front = back;
+        if (!sl.paused) sl.t = setTimeout(function () { nextSlide(1); }, 7000);
+      };
+      img.src = slideUrl(it);
+    }
+    var cap = $('sl-cap');
+    cap.innerHTML = '<b>' + (sl.i + 1) + ' / ' + sl.items.length + '</b> · з телефону';
+    cap.classList.add('on'); clearTimeout(sl.capT); sl.capT = setTimeout(function () { cap.classList.remove('on'); }, 3500);
+  }
+  function nextSlide(d) { sl.i = (sl.i + d + sl.items.length) % sl.items.length; showSlide(); }
+  function slideClose() {
+    clearTimeout(sl.t); sl.open = false;
+    var v = $('sl-v'); v.pause(); v.removeAttribute('src'); v.load();
+    $('slides').hidden = true; document.body.classList.remove('slides-open');
+    if (H().zoneDock) H().zoneDock();
+  }
+  function slide(a) {
+    if (!sl.open) return;
+    if (a === 'next') nextSlide(1);
+    else if (a === 'prev') nextSlide(-1);
+    else if (a === 'close') slideClose();
+    else if (a === 'pause') {
+      sl.paused = !sl.paused;
+      var v = $('sl-v'), it = sl.items[sl.i];
+      if (it.kind === 'video') { if (sl.paused) v.pause(); else v.play(); }
+      else if (sl.paused) clearTimeout(sl.t); else sl.t = setTimeout(function () { nextSlide(1); }, 3000);
+      $('sl-pause').classList.toggle('on', sl.paused);
+    }
+  }
+  function slideKey(k) {
+    if (k === 'left') slide('prev'); else if (k === 'right') slide('next');
+    else if (k === 'ok') slide('pause'); else if (k === 'back' || k === 'up' || k === 'down') slide('close');
+  }
+
   // ---------- keys: settings / quick / wizard own the remote while open ----------
   function keyName(e) {
     var k = e.key || '', c = e.keyCode;
@@ -517,18 +583,19 @@
     return null;
   }
   function onKey(e) {
-    if (!st.open && !qk.open && !wz.open) return;
+    if (!st.open && !qk.open && !wz.open && !sl.open) return;
     if (window.TVC && TVC.cfg && document.body.classList.contains('editing')) return;
     var k = keyName(e);
     if (!k) return;
     e.preventDefault(); e.stopImmediatePropagation();
     if (e.type === 'keyup' || (e.repeat && k === 'ok')) return;
-    if (wz.open) wzKey(k); else if (qk.open) quickKey(k); else settingsKey(k);
+    if (sl.open) slideKey(k); else if (wz.open) wzKey(k); else if (qk.open) quickKey(k); else settingsKey(k);
   }
   window.addEventListener('keydown', onKey, true);
   window.addEventListener('keyup', onKey, true);
   var prevBack = window.tvBack;
   window.tvBack = function () {
+    if (sl.open) { slideClose(); return true; }
     if (wz.open) { wzKey('back'); return true; }
     if (qk.open) { quickKey('back'); return true; }
     if (st.open) { settingsKey('back'); return true; }
@@ -551,5 +618,5 @@
     }
   } catch (e) {}
 
-  window.TVS = { open: open, close: close, quick: quick, wizard: wizard, toast: toast };
+  window.TVS = { open: open, close: close, quick: quick, wizard: wizard, toast: toast, slideshow: slideshow, slide: slide };
 })();

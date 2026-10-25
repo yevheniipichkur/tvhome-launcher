@@ -75,6 +75,49 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .now .pp { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--ivory); color: var(--ink); transition: transform .3s var(--spring); }
 .now .pp:active { transform: scale(.88); }
 
+/* timeline in «now playing» */
+.now { flex-wrap: wrap; }
+.tl { display: none; width: 100%; align-items: center; gap: 10px; margin-top: 12px; }
+.now.seekable .tl { display: flex; }
+.tl .sk { flex: none; height: 38px; padding: 0 12px; border-radius: 12px; background: var(--glass2); border: 1px solid var(--edge); font-size: 13px; font-weight: 500; transition: transform .3s var(--spring); }
+.tl .sk:active { transform: scale(.9); }
+.tl .tr { position: relative; flex: 1; height: 38px; touch-action: none; }
+.tl .tr .rail { position: absolute; left: 0; right: 0; top: 50%; height: 6px; margin-top: -3px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; }
+.tl .tr .rail i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: linear-gradient(90deg, var(--amber2), var(--amber)); }
+.tl .tr .knob { position: absolute; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 5px rgba(244,166,64,.25), 0 2px 8px rgba(0,0,0,.5); left: 0; transition: transform .2s var(--spring); }
+.tl .tr.drag .knob { transform: scale(1.35); }
+.tl .tm { position: absolute; top: -4px; font-size: 11px; color: var(--muted); }
+.tl .tm.a { left: 0; } .tl .tm.b { right: 0; }
+
+/* «На телевізор»: photos, music, links */
+.send { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tile2 { position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 6px 12px; border-radius: 18px; background: var(--glass2); border: 1px solid var(--edge);
+  font-size: 13px; font-weight: 500; cursor: pointer; transition: transform .35s var(--spring); }
+.tile2:active { transform: scale(.94); }
+.tile2 .ti { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; }
+.tile2 .ti svg { width: 24px; height: 24px; }
+.tile2.ph .ti { background: linear-gradient(145deg, rgba(120,170,255,.3), rgba(120,170,255,.08)); color: #9cc2ff; }
+.tile2.mu .ti { background: linear-gradient(145deg, rgba(214,92,255,.3), rgba(214,92,255,.08)); color: #e4a3ff; }
+.tile2.ln .ti { background: linear-gradient(145deg, rgba(244,166,64,.3), rgba(244,166,64,.08)); color: var(--amber2); }
+.tile2 small { font-size: 11px; font-weight: 400; color: var(--muted); margin-top: -4px; }
+.sub2 { display: none; margin-top: 14px; }
+.sub2.on { display: block; animation: rise .45s var(--out) both; }
+.lnk { display: flex; gap: 8px; }
+.lnk input { flex: 1; min-width: 0; height: 50px; border-radius: 15px; border: 1px solid var(--edge2); background: rgba(5,8,13,.55); color: var(--ivory); font: inherit; font-size: 15px; padding: 0 14px; outline: none; user-select: text; -webkit-user-select: text; }
+.lnk input:focus { border-color: rgba(244,166,64,.55); }
+.lnk .btn { flex: none; padding: 0 16px; height: 50px; }
+.lnk-h { font-size: 12px; color: var(--muted); margin: 8px 4px 0; line-height: 1.4; }
+.ctl { display: flex; align-items: center; gap: 10px; }
+.ctl .tt { flex: 1; min-width: 0; }
+.ctl .tt b { display: block; font-size: 14.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ctl .tt small { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+.ctl .cb { flex: none; width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--glass2); border: 1px solid var(--edge); transition: transform .3s var(--spring); }
+.ctl .cb:active { transform: scale(.88); }
+.ctl .cb.main { background: var(--ivory); color: var(--ink); }
+.ctl .cb svg { width: 20px; height: 20px; }
+.mbar { height: 4px; border-radius: 2px; background: rgba(255,255,255,.1); margin-top: 10px; overflow: hidden; }
+.mbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #e4a3ff, #b06bff); transition: width .5s linear; }
+
 /* keyboard */
 .kb { overflow: hidden; }
 .kb::before { content: ''; position: absolute; inset: -1px; border-radius: inherit; padding: 1px; pointer-events: none; opacity: 0; transition: opacity .5s;
@@ -221,7 +264,8 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
   <div class="who rise" id="who" style="animation-delay:.05s"></div>
 
   <section class="card now" id="now"><div class="eq"><b></b><b></b><b></b><b></b></div><div class="meta"><b id="nowT"></b><small id="nowA"></small></div>
-    <button class="pp" data-k="playpause" aria-label="Пауза або відтворення"><svg viewBox="0 0 24 24" id="ppI"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button></section>
+    <button class="pp" data-k="playpause" aria-label="Пауза або відтворення"><svg viewBox="0 0 24 24" id="ppI"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
+    <div class="tl"><button class="sk" data-rel="-10000">−10 с</button><div class="tr" id="tr"><span class="tm a" id="tma"></span><span class="tm b" id="tmb"></span><div class="rail"><i id="tri"></i></div><div class="knob" id="knob"></div></div><button class="sk" data-rel="30000">+30 с</button></div></section>
 
   <section class="card kb rise" id="kb" style="animation-delay:.1s">
     <div class="kb-h" id="kbh">Виберіть поле на телевізорі — і пишіть тут</div>
@@ -267,7 +311,32 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
     </div>
   </section>
 
-  <h2 class="rise" style="animation-delay:.36s">Програми</h2>
+  <h2 class="rise" style="animation-delay:.34s">На телевізор</h2>
+  <section class="card rise" style="animation-delay:.36s">
+    <div class="send">
+      <label class="tile2 ph" for="fph"><span class="ti"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m3.5 17 5-5 4 4 2.5-2.5 5.5 5"/></svg></span>Фото й відео<small>слайд-шоу</small></label>
+      <label class="tile2 mu" for="fmu"><span class="ti"><svg viewBox="0 0 24 24"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></span>Музика<small>через колонки ТВ</small></label>
+      <button class="tile2 ln" id="tln"><span class="ti"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></span>Посилання<small>YouTube, відео</small></button>
+    </div>
+    <input type="file" id="fph" multiple accept="image/*,video/*" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+    <input type="file" id="fmu" multiple accept="audio/*" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none">
+    <div class="prog" id="sprog"><div class="bar"><i id="sbar"></i></div><div class="pl"><b id="sname"></b><span id="sstat"></span></div></div>
+    <div class="sub2" id="lnkbox"><div class="lnk"><input id="lnk" placeholder="Вставте посилання" inputmode="url" autocomplete="off"><button class="btn main" id="lnkgo">Відкрити</button></div>
+      <div class="lnk-h">Скопіюйте посилання в будь-якій програмі телефона («Поділитися» → «Копіювати») і вставте сюди. YouTube відкриється в YouTube, відео — у плеєрі.</div></div>
+    <div class="sub2" id="shctl"><div class="ctl"><div class="tt"><b>Слайд-шоу на телевізорі</b><small id="shinfo"></small></div>
+      <button class="cb" data-sl="prev" aria-label="Попереднє"><svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button>
+      <button class="cb main" data-sl="pause" aria-label="Пауза"><svg viewBox="0 0 24 24"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor" stroke="none"/></svg></button>
+      <button class="cb" data-sl="next" aria-label="Далі"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+      <button class="cb" data-sl="close" aria-label="Закрити"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div></div>
+    <div class="sub2" id="muctl"><div class="ctl"><div class="tt"><b id="mutitle">—</b><small id="muinfo"></small></div>
+      <button class="cb" data-mu="prev" aria-label="Попередній трек"><svg viewBox="0 0 24 24"><path d="M6 5v14M19 5 9 12l10 7z"/></svg></button>
+      <button class="cb main" data-mu="pause" aria-label="Пауза"><svg viewBox="0 0 24 24" id="muI"><path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor" stroke="none"/></svg></button>
+      <button class="cb" data-mu="next" aria-label="Наступний трек"><svg viewBox="0 0 24 24"><path d="M18 5v14M5 5l10 7-10 7z"/></svg></button>
+      <button class="cb" data-mu="stop" aria-label="Зупинити"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor" stroke="none"/></svg></button></div>
+      <div class="mbar"><i id="mubar"></i></div></div>
+  </section>
+
+  <h2 class="rise" style="animation-delay:.38s">Програми</h2>
   <div class="apps" id="apps"></div>
 
   <section class="card rise" style="animation-delay:.4s;margin-top:14px">
@@ -509,6 +578,76 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
     x.send(f);
   };
 
+  // ---------- «На телевізор»: upload a batch with one progress bar, then show / play ----------
+  function uploadBatch(files, onDone) {
+    var list = Array.prototype.slice.call(files), total = 0, done = 0, i = 0, okN = 0;
+    list.forEach(function (f) { total += f.size; });
+    var pr = $('sprog'); pr.className = 'prog on'; $('sbar').style.width = '0';
+    function next() {
+      if (i >= list.length) { pr.classList.add('done'); $('sstat').textContent = okN ? 'готово ✓' : 'не вдалося'; onDone(okN); return; }
+      var f = list[i], x = new XMLHttpRequest();
+      $('sname').textContent = (list.length > 1 ? (i + 1) + ' з ' + list.length + ' · ' : '') + f.name;
+      x.open('POST', '/api/media/upload?pin=' + encodeURIComponent(pin) + '&file=' + encodeURIComponent(f.name) + '&reset=' + (i === 0 ? 1 : 0));
+      x.upload.onprogress = function (e) { var p = (done + e.loaded) / total; $('sbar').style.width = Math.round(p * 100) + '%'; $('sstat').textContent = Math.round(p * 100) + '%'; };
+      x.onload = function () { var r = {}; try { r = JSON.parse(x.responseText); } catch (e) {} if (r.ok) okN++; else toast(f.name + ': ' + (r.error || 'помилка'), '!'); done += f.size; i++; next(); };
+      x.onerror = function () { toast('Зв’язок перервався', '!'); done += f.size; i++; next(); };
+      x.send(f);
+    }
+    next();
+  }
+  $('fph').onchange = function () {
+    var fs = $('fph').files; if (!fs.length) return;
+    uploadBatch(fs, function (n) {
+      $('fph').value = '';
+      if (!n) return;
+      api('media/show', { method: 'POST' }).then(function () { toast('Показую на телевізорі', '▶'); buzz(25); $('shctl').classList.add('on'); $('shinfo').textContent = n + ' ' + (n === 1 ? 'файл' : n < 5 ? 'файли' : 'файлів') + ' · ◀ ▶ гортати'; }).catch(function () {});
+    });
+  };
+  $('fmu').onchange = function () {
+    var fs = $('fmu').files; if (!fs.length) return;
+    uploadBatch(fs, function (n) {
+      $('fmu').value = '';
+      if (n) api('music/ctl?a=play', { method: 'POST' }).then(function () { toast('Грає на телевізорі', '♪'); buzz(25); }).catch(function () {});
+    });
+  };
+  Array.prototype.forEach.call(document.querySelectorAll('[data-sl]'), function (b) {
+    b.onclick = function () { buzz(); var a = b.getAttribute('data-sl'); api('media/ctl?a=' + a, { method: 'POST' }).catch(function () {}); if (a === 'close') $('shctl').classList.remove('on'); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-mu]'), function (b) {
+    b.onclick = function () { buzz(); api('music/ctl?a=' + b.getAttribute('data-mu'), { method: 'POST' }).then(poll).catch(function () {}); };
+  });
+  $('tln').onclick = function () { buzz(); var b = $('lnkbox'); b.classList.toggle('on'); if (b.classList.contains('on')) setTimeout(function () { $('lnk').focus(); }, 80); };
+  $('lnkgo').onclick = function () {
+    var u = $('lnk').value.trim(); if (!u) return;
+    buzz(18);
+    api('open?url=' + encodeURIComponent(u), { method: 'POST' }).then(function (r) {
+      if (r.ok) { toast('Відкриваю: ' + r.how, '▶'); $('lnk').value = ''; } else toast(r.error || 'Не вдалося відкрити', '!');
+    }).catch(function () {});
+  };
+  $('lnk').addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); $('lnkgo').click(); } });
+
+  // ---------- timeline: smooth between polls, drag to seek ----------
+  var tl = { pos: 0, dur: 0, at: 0, playing: false, drag: false };
+  function fmt(ms) { var s = Math.max(0, Math.round(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; return (h ? h + ':' + ('0' + m).slice(-2) : m) + ':' + ('0' + x).slice(-2); }
+  function paintTl(pos) {
+    if (!tl.dur) return;
+    var f = Math.max(0, Math.min(1, pos / tl.dur));
+    $('tri').style.width = (f * 100) + '%'; $('knob').style.left = (f * 100) + '%';
+    $('tma').textContent = fmt(pos); $('tmb').textContent = fmt(tl.dur);
+  }
+  setInterval(function () { if (!tl.drag && tl.playing && tl.dur) paintTl(tl.pos + (Date.now() - tl.at)); }, 500);
+  (function () {
+    var tr = $('tr'), f = 0;
+    function at(x) { var r = tr.getBoundingClientRect(); return Math.max(0, Math.min(1, (x - r.left) / r.width)); }
+    tr.addEventListener('pointerdown', function (e) { if (!tl.dur) return; tl.drag = true; tr.classList.add('drag'); try { tr.setPointerCapture(e.pointerId); } catch (x) {} f = at(e.clientX); paintTl(f * tl.dur); buzz(); });
+    tr.addEventListener('pointermove', function (e) { if (tl.drag) { f = at(e.clientX); paintTl(f * tl.dur); } });
+    function up() { if (!tl.drag) return; tl.drag = false; tr.classList.remove('drag'); var ms = Math.round(f * tl.dur); tl.pos = ms; tl.at = Date.now(); api('seek?ms=' + ms, { method: 'POST' }).catch(function () {}); }
+    tr.addEventListener('pointerup', up); tr.addEventListener('pointercancel', up);
+  })();
+  Array.prototype.forEach.call(document.querySelectorAll('[data-rel]'), function (b) {
+    b.onclick = function () { buzz(); var r = +b.getAttribute('data-rel'); tl.pos = Math.max(0, Math.min(tl.dur || 1e12, tl.pos + (tl.playing ? Date.now() - tl.at : 0) + r)); tl.at = Date.now(); paintTl(tl.pos); api('seek?rel=' + r, { method: 'POST' }).catch(function () {}); };
+  });
+
   // ---------- state ----------
   var wasEditing = false;
   function poll() {
@@ -527,7 +666,16 @@ h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg
         n.classList.add('on'); n.classList.toggle('playing', !!s.media.playing);
         $('nowT').textContent = s.media.title; $('nowA').textContent = [s.media.artist, s.media.app].filter(Boolean).join(' · ');
         $('ppI').innerHTML = s.media.playing ? '<path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor"/>' : '<path d="M8 5v14l11-7z" fill="currentColor"/>';
+        n.classList.toggle('seekable', !!(s.media.dur && s.media.pos != null));
+        if (!tl.drag && s.media.dur) { tl.pos = s.media.pos || 0; tl.dur = s.media.dur; tl.at = Date.now(); tl.playing = !!s.media.playing; paintTl(tl.pos); }
       } else n.classList.remove('on');
+      var mu = s.music || {};
+      $('muctl').classList.toggle('on', !!mu.on);
+      if (mu.on) {
+        $('mutitle').textContent = mu.title; $('muinfo').textContent = 'трек ' + mu.index + ' з ' + mu.tracks + ' · грає на телевізорі';
+        $('mubar').style.width = (mu.dur ? Math.round(mu.pos / mu.dur * 100) : 0) + '%';
+        $('muI').innerHTML = mu.playing ? '<path d="M7 5h3v14H7zM14 5h3v14h-3z" fill="currentColor" stroke="none"/>' : '<path d="M8 5v14l11-7z" fill="currentColor" stroke="none"/>';
+      }
       if (s.volMax && !volDrag) { $('vf').style.width = Math.round((s.muted ? 0 : s.vol) / s.volMax * 100) + '%'; $('vn').textContent = s.muted ? 'без звуку' : s.vol; $('vm').textContent = s.muted ? '' : '/ ' + s.volMax; }
       if (s.adb === 'asking') showNote('asking'); else if (s.adb === 'ok') $('note').classList.remove('on');
       if (!s.imeCurrent && !s.editing) kbHint('warn', 'Щоб писати з телефону, на телевізорі виберіть клавіатуру «Вітальня» (Налаштування → Телефон)');
