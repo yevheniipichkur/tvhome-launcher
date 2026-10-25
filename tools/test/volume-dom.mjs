@@ -18,8 +18,10 @@ try{
  assert(input.disabled);control.sync(state(),0);assert(!input.disabled);assert.equal(panel.querySelector('output').textContent,'53%');
  edit(10);edit(12);edit(14);assert.equal(calls.length,1,'one in-flight slider command');
  control.sync(state(1),0);assert.equal(input.value,'14','old poll cannot overwrite local intent');
+ const duringPending=control.revision();
  calls[0].resolve(state(10));await flush();assert.equal(calls.length,2);assert.equal(calls[1].url,'vol?v=14','latest queued slider intent wins');
  calls[1].resolve(state(14));await flush();assert.equal(panel.querySelector('output').textContent,'93%');
+ control.sync(state(1),duringPending);assert.equal(input.value,'14','a poll started during a pending command cannot roll back after confirmation');
  control.key('mute');calls[2].resolve(state(14,{muted:true}));await flush();assert.equal(panel.querySelector('output').textContent,'0%');assert.equal(input.value,'0');assert.equal(panel.querySelector('[data-volume="mute"]').getAttribute('aria-pressed'),'true');
  edit(6);calls[3].resolve(state(6));await flush();assert.equal(panel.querySelector('output').textContent,'40%');assert.equal(panel.querySelector('[data-volume="mute"]').getAttribute('aria-pressed'),'false');
  edit(9);calls[4].reject(new Error('offline'));await flush();assert.equal(input.value,'6','failed command restores confirmed level');assert(panel.querySelector('.volume-message').textContent.includes('Не вдалося'));

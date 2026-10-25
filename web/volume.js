@@ -54,7 +54,7 @@
     });
     Array.prototype.forEach.call(buttons, function (b) { b.addEventListener('click', function () { feedback(); send('key', b.getAttribute('data-volume')); }); });
     return {
-      revision: function () { return revision; },
+      revision: function () { return pending || queue.length ? -1 : revision; },
       sync: function (s, started) {
         if (started !== revision || pending || queue.length || !usable(s)) return;
         available = true; confirmed = s; paint(s, false); message.textContent = '';
