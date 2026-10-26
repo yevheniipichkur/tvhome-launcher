@@ -65,6 +65,7 @@ public class HomeGuardService extends AccessibilityService {
         super.onServiceConnected();
         instance = this;
         refreshVolumeKeyFilter();
+        if (volumeFallback == null) { volumeFallback = new VolumeFallback(this, this::showVolumeNow); volumeFallback.start(); }
         RemoteServer.start(this); // phone remote keeps working while other apps are in front
         if (!polling) {
             polling = true;
@@ -125,6 +126,7 @@ public class HomeGuardService extends AccessibilityService {
     // Physical keys and phone/settings commands share the same stream controller and native view.
     private final MediaVolume.Keys volumeKeys = new MediaVolume.Keys();
     private VolumeOverlay volumeOverlay;
+    VolumeFallback volumeFallback;
     private boolean onVolumeKey(KeyEvent event) {
         if (event.getAction() == KeyEvent.ACTION_DOWN) volumeKeysReceived++;
         boolean handled = volumeKeys.handle(this, event);
@@ -166,6 +168,7 @@ public class HomeGuardService extends AccessibilityService {
         ui.removeCallbacksAndMessages(null);
         hideBanner(false);
         volumeKeys.clear();
+        if (volumeFallback != null) volumeFallback.close();
         if (volumeOverlay != null) volumeOverlay.close();
         super.onDestroy();
     }

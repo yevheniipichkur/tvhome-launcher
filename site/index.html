@@ -145,7 +145,8 @@ footer a { color: var(--muted); }
   .band { padding: 50px 22px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } .reveal { opacity: 1; transform: none; } }
-.phones { display: grid; grid-template-columns: 1.35fr .65fr; gap: 22px; align-items: end; }
+.phones { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; align-items: start; }
+.phones .shot { grid-column: 1 / -1; }
 .phones .pm img { width: 100%; border-radius: 26px; border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0,0,0,.45); }
 @media (max-width: 760px) { .phones { grid-template-columns: 1fr; } .phones .pm { max-width: 300px; margin: 0 auto; } }
 </style>
@@ -222,7 +223,7 @@ footer a { color: var(--muted); }
         <p>Наведіть камеру телефону на QR-код у налаштуваннях — і пишіть з телефону в будь-якому полі на телевізорі: пошук YouTube чи Lampa, пароль Wi‑Fi. Кирилицею теж, без жодних застосунків.</p>
         <ul><li>Текст з’являється на телевізорі одразу, поки ви пишете</li><li>Стрілки, ОК, «Назад», «Додому», пауза, гучність, запуск програм</li><li>Працює в домашній мережі, захищено шестизначним кодом</li></ul>
       </div>
-      <div class="phones"><div class="shot"><img src="img/phone-tv.jpg?v=146" alt="Налаштування → Телефон: QR-код і код для підключення" loading="lazy" width="1600" height="900"></div><div class="pm"><img src="img/phone.jpg?v=146" alt="Пульт «Вітальні» на телефоні: поле для тексту, круглий джойстик, медіа й гучність" loading="lazy"></div></div>
+      <div class="phones"><div class="shot"><img src="img/phone-tv.jpg?v=146" alt="Налаштування → Телефон: QR-код і код для підключення" loading="lazy" width="1600" height="900"></div><div class="pm"><img src="img/phone.jpg?v=150" alt="Пульт «Вітальні» на телефоні: поле для тексту, круглий джойстик, медіа й гучність" loading="lazy"></div><div class="pm"><img src="img/phone-tp.jpg?v=150" alt="Тачпад: жести пальцем замість кнопок" loading="lazy"></div><div class="pm"><img src="img/phone-send.jpg?v=150" alt="З телефону на телевізор: фото, музика, посилання й встановлення APK" loading="lazy"></div></div>
     </div>
 
     <div class="feature flip reveal">

@@ -17,6 +17,8 @@ public class MediaVolumeTest {
   keys.handle(c,new KeyEvent(0,25));keys.handle(c,new KeyEvent(0,25));keys.handle(c,new KeyEvent(1,25));check(c.audio.current==7,"volume hold still repeats");
   c.audio.muted=true;check(MediaVolume.change(c,12,0).optBoolean("ok"),"slider success");check(!c.audio.muted&&c.audio.current==12,"slider restores audible media");
   check(MediaVolume.snapshot(c).getInt("volPercent")==80,"native percentage");
+  check(MediaVolume.wasOwnChange(12,false),"own command signature suppresses duplicate firmware popup");
+  check(!MediaVolume.wasOwnChange(13,false),"different physical level is not suppressed");
   c.audio.fixed=true;int count=c.audio.changes;check(!MediaVolume.change(c,2,0).optBoolean("ok"),"fixed output rejected");check(!keys.handle(c,new KeyEvent(0,24)),"fixed keys go to firmware");check(count==c.audio.changes,"no changes to fixed output");c.audio.fixed=false;
   c.custom=false;check(!keys.handle(c,new KeyEvent(0,24)),"disabled custom UI leaves physical keys alone");MediaVolume.change(c,5,0);check(c.audio.flags==AudioManager.FLAG_SHOW_UI,"disabled uses system fallback");
   c.custom=true;keys.handle(c,new KeyEvent(0,24));c.custom=false;check(keys.handle(c,new KeyEvent(1,24)),"paired up remains consumed after preference change");

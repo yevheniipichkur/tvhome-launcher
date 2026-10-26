@@ -7,6 +7,14 @@ import org.json.JSONObject;
 
 /** All controls operate only on the box's media stream, never an HDMI/CEC TV command. */
 final class MediaVolume {
+    private static volatile boolean changing;
+    private static volatile long ownChangedAt;
+    private static volatile int ownLevel;
+    private static volatile boolean ownMuted;
+    static boolean wasOwnChange(int level, boolean muted) {
+        long age = System.currentTimeMillis() - ownChangedAt;
+        return changing || (age >= 0 && age < 600 && level == ownLevel && muted == ownMuted);
+    }
     private static AudioManager audio(Context c) { return (AudioManager) c.getSystemService(Context.AUDIO_SERVICE); }
     static boolean custom(Context c) { return c.getSharedPreferences("tvhome", Context.MODE_PRIVATE).getBoolean("vol_ui", true); }
     static boolean canShowCustom(Context c) {
@@ -31,6 +39,7 @@ final class MediaVolume {
             AudioManager a = audio(c);
             if (a == null) return new JSONObject().put("ok", false).put("error", "audio");
             if (a.isVolumeFixed()) return snapshot(c).put("ok", false).put("error", "volume-fixed");
+            changing = true;
             int flags = canShowCustom(c) ? 0 : AudioManager.FLAG_SHOW_UI;
             if (exact != null) {
                 int v = VolumeScale.clamp(exact, a.getStreamMaxVolume(AudioManager.STREAM_MUSIC));
@@ -38,6 +47,9 @@ final class MediaVolume {
                 if (v > 0 && a.isStreamMute(AudioManager.STREAM_MUSIC)) a.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0);
                 a.setStreamVolume(AudioManager.STREAM_MUSIC, v, flags);
             } else a.adjustStreamVolume(AudioManager.STREAM_MUSIC, direction, flags);
+            ownLevel = a.getStreamVolume(AudioManager.STREAM_MUSIC);
+            ownMuted = a.isStreamMute(AudioManager.STREAM_MUSIC);
+            ownChangedAt = System.currentTimeMillis();
             if (canShowCustom(c)) {
                 HomeGuardService g = HomeGuardService.instance;
                 if (g != null) g.showVolumeNow(); else MainActivity.instance.showVolumeNow();
@@ -45,7 +57,7 @@ final class MediaVolume {
             return snapshot(c);
         } catch (Exception ignored) {
             try { return new JSONObject().put("ok", false).put("error", "volume"); } catch (Exception impossible) { return new JSONObject(); }
-        }
+        } finally { changing = false; }
     }
     /** Tracks consumed DOWN/UP pairs; holding mute never toggles it repeatedly. */
     static final class Keys {

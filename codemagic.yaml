@@ -30,7 +30,7 @@ workflows:
           PLAYWRIGHT_PATH="$CM_BUILD_DIR/.ci-web/node_modules/playwright" node tools/test/cinema-celebration-ui.cjs
           PLAYWRIGHT_PATH="$CM_BUILD_DIR/.ci-web/node_modules/playwright" node tools/test/volume-ui.cjs
           mkdir -p "$CM_BUILD_DIR/.ci-volume"
-          javac -d "$CM_BUILD_DIR/.ci-volume" android/app/src/main/java/pl/pichkur/tvhome/VolumeScale.java tools/test/VolumeScaleTest.java
+          javac -d "$CM_BUILD_DIR/.ci-volume" android/app/src/main/java/pl/pichkur/tvhome/VolumeScale.java android/app/src/main/java/pl/pichkur/tvhome/VolumeChangeTracker.java tools/test/VolumeScaleTest.java
           java -cp "$CM_BUILD_DIR/.ci-volume" pl.pichkur.tvhome.VolumeScaleTest
           curl --fail --silent --show-error https://repo.maven.apache.org/maven2/org/json/json/20250517/json-20250517.jar -o "$CM_BUILD_DIR/.ci-volume/json.jar"
           javac -cp "$CM_BUILD_DIR/.ci-volume/json.jar" -d "$CM_BUILD_DIR/.ci-volume/controller" $(find tools/test/volume-support -name '*.java') android/app/src/main/java/pl/pichkur/tvhome/MediaVolume.java android/app/src/main/java/pl/pichkur/tvhome/VolumeScale.java tools/test/MediaVolumeTest.java

@@ -63,7 +63,9 @@ news and an app shelf. The UI is in Ukrainian. MIT licensed.*
 | ![Сапфір і золото](docs/screenshots/mirror.jpg) «Сапфір і золото», макет «Дзеркало» | ![Неон](docs/screenshots/neon.jpg) «Неон» |
 | ![Графіт і мідь](docs/screenshots/copper.jpg) «Графіт і мідь» | ![Мінімал](docs/screenshots/minimal.jpg) Макет «Мінімал» |
 
-<img src="docs/screenshots/phone.jpg" alt="Пульт «Вітальні» на телефоні" width="300"> &nbsp; Пульт на телефоні: текст одразу з’являється в полі на телевізорі.
+<img src="docs/screenshots/phone.jpg" alt="Пульт: клавіатура й перемотка" width="260"> <img src="docs/screenshots/phone-tp.jpg" alt="Тачпад" width="260"> <img src="docs/screenshots/phone-send.jpg" alt="З телефону на телевізор" width="260">
+
+Пульт на телефоні: текст одразу з’являється в полі на телевізорі, тачпад із жестами, фото, музика й посилання — на телевізор, встановлення APK.
 
 ## Дві версії
 

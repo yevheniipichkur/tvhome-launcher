@@ -20,11 +20,16 @@ final class VolumeSupport {
             if (enabled != null) for (String item : enabled.split(":")) if (own.equals(ComponentName.unflattenFromString(item))) listed = true;
             HomeGuardService g = HomeGuardService.instance;
             AccessibilityServiceInfo info = g == null ? null : g.getServiceInfo();
+            o.put("androidSdk", android.os.Build.VERSION.SDK_INT);
             o.put("edition", BuildConfig.LITE ? "lite" : "full").put("version", BuildConfig.VERSION_NAME).put("uiEnabled", MediaVolume.custom(c));
             o.put("enabled", listed).put("connected", g != null);
             o.put("filterRequested", info != null && (info.flags & AccessibilityServiceInfo.FLAG_REQUEST_FILTER_KEY_EVENTS) != 0);
             o.put("filterCapable", info != null && (info.getCapabilities() & AccessibilityServiceInfo.CAPABILITY_CAN_REQUEST_FILTER_KEY_EVENTS) != 0);
             o.put("receivedKeys", g == null ? 0 : g.volumeKeysReceived).put("handledKeys", g == null ? 0 : g.volumeKeysHandled);
+            VolumeFallback fallback = g == null ? null : g.volumeFallback;
+            o.put("firmwareObserver", fallback != null && fallback.registered);
+            o.put("mirroredChanges", fallback == null ? 0 : fallback.mirroredChanges);
+            o.put("stockDismissRequests", fallback == null ? 0 : fallback.dismissRequests);
             JSONArray others = new JSONArray();
             AccessibilityManager a = (AccessibilityManager)c.getSystemService(Context.ACCESSIBILITY_SERVICE);
             if (a != null) for (AccessibilityServiceInfo service : a.getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_ALL_MASK)) {
